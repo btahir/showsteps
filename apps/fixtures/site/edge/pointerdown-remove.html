@@ -9,13 +9,13 @@
 </head>
 <body>
   <!-- E3c: the button removes itself on pointerdown and a full-width banner replaces the page. -->
-  <div id="banner" hidden style="position:fixed;inset:0 0 auto 0;height:160px;background:#7a1fa2;color:#fff;display:grid;place-items:center;font-size:24px">Gone</div>
+  <div id="banner" style="position:fixed;inset:0 0 auto 0;height:160px;background:#7a1fa2;color:#fff;display:none;place-items:center;font-size:24px">Gone</div>
   <main>
     <h1>Remove on press</h1>
     <button id="vanish" type="button" style="width:220px;height:80px;background:#0a8f3c;color:#fff;border:0;border-radius:10px;font:600 18px system-ui">Press me</button>
   </main>
   <script>
-    document.getElementById("vanish").addEventListener("pointerdown", (e) => { e.currentTarget.remove(); document.getElementById("banner").hidden = false; });
+    document.getElementById("vanish").addEventListener("pointerdown", (e) => { e.currentTarget.remove(); document.getElementById("banner").style.display = "grid"; });
   </script>
 </body>
 </html>

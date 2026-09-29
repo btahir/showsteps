@@ -105,21 +105,32 @@ describe("CaptureQueue", () => {
     expect(starts).toEqual([0, 520, 1040]);
   });
 
-  it("runs idle (settled-frame) captures only when the queue is quiet", async () => {
+  it("runs idle (settled-frame) captures in the next free slot, only when the queue is quiet", async () => {
     const clock = fakeClock();
     const q = new CaptureQueue({ clock, maxCalls: 1, windowMs: 520, marginMs: 0 });
-    expect(await q.scheduleIdle("w", async () => "first")).toBe("first");
-    // Too soon after the last capture: skipped, nothing runs.
-    let ran = false;
-    expect(await q.scheduleIdle("w", async () => ((ran = true), "x"))).toBeNull();
-    expect(ran).toBe(false);
+    const starts: number[] = [];
+    expect(await q.scheduleIdle("w", async () => (starts.push(clock.now()), "first"))).toBe("first");
+    // Right after a capture: waits for the slot instead of being skipped.
+    expect(await q.scheduleIdle("w", async () => (starts.push(clock.now()), "second"))).toBe("second");
+    expect(starts).toEqual([0, 520]);
     clock.t += 1000;
     // Something queued: skipped so the real capture is not delayed.
     const real = q.schedule("w", async () => "real");
     expect(await q.scheduleIdle("w2", async () => "idle")).toBeNull();
     expect(await real).toBe("real");
-    clock.t += 1000;
-    expect(await q.scheduleIdle("w", async () => "later")).toBe("later");
+  });
+
+  it("a real capture replaces an idle refresh that is still waiting for its slot", async () => {
+    const clock = fakeClock();
+    const q = new CaptureQueue({ clock, maxCalls: 1, windowMs: 520, marginMs: 0 });
+    await q.schedule("w", async () => "click");
+    let idleRan = false;
+    const idle = q.scheduleIdle("w", async () => ((idleRan = true), "idle"));
+    const real = q.schedule("w", async () => "next click");
+    expect(await idle).toBeNull();
+    expect(await real).toBe("next click");
+    expect(idleRan).toBe(false);
+    expect(q.size).toBe(0);
   });
 
   it("reports the delay until the next free slot", () => {

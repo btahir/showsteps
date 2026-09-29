@@ -30,6 +30,8 @@ interface Job<T> {
   resolve: (v: T) => void;
   reject: (e: unknown) => void;
   started: boolean;
+  /** Low priority: dropped (resolved null) when a real capture arrives before it started. */
+  idle?: boolean;
 }
 
 export function isQuotaError(e: unknown): boolean {
@@ -64,6 +66,11 @@ export class CaptureQueue {
    * shares its result instead of adding another capture.
    */
   schedule<T>(key: string, run: () => Promise<T>): Promise<T> {
+    // A real capture never waits behind a settled-frame refresh that has not started yet.
+    for (const j of this.jobs.filter((j) => j.idle && !j.started)) {
+      this.jobs.splice(this.jobs.indexOf(j), 1);
+      j.resolve(null);
+    }
     const waiting = this.jobs.find((j) => j.key === key && !j.started);
     if (waiting) return waiting.promise as Promise<T>;
     let resolve!: (v: T) => void;
@@ -79,13 +86,24 @@ export class CaptureQueue {
   }
 
   /**
-   * Low-priority capture (a "settled frame" refresh): runs only when nothing is queued and the
-   * last capture started at least `gapMs` ago; otherwise resolves to null without capturing,
-   * so it never delays a capture a step is waiting for.
+   * Low-priority capture (a "settled frame" refresh). Queued only when nothing else is: it waits
+   * for the next free slot, and a real capture scheduled meanwhile replaces it (it then resolves
+   * null without capturing), so it never delays a capture a step is waiting for. At human pace this
+   * is what gives every click a frame from before it: the refresh lands in the gap between clicks.
+   * `gapMs` optionally asks for more quiet since the last capture started.
    */
-  scheduleIdle<T>(key: string, run: () => Promise<T>, gapMs = 1000): Promise<T | null> {
-    if (this.jobs.length > 0 || this.clock.now() - this.lastStart < gapMs || this.delayUntilSlot() > 0) return Promise.resolve(null);
-    return this.schedule(key, run);
+  scheduleIdle<T>(key: string, run: () => Promise<T>, gapMs = 0): Promise<T | null> {
+    if (this.jobs.length > 0 || this.clock.now() - this.lastStart < gapMs) return Promise.resolve(null);
+    let resolve!: (v: T | null) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<T | null>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    const job: Job<T | null> = { key, run, promise, resolve, reject, started: false, idle: true };
+    this.jobs.push(job as Job<unknown>);
+    void this.drain();
+    return promise;
   }
 
   /** Milliseconds to wait before another call may start (0 = now). */
@@ -101,6 +119,12 @@ export class CaptureQueue {
     this.draining = true;
     try {
       while (this.jobs.length) {
+        const wait0 = this.delayUntilSlot();
+        if (wait0 > 0) {
+          // Sleep, then look again: the head job may have been replaced (a dropped idle refresh).
+          await this.clock.sleep(wait0);
+          continue;
+        }
         const job = this.jobs[0]!;
         let attempt = 0;
         for (;;) {
@@ -124,7 +148,8 @@ export class CaptureQueue {
             break;
           }
         }
-        this.jobs.shift();
+        const i = this.jobs.indexOf(job);
+        if (i >= 0) this.jobs.splice(i, 1);
       }
     } finally {
       this.draining = false;

@@ -21,7 +21,7 @@ export type FrameMsg =
   | { [TAG]: 1; kind: "scan"; id: string }
   | { [TAG]: 1; kind: "scan-reply"; id: string; rects: Rect[]; labels?: (string | null)[]; kinds?: string[]; incomplete?: boolean }
   | { [TAG]: 1; kind: "offset"; id: string }
-  | { [TAG]: 1; kind: "offset-reply"; id: string; x: number; y: number; scaleX?: number; scaleY?: number; metrics?: unknown };
+  | { [TAG]: 1; kind: "offset-reply"; id: string; x: number; y: number; scaleX?: number; scaleY?: number; metrics?: unknown; /** CSS selectors of the frame elements from the top down to this frame. */ frame?: string[] };
 
 export function isFrameMsg(d: unknown): d is FrameMsg {
   return !!d && typeof d === "object" && (d as Record<string, unknown>)[TAG] === 1 && typeof (d as { id?: unknown }).id === "string";
@@ -110,6 +110,17 @@ export function offsetInto(rects: Rect[], box: Rect & { scaleX?: number; scaleY?
   return out;
 }
 
+/** True when `w` is one of `win`'s ancestor windows (parent, grandparent, ... top). */
+export function isAncestor(win: Window, w: unknown): boolean {
+  if (!w) return false;
+  let cur: Window = win;
+  for (let guard = 0; guard < 16 && cur !== cur.parent; guard++) {
+    cur = cur.parent;
+    if (cur === w) return true;
+  }
+  return false;
+}
+
 let seq = 0;
 export const msgId = () => `${Date.now().toString(36)}${(seq++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -120,7 +131,11 @@ export const msgId = () => `${Date.now().toString(36)}${(seq++).toString(36)}${M
 export function ask<R extends FrameMsg>(target: Window, msg: FrameMsg, replyKind: R["kind"], timeoutMs: number): Promise<R | undefined> {
   return new Promise((resolve) => {
     const onMsg = (e: MessageEvent) => {
-      if (e.source !== target || !isFrameMsg(e.data) || e.data.kind !== replyKind || e.data.id !== msg.id) return;
+      // The answer to a parent may come from the recorder of an ancestor that manages the parent
+      // (a same-origin middle frame is handled by the top frame's recorder, whose messages carry
+      // the top window as their source).
+      const fromTarget = e.source === target || (target === window.parent && isAncestor(window, e.source));
+      if (!fromTarget || !isFrameMsg(e.data) || e.data.kind !== replyKind || e.data.id !== msg.id) return;
       done(e.data as R);
     };
     const timer = setTimeout(() => done(undefined), timeoutMs);

@@ -16,7 +16,7 @@ import { frameLooksSensitive, sameOriginFrames, scanSensitiveLabeled } from "../
 import { scanTextSecrets } from "../lib/text-scan";
 import type { PatternOptions } from "../lib/text-patterns";
 import { parseRedactPrefs, REDACT_PREFS_KEY } from "../lib/prefs";
-import { ask, contentBox, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
+import { ask, contentBox, isAncestor, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
 import { composeHops, rectThroughHop, visualViewportOf } from "../lib/rect";
 import type { FrameHop } from "../lib/rect";
 import { viewOf } from "../lib/frame-pick";
@@ -49,7 +49,12 @@ interface SensitiveScan {
 
 interface PendingPointer {
   el: Element;
+  /** Pointer position at pointerdown (viewport CSS px of the event's document). */
+  x: number;
+  y: number;
   captureId: string;
+  /** A settled refresh in flight at the press (the worker uses it if it was taken before the press). */
+  inflightId?: string;
   target: ElementDescriptor;
   rect: Rect;
   metrics: NonNullable<StepDraft["metrics"]>;
@@ -208,6 +213,12 @@ export default defineUnlistedScript(() => {
         if (!entry.ok && settled === entry) setTimeout(scheduleSettle, 1100);
       })
       .catch(() => {});
+  }
+
+  /** A settled refresh requested after the last change and not answered yet (it may still show the page before the action). */
+  function inflightSettled(): string | undefined {
+    const s = settled;
+    return isTop && s && !s.done && lastDirtyAt + 80 <= s.sentAt && s.sig === viewportSig() ? s.captureId : undefined;
   }
 
   /** The settled frame if the page has not changed since it was requested, else a live capture. */
@@ -421,12 +432,19 @@ export default defineUnlistedScript(() => {
   }
 
   /** Where this root's viewport sits in the top-level viewport, and the top page's metrics. */
-  async function offsetInTop(): Promise<FrameHop & { metrics?: StepDraft["metrics"]; ok: boolean }> {
-    if (isTop) return { x: 0, y: 0, scaleX: 1, scaleY: 1, metrics: metrics(), ok: true };
+  async function offsetInTop(): Promise<FrameHop & { metrics?: StepDraft["metrics"]; ok: boolean; frame: string[] }> {
+    if (isTop) return { x: 0, y: 0, scaleX: 1, scaleY: 1, metrics: metrics(), ok: true, frame: [] };
     const r = await ask<Extract<FrameMsg, { kind: "offset-reply" }>>(window.parent, { [TAG]: 1, kind: "offset", id: msgId() }, "offset-reply", HANDSHAKE_MS);
     return r
-      ? { x: r.x, y: r.y, scaleX: r.scaleX ?? 1, scaleY: r.scaleY ?? 1, metrics: r.metrics as StepDraft["metrics"], ok: true }
-      : { x: 0, y: 0, scaleX: 1, scaleY: 1, ok: false };
+      ? { x: r.x, y: r.y, scaleX: r.scaleX ?? 1, scaleY: r.scaleY ?? 1, metrics: r.metrics as StepDraft["metrics"], ok: true, frame: Array.isArray(r.frame) ? r.frame.filter((f) => typeof f === "string") : [] }
+      : { x: 0, y: 0, scaleX: 1, scaleY: 1, ok: false, frame: [] };
+  }
+
+  /** Selectors of a frame element as replay needs them: same-origin frames above it, then the frame itself. */
+  function frameElementChain(fe: Element): string[] {
+    const d = describe(fe);
+    const css = d.locators.find((l) => l.kind === "css")?.value ?? (fe.id ? `#${CSS.escape(fe.id)}` : fe.localName);
+    return [...(d.frame ?? []), css];
   }
 
   /** Every frame element in the documents this root manages (its own and same-origin frames). */
@@ -448,7 +466,7 @@ export default defineUnlistedScript(() => {
     if (!isFrameMsg(e.data) || !e.source) return;
     const msg = e.data;
     const source = e.source as Window;
-    if (msg.kind === "scan" && source === window.parent && !isTop) {
+    if (msg.kind === "scan" && !isTop && isAncestor(window, source)) {
       const r = await allSensitive(collectSensitive());
       source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects: r.rects, labels: r.labels, kinds: r.kinds, incomplete: r.incomplete } satisfies FrameMsg, "*");
     } else if (msg.kind === "offset") {
@@ -459,7 +477,7 @@ export default defineUnlistedScript(() => {
       const mine = await offsetInTop();
       if (!mine.ok) return; // our own parent is silent: let the child time out too (fail closed)
       const hop = composeHops([mine, hopToRoot(frame.ownerDocument), local]);
-      source.postMessage({ [TAG]: 1, kind: "offset-reply", id: msg.id, x: hop.x, y: hop.y, scaleX: hop.scaleX, scaleY: hop.scaleY, metrics: mine.metrics } satisfies FrameMsg, "*");
+      source.postMessage({ [TAG]: 1, kind: "offset-reply", id: msg.id, x: hop.x, y: hop.y, scaleX: hop.scaleX, scaleY: hop.scaleY, metrics: mine.metrics, frame: [...mine.frame, ...frameElementChain(frame)] } satisfies FrameMsg, "*");
     }
   }
 
@@ -473,11 +491,20 @@ export default defineUnlistedScript(() => {
 
   let chain: Promise<void> = Promise.resolve();
   let chainDepth = 0;
+  /** The last click step, so the second click of a double click can amend it. */
+  let lastClick: { el: Element; at: number; cid: string; captureId: string; snap?: PendingPointer; double?: boolean } | undefined;
   /** The last step this recorder sent, and the field it typed into (typing amends need it). */
   let lastSent: { cid: string; fieldKey?: string } | undefined;
 
-  function emit(action: StepAction, el: Element | undefined, captureId: string | undefined, snap?: PendingPointer, typing?: { fieldKey: string }): void {
-    if (!recording) return;
+  function emit(
+    action: StepAction,
+    el: Element | undefined,
+    captureId: string | undefined,
+    snap?: PendingPointer,
+    typing?: { fieldKey: string },
+    amendCid?: string,
+  ): string | undefined {
+    if (!recording) return undefined;
     const cid = newCaptureId();
     const draft: StepDraft = {
       action,
@@ -488,6 +515,7 @@ export default defineUnlistedScript(() => {
     };
     // More typing in the field of the previous step (nothing else in between): amend that step.
     if (typing && lastSent?.fieldKey === typing.fieldKey) draft.amends = lastSent.cid;
+    if (amendCid) draft.amends = amendCid;
     lastSent = { cid, fieldKey: typing?.fieldKey };
     if (el) {
       draft.target = snap?.target ?? describe(el);
@@ -509,10 +537,11 @@ export default defineUnlistedScript(() => {
       if (r.kinds.length) draft.sensitiveKinds = r.kinds;
       if (r.incomplete) draft.scanIncomplete = true;
     };
+    const prefer = snap?.inflightId ? { preferCaptureIds: [snap.inflightId], actionAt: snap.at } : {};
     if (isTop && !scan.remote && chainDepth === 0) {
       withScan(scan.local);
-      send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft });
-      return;
+      send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft, ...prefer });
+      return cid;
     }
     chainDepth++;
     chain = chain
@@ -532,6 +561,9 @@ export default defineUnlistedScript(() => {
             draft.needsReview = "frame-handshake";
           } else {
             const shift = (r: Rect): Rect => rectThroughHop(r, off);
+            // The frame chain for replay: the frames above this one (from the handshake), then the
+            // same-origin frames inside it that describeElement already saw.
+            if (draft.target && off.frame.length) draft.target = { ...draft.target, frame: [...off.frame, ...(draft.target.frame ?? [])] };
             if (draft.rect) draft.rect = shift(draft.rect);
             if (draft.labelRect) draft.labelRect = shift(draft.labelRect);
             draft.sensitiveRects = (draft.sensitiveRects ?? []).map(shift);
@@ -539,12 +571,13 @@ export default defineUnlistedScript(() => {
           // Unknown metrics are filled in by the worker from the tab.
           draft.metrics = off.metrics;
         }
-        send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft });
+        send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft, ...prefer });
       })
       .catch(() => {})
       .finally(() => {
         chainDepth--;
       });
+    return cid;
   }
 
   // ---- typing -------------------------------------------------------------------------------
@@ -605,6 +638,22 @@ export default defineUnlistedScript(() => {
     return isEl(e.target) ? e.target : null;
   }
 
+  /**
+   * For keyboard and input events: the focused element, looking into closed shadow roots too
+   * (their events reach us retargeted to the host; chrome.dom opens the root for us).
+   */
+  function focusOrigin(e: Event): Element | null {
+    let el = origin(e);
+    for (let guard = 0; el && guard < 8; guard++) {
+      const sr = shadowRootOf(el);
+      if (!sr || el.shadowRoot) break; // open roots are already in composedPath
+      const inner = sr.activeElement;
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    return el;
+  }
+
   /** Editable host for an input event target (contenteditable children bubble up to the host). */
   function fieldOf(el: Element): Element | null {
     if (tagIs(el, "input") || tagIs(el, "textarea") || tagIs(el, "select")) return el;
@@ -640,9 +689,22 @@ export default defineUnlistedScript(() => {
     "pointerdown",
     (e) => {
       if (!recording || !e.isTrusted || e.button !== 0) return;
+      const t0 = DEBUG ? performance.now() : 0;
+      try {
+        onPointerDown(e);
+      } finally {
+        if (DEBUG) console.debug(`[showsteps] pointerdown-ms ${(performance.now() - t0).toFixed(2)}`);
+      }
+    },
+  );
+
+  function onPointerDown(e: PointerEvent): void {
+    {
       const el = safeTarget(e);
       if (!el) return;
+      const inflightId = inflightSettled();
       const captureId = preActionCapture();
+      if (DEBUG) console.debug(`[showsteps] pre ${captureId === settled?.captureId ? "settled" : captureId === goodSettled?.captureId ? "good" : "live"} ok=${settled?.ok} done=${settled?.done} dirtyAgo=${Date.now() - lastDirtyAt} sentAgo=${settled ? Date.now() - settled.sentAt : -1} sig=${settled?.sig === viewportSig()}`);
       queueMicrotask(markDirty);
       const field = tracker.pendingKey;
       // A click anywhere but the field being typed in ends that field's step; both share the frame.
@@ -650,7 +712,10 @@ export default defineUnlistedScript(() => {
       const rect = rectInRoot(el);
       pending = {
         el,
+        x: e.clientX,
+        y: e.clientY,
         captureId,
+        inflightId,
         target: describe(el),
         rect,
         metrics: metrics(),
@@ -659,8 +724,8 @@ export default defineUnlistedScript(() => {
         corner: cornerFor(el, rect),
         at: Date.now(),
       };
-    },
-  );
+    }
+  }
 
   on(
     "click",
@@ -673,12 +738,52 @@ export default defineUnlistedScript(() => {
       if (e.detail === 0 && now < suppressKeyboardClickUntil) return;
       // Toggles and selects are recorded from their change event; text fields from typing.
       if (isToggle(el) || tagIs(el, "select") || tagIs(el, "option") || isTextField(el)) return;
+      // A label that controls one of those: its control's change event is the step (E2g).
+      const lab = (tagIs(el, "label") ? el : el.closest?.("label")) as HTMLLabelElement | null;
+      const ctrl = lab?.control;
+      if (ctrl && (isToggle(ctrl) || tagIs(ctrl, "select") || isTextField(ctrl))) return;
+      // A drag that selected text is not a click (E2i): the pointer travelled and left a selection.
+      if (pending && Math.hypot(e.clientX - pending.x, e.clientY - pending.y) > 6) {
+        const sel = el.ownerDocument.getSelection?.();
+        if (sel && !sel.isCollapsed && sel.toString().trim()) {
+          pending = undefined;
+          return;
+        }
+      }
       const snap = pending && now - pending.at < 5000 && related(pending.el, el) ? pending : undefined;
       pending = undefined;
+      // The second click of a double click upgrades the first click's step (PLAN §3.6), with the
+      // first click's frame and measurements.
+      const prev = lastClick;
+      if (e.detail > 1 && prev && prev.el === el && now - prev.at < 500) {
+        prev.at = now;
+        if (!prev.double) {
+          prev.double = true;
+          emit({ type: "click", double: true }, el, prev.captureId, prev.snap, undefined, prev.cid);
+        }
+        return;
+      }
       const captureId = snap?.captureId ?? requestCapture();
       if (!snap) flushTyping(captureId);
       const action: StepAction = e.button === 1 ? { type: "click", button: "middle" } : { type: "click" };
-      emit(action, el, captureId, snap);
+      const cid = emit(action, el, captureId, snap);
+      lastClick = cid ? { el, at: now, cid, captureId, snap } : undefined;
+    },
+  );
+
+  // A target that removed itself on press gets no click event (the browser has nothing to click):
+  // the press was still the user's action, so it becomes the step, with the frame from before it (E3c).
+  on(
+    "pointerup",
+    (e) => {
+      if (!recording || !e.isTrusted || e.button !== 0) return;
+      const snap = pending;
+      if (!snap) return;
+      setTimeout(() => {
+        if (pending !== snap || snap.el.isConnected) return;
+        pending = undefined;
+        emit({ type: "click" }, snap.el, snap.captureId, snap);
+      }, 60);
     },
   );
 
@@ -697,7 +802,7 @@ export default defineUnlistedScript(() => {
   on(
     "focusin",
     (e) => {
-      const el = origin(e);
+      const el = focusOrigin(e);
       const field = el && fieldOf(el);
       if (field && isTextField(field)) focusValues.set(field, isSensitive(field) ? "" : valueOf(field));
     },
@@ -707,9 +812,31 @@ export default defineUnlistedScript(() => {
     "input",
     (e) => {
       if (!recording || !e.isTrusted) return;
-      const o = origin(e);
+      const o = focusOrigin(e);
       const el = o && fieldOf(o);
       if (!el || !isTextField(el)) return;
+      onTyped(el);
+    },
+  );
+
+  // Editors that own their model (Lexical, and ProseMirror for some input) cancel beforeinput and
+  // write the DOM themselves, so no trusted input event follows: read the field once the page's
+  // own handlers have run (PLAN §3.6: beforeinput plus input).
+  on(
+    "beforeinput",
+    (e) => {
+      if (!recording || !e.isTrusted) return;
+      const o = focusOrigin(e);
+      const el = o && fieldOf(o);
+      if (!el || !isTextField(el)) return;
+      setTimeout(() => {
+        if (e.defaultPrevented && recording) onTyped(el);
+      }, 0);
+    },
+  );
+
+  function onTyped(el: Element): void {
+    {
       const sensitive = isSensitive(el);
       const key = keyOf(el);
       tracker.input(key, sensitive ? "" : valueOf(el), {
@@ -724,8 +851,8 @@ export default defineUnlistedScript(() => {
       typingShot = setTimeout(() => {
         if (recording && tracker.pendingKey === key) tracker.touch(key, { el, captureId: requestCapture() });
       }, 350);
-    },
-  );
+    }
+  }
 
   on(
     "change",
@@ -785,7 +912,7 @@ export default defineUnlistedScript(() => {
     "keydown",
     (e) => {
       if (!recording || !e.isTrusted || e.isComposing || MODIFIER_KEYS.has(e.key)) return;
-      const o = origin(e);
+      const o = focusOrigin(e);
       const field = o ? fieldOf(o) : null;
       const inText = !!field && isTextField(field);
       const hasMod = e.ctrlKey || e.metaKey || e.altKey;
@@ -814,7 +941,7 @@ export default defineUnlistedScript(() => {
     "focusout",
     (e) => {
       if (!recording) return;
-      const o = origin(e);
+      const o = focusOrigin(e);
       const field = o && fieldOf(o);
       if (field && tracker.pendingKey === keyOf(field)) flushTyping(undefined, keyOf(field));
     },

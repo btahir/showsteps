@@ -8,7 +8,7 @@ import { CaptureQueue } from "../lib/capture-queue";
 import { buildStep, newGuide, safeTitle, titleFromPage } from "../lib/steps";
 import type { FrameInfo, StepDraft } from "../lib/steps";
 import { amendStep, appendStep, indexOfStep, newId } from "../lib/guide-ops";
-import { deleteGuide, getGuide, mutateGuide, putGuide, putImage } from "../lib/db";
+import { ACTIVE_KEY, deleteGuide, getGuide, mutateGuide, putGuide, putImage, setInterrupted } from "../lib/db";
 import { bakeRedactions } from "../lib/render";
 import { createNavTracker, forgetTab, isRecordableUrl, noteAction, shouldRecordNavigation } from "../lib/nav";
 import { blobToBase64, OriginalStore, PORT_NAME } from "../lib/originals";
@@ -26,6 +26,9 @@ const ORIGINALS_GRACE_MS = 2000;
 interface Frame extends FrameInfo {
   blob: Blob;
   at: number;
+  /** Date.now() right before captureVisibleTab ran, and right after it returned. */
+  startedAt?: number;
+  doneAt?: number;
   /** Tab URL right after the capture, and whether a navigation was already under way. */
   url?: string;
   leaving?: boolean;
@@ -52,7 +55,9 @@ export default defineBackground(() => {
   const tabFrames = new Map<number, string[]>();
   // e2e builds log which capture rung each step used (PLAN §3.4), in storage.session["debug:capture"].
   const DEBUG = import.meta.env.MODE === "e2e";
-  const debugLog: { title: string; rung: string; amend?: boolean; stepId?: string; review?: boolean; needsReview?: string; scanMs?: number; highlight?: boolean }[] = [];
+  const captureCalls: number[] = [];
+  const captureErrors: string[] = [];
+  const debugLog: { title: string; rung: string; amend?: boolean; stepId?: string; review?: boolean; needsReview?: string; scanMs?: number; highlight?: boolean; baked?: boolean; tabId?: number }[] = [];
   const nav = createNavTracker();
   const newTabs = new Set<number>();
   const pendingNav = new Map<number, { url: string; timer: ReturnType<typeof setTimeout> }>();
@@ -72,7 +77,22 @@ export default defineBackground(() => {
       if (state.status === "stopping") state = IDLE;
       if (!isActive(state)) void unregisterRecorder();
     })
-    .catch(() => {});
+    .catch(() => {})
+    .then(recoverInterrupted);
+
+  /**
+   * A recording that never reached Stop (the browser closed or crashed: storage.session is gone,
+   * the storage.local marker is not) becomes an "interrupted" draft the library offers to Recover
+   * or Discard (PLAN §3.3.6).
+   */
+  async function recoverInterrupted(): Promise<void> {
+    if (isActive(state)) return;
+    const r = await chrome.storage.local.get(ACTIVE_KEY).catch(() => ({}) as Record<string, unknown>);
+    const id = r[ACTIVE_KEY];
+    if (typeof id !== "string") return;
+    await chrome.storage.local.remove(ACTIVE_KEY).catch(() => {});
+    if (await getGuide(id)) await setInterrupted(id, true).catch(() => {});
+  }
 
   async function dispatch(e: SessionEvent): Promise<SessionState> {
     const next = reduceSession(state, e);
@@ -182,8 +202,22 @@ export default defineBackground(() => {
       return null;
     }
     let dataUrl: string;
+    const startedAt = Date.now();
+    if (DEBUG) {
+      // E3e: every captureVisibleTab call, to check the 2-per-second window from outside.
+      captureCalls.push(startedAt);
+      void chrome.storage.session.set({ "debug:captures": captureCalls.slice(-400) }).catch(() => {});
+    }
+    let doneAt: number;
     try {
       dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+      doneAt = Date.now();
+    } catch (e) {
+      if (DEBUG) {
+        captureErrors.push(String((e as Error)?.message ?? e));
+        void chrome.storage.session.set({ "debug:capture-errors": captureErrors.slice(-50) }).catch(() => {});
+      }
+      throw e;
     } finally {
       showBar(tabId);
     }
@@ -198,7 +232,7 @@ export default defineBackground(() => {
     }
     const blob = await (await fetch(dataUrl)).blob();
     const bmp = await createImageBitmap(blob);
-    const frame: Frame = { blob, width: bmp.width, height: bmp.height, at: Date.now(), url: after?.url, leaving: !!after?.pendingUrl || (!!after?.url && after.url !== tab.url) };
+    const frame: Frame = { blob, width: bmp.width, height: bmp.height, at: Date.now(), startedAt, doneAt, url: after?.url, leaving: !!after?.pendingUrl || (!!after?.url && after.url !== tab.url) };
     bmp.close();
     return frame;
   }
@@ -238,10 +272,28 @@ export default defineBackground(() => {
    * own, then any other capture of this tab, such as the navigate capture of this page); else a
    * late live capture. Frames that show another page are never used.
    */
-  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined, fallbackIds: string[] = [], pageUrl?: string): Promise<Shot> {
+  async function frameFor(
+    captureId: string | undefined,
+    tabId: number,
+    windowId: number | undefined,
+    fallbackIds: string[] = [],
+    pageUrl?: string,
+    prefer: { ids: string[]; actionAt?: number } = { ids: [] },
+  ): Promise<Shot> {
     // A frame taken while the page was already leaving (or after its URL changed) shows the
     // destination, not what was clicked (design review R2-1): never use it for this step.
     const stale = (f: Frame) => !!f.leaving || !sameDoc(f.url, pageUrl);
+    // A settled refresh that was already on its way when the user pressed: if its capture had
+    // finished before the press, it is the exact page before the action. (Finished, not started:
+    // the pixels come from a compositor frame produced while the call runs, which may already
+    // show what the press changed.)
+    if (prefer.actionAt !== undefined) {
+      for (const id of prefer.ids) {
+        const e = frames.get(id);
+        const pf = e && e.tabId === tabId ? await e.frame : null;
+        if (pf && !stale(pf) && pf.doneAt !== undefined && pf.doneAt <= prefer.actionAt) return { frame: pf, rung: "settled", view: e!.view, scan: e!.scan };
+      }
+    }
     const entry = captureId ? frames.get(captureId) : undefined;
     const f = entry ? await entry.frame : null;
     if (f && !stale(f)) return { frame: f, rung: entry!.settled ? "settled" : "live", view: entry!.view, scan: entry!.scan };
@@ -310,6 +362,8 @@ export default defineBackground(() => {
           ...(needsReview ? { needsReview } : {}),
           ...(scanMs !== undefined ? { scanMs } : {}),
           highlight: !!step.screenshot?.highlight,
+          baked: !!step.screenshot?.redactions?.length,
+          tabId,
         });
         await chrome.storage.session.set({ "debug:capture": debugLog }).catch(() => {});
       }
@@ -464,6 +518,7 @@ export default defineBackground(() => {
     if (!originalPorts.size) originals.clear();
     lastByTab.clear();
     await dispatch({ type: "start", guideId, windowId, tabIds, at: localIso(now), scope });
+    await chrome.storage.local.set({ [ACTIVE_KEY]: guideId }).catch(() => {});
     await chrome.storage.session.set({ lastGuideId: guideId }).catch(() => {});
     if (allSites) await registerRecorder().catch((e) => console.warn("Showsteps: register failed", e));
     await Promise.all(scoped.filter((t) => t.id !== undefined && isRecordableUrl(t.url)).map((t) => inject(t.id!)));
@@ -503,6 +558,7 @@ export default defineBackground(() => {
     const guideId = state.guideId;
     const windowId = state.windowId;
     await dispatch({ type: "stopped" });
+    await chrome.storage.local.remove(ACTIVE_KEY).catch(() => {});
     // Straight to the editor, where the guide gets reviewed (if anything was recorded).
     if (guideId && opts.openEditor !== false && (await getGuide(guideId))) {
       await chrome.tabs.create({ url: chrome.runtime.getURL(`/editor.html?guide=${encodeURIComponent(guideId)}`), windowId }).catch(() => {});
@@ -579,7 +635,14 @@ export default defineBackground(() => {
               draft.metrics = { devicePixelRatio: 1, viewport: { width: sender.tab.width, height: sender.tab.height, scrollX: 0, scrollY: 0 } };
             }
           }
-          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId, msg.fallbackCaptureIds ?? (msg.fallbackCaptureId ? [msg.fallbackCaptureId] : []), draft.page.url));
+          void addStep(
+            tabId,
+            draft,
+            frameFor(msg.captureId, tabId, sender.tab?.windowId, msg.fallbackCaptureIds ?? (msg.fallbackCaptureId ? [msg.fallbackCaptureId] : []), draft.page.url, {
+              ids: msg.preferCaptureIds ?? [],
+              actionAt: msg.actionAt,
+            }),
+          );
         });
         return false;
       case "ctl:discard":

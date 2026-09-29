@@ -45,7 +45,7 @@ test.afterAll(async () => {
   await h?.close();
 });
 
-test("records the 10-step, 2-tab fixture flow and exports it without the password", async () => {
+test("E1a G3 G4 G5 records the 10-step, 2-tab fixture flow and exports it without the password", async () => {
   const { context } = h;
   const main = await context.newPage();
   const log: string[] = [];
@@ -262,6 +262,32 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
   expect(ok.stdout).toMatch(/1 passed/);
   const noSecret = replay({ SHOWSTEPS_SECRET_1: "" });
   expect(noSecret.stdout).toMatch(/1 skipped/);
+
+  // ---- G4 negative control: the same spec against the mutated site (login button renamed) fails
+  // on a locator timeout within 15 s. The spec is unchanged; only the runner config (ours, as in G6)
+  // bounds each action at 10 s.
+  const mutate = async (on: boolean) => {
+    const r = await fetch(`${FIXTURES}/__fixtures/mutate?on=${on ? 1 : 0}`);
+    const body = (await r.json().catch(() => null)) as { mutate?: boolean } | null;
+    expect(body?.mutate, "fixture server with mutate support (restart an old server on 4517)").toBe(on);
+  };
+  writeFileSync(
+    join(REPLAY, "playwright.g4.config.ts"),
+    `import { defineConfig } from "@playwright/test";\nexport default defineConfig({ testDir: ".", timeout: 30_000, workers: 1, reporter: [["line"]], use: { headless: true, actionTimeout: 10_000 }, outputDir: "./results-g4" });\n`,
+  );
+  await mutate(true);
+  try {
+    const t0 = Date.now();
+    const bad = spawnSync(cli, ["test", "--config", join(REPLAY, "playwright.g4.config.ts")], { cwd: REPLAY, env: { ...baseEnv, SHOWSTEPS_SECRET_1: SECRET }, encoding: "utf8", timeout: 120_000 });
+    const elapsed = Date.now() - t0;
+    writeFileSync(join(OUT, "replay-g4-output.txt"), `${bad.stdout}\n${bad.stderr}\nelapsed ${elapsed} ms`);
+    expect(bad.status, "G4: the replay must fail against the mutated site").not.toBe(0);
+    expect(`${bad.stdout}${bad.stderr}`).toMatch(/1 failed/);
+    expect(`${bad.stdout}${bad.stderr}`).toMatch(/Timeout \d+ms exceeded|waiting for/i);
+    expect(elapsed, "G4: fails within 15 s").toBeLessThanOrEqual(15_000);
+  } finally {
+    await mutate(false);
+  }
 
   // ---- import the project back (agent hand-off path) ------------------------------------------
   const projectPath = join(OUT, readdirSync(OUT).find((f) => f.endsWith(".showsteps"))!);

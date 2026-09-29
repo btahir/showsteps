@@ -17,6 +17,12 @@ export type RecorderMessage =
       fallbackCaptureId?: string;
       /** Earlier frames of the same document, newest first (the worker takes the first that still shows it). */
       fallbackCaptureIds?: string[];
+      /**
+       * A settled-frame refresh that was in flight at the action and would show the page before it:
+       * used when its capture started before `actionAt` (Date.now() at pointerdown).
+       */
+      preferCaptureIds?: string[];
+      actionAt?: number;
     };
 
 /** Extension pages → worker */

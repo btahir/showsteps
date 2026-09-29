@@ -89,8 +89,9 @@ export function scanTextSecrets(doc: Document, opts: TextScanOptions): TextScanR
     const ownerDoc = root.nodeType === 9 ? (root as Document) : root.ownerDocument!;
     const walker = ownerDoc.createTreeWalker(root, 0x1 | 0x4 /* SHOW_ELEMENT | SHOW_TEXT */, {
       acceptNode(node) {
-        // Skip script/style subtrees entirely (FILTER_REJECT), keep walking everything else.
-        return node.nodeType === 1 && SKIP.has((node as Element).localName) ? 2 : 1;
+        // Skip script/style subtrees and our own recording bar (it is hidden in every capture, and
+        // it shows the page's host name, which may be an IP address) entirely (FILTER_REJECT).
+        return node.nodeType === 1 && (SKIP.has((node as Element).localName) || (node as Element).localName === "showsteps-recording-bar") ? 2 : 1;
       },
     });
     let range: Range | undefined;
