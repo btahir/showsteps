@@ -7,6 +7,7 @@ import type { Guide, Rect, Step } from "../schema";
 import { highlightScale } from "../geometry";
 import { DEFAULT_HIGHLIGHT_COLOR, imageSpace, renderStepImage } from "../raster";
 import { pngSize } from "../png";
+import { typographicQuotes } from "../text";
 import { displayUrl } from "./shared";
 
 // ---------------------------------------------------------------------------------------------
@@ -79,8 +80,21 @@ export interface InlineRun {
 
 const INLINE_RE = /\*\*([^]+?)\*\*|__([^]+?)__|`([^`]+)`|\[([^\]]+)\]\([^)]*\)|\*([^*\s][^*]*)\*/g;
 
-/** Inline Markdown to runs. Keeps **bold**; flattens links, `code` and *italic* to plain text. */
+/**
+ * Inline Markdown to runs. Keeps **bold**; flattens links, `code` and *italic* to plain text. Straight
+ * quotes become typographic ones (see `typographicQuotes`): the documents are for people to read.
+ */
 export function parseInline(md: string): InlineRun[] {
+  const raw = parseInlineRaw(md);
+  let prev = "";
+  return raw.map((r) => {
+    const text = typographicQuotes(r.text, prev);
+    prev = r.text.slice(-1) || prev;
+    return r.bold ? { text, bold: true } : { text };
+  });
+}
+
+function parseInlineRaw(md: string): InlineRun[] {
   const runs: InlineRun[] = [];
   const push = (text: string, bold?: boolean) => {
     if (!text) return;
@@ -107,8 +121,9 @@ function flatten(s: string): string {
   return s.replace(/`([^`]+)`/g, "$1");
 }
 
+/** Plain text of inline Markdown, straight quotes kept (for metadata and search). */
 export function stripInline(md: string): string {
-  return parseInline(md)
+  return parseInlineRaw(md)
     .map((r) => r.text)
     .join("");
 }

@@ -127,6 +127,27 @@ export function plainTitle(title: string): string {
     .join("");
 }
 
+const OPENERS = /[\s(\[{<*\u2014\u2013\u2018\u201c]/;
+
+/**
+ * Typographic quotes for display: `"a"` becomes \u201ca\u201d and `it's` becomes it\u2019s. Generated titles keep
+ * straight quotes on purpose (they are what the BRIEF grammar and every plain-text export use, and the
+ * plain-text form is easy to search and diff), but fonts such as Rethink Sans draw the straight quote as a
+ * slanted closing mark, so anything that shows a title to a person (HTML, PDF, DOCX, the editor) should run it
+ * through this. `prev` is the character before `s` when `s` is a fragment of a longer text.
+ */
+export function typographicQuotes(s: string, prev = ""): string {
+  let out = "";
+  let before = prev.slice(-1);
+  for (const ch of s) {
+    if (ch === '"') out += before === "" || OPENERS.test(before) ? "\u201c" : "\u201d";
+    else if (ch === "'") out += before === "" || OPENERS.test(before) ? "\u2018" : "\u2019";
+    else out += ch;
+    before = ch;
+  }
+  return out;
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

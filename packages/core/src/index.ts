@@ -6,7 +6,7 @@ export * from "./redact";
 export * from "./geometry";
 export * from "./png";
 export * from "./raster";
-export { parseInline, plainTitle, escapeInline, type InlineRun } from "./text";
+export { parseInline, plainTitle, escapeInline, typographicQuotes, type InlineRun } from "./text";
 export * from "./bundle";
 export { canonicalJson } from "./json";
 export { visibleSteps, renderGuideImages, resolveIncludeUrls, stepNumbers, displayUrl, formatDate, type ImageRenderOptions } from "./export/shared";

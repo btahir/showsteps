@@ -1,7 +1,7 @@
 import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
-import { exportPdf, type Guide, type Step } from "../src";
+import { exportPdf, typographicQuotes, type Guide, type Step } from "../src";
 import { fixtureGuide, fixtureImages } from "./fixtures/guide";
 import { SAMPLE_CANARY_PASSWORD, sample11Guide, sample11Images } from "./fixtures/sample11";
 import { sha256 } from "./golden";
@@ -34,7 +34,7 @@ async function imageXObjects(bytes: Uint8Array): Promise<number> {
   return n;
 }
 
-const plain = (title: string): string => title.replace(/\*\*/g, "");
+const plain = (title: string): string => typographicQuotes(title.replace(/\*\*/g, ""));
 
 describe("B-PDF: exportPdf(sample-11) parsed back", () => {
   const sample = sample11Guide();

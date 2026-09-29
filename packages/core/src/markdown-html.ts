@@ -1,4 +1,4 @@
-import { escapeHtml, parseInline } from "./text";
+import { escapeHtml, parseInline, typographicQuotes } from "./text";
 
 /**
  * Tiny, safe Markdown to HTML for guide and step descriptions. Supports paragraphs (newlines become
@@ -9,10 +9,13 @@ import { escapeHtml, parseInline } from "./text";
 
 const SAFE_HREF = /^(https?:\/\/|mailto:)/i;
 
-export function renderInlineHtml(md: string): string {
+export function renderInlineHtml(md: string, opts: { smartQuotes?: boolean } = {}): string {
+  let prev = "";
   return parseInline(md)
     .map((r) => {
-      let html = escapeHtml(r.text);
+      const text = opts.smartQuotes && !r.code ? typographicQuotes(r.text, prev) : r.text;
+      prev = r.text.slice(-1) || prev;
+      let html = escapeHtml(text);
       if (r.code) html = `<code>${html}</code>`;
       if (r.italic) html = `<em>${html}</em>`;
       if (r.bold) html = `<b>${html}</b>`;
@@ -24,13 +27,13 @@ export function renderInlineHtml(md: string): string {
     .join("");
 }
 
-export function renderMarkdownHtml(md: string): string {
+export function renderMarkdownHtml(md: string, opts: { smartQuotes?: boolean } = {}): string {
   const lines = md.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   let para: string[] = [];
   const flushPara = (): void => {
     if (para.length) {
-      out.push(`<p>${para.map(renderInlineHtml).join("<br>")}</p>`);
+      out.push(`<p>${para.map((l) => renderInlineHtml(l, opts)).join("<br>")}</p>`);
       para = [];
     }
   };
@@ -53,13 +56,13 @@ export function renderMarkdownHtml(md: string): string {
       i++;
     } else if (/^#{1,6}\s+/.test(line)) {
       flushPara();
-      out.push(`<p><b>${renderInlineHtml(line.replace(/^#{1,6}\s+/, ""))}</b></p>`);
+      out.push(`<p><b>${renderInlineHtml(line.replace(/^#{1,6}\s+/, ""), opts)}</b></p>`);
       i++;
     } else if (/^\s*>\s?/.test(line)) {
       flushPara();
       const q: string[] = [];
       while (i < lines.length && /^\s*>\s?/.test(lines[i] as string)) q.push((lines[i++] as string).replace(/^\s*>\s?/, ""));
-      out.push(`<blockquote>${renderMarkdownHtml(q.join("\n"))}</blockquote>`);
+      out.push(`<blockquote>${renderMarkdownHtml(q.join("\n"), opts)}</blockquote>`);
     } else if (/^\s*([-*+])\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) {
       flushPara();
       const ordered = /^\s*\d+[.)]\s+/.test(line);
@@ -71,7 +74,7 @@ export function renderMarkdownHtml(md: string): string {
         items.push(item);
       }
       const tag = ordered ? "ol" : "ul";
-      out.push(`<${tag}>${items.map((it) => `<li>${it.split("\n").map(renderInlineHtml).join("<br>")}</li>`).join("")}</${tag}>`);
+      out.push(`<${tag}>${items.map((it) => `<li>${it.split("\n").map((l) => renderInlineHtml(l, opts)).join("<br>")}</li>`).join("")}</${tag}>`);
     } else {
       para.push(line.trim());
       i++;

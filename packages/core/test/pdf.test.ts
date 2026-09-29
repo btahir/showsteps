@@ -231,7 +231,7 @@ describe("exportPdf", () => {
 describe("doc-shared", () => {
   it("parses inline Markdown", () => {
     expect(parseInline('Type "a" in **Email** or [link](http://x) `code` *it*')).toEqual([
-      { text: 'Type "a" in ' },
+      { text: 'Type \u201ca\u201d in ' },
       { text: "Email", bold: true },
       { text: " or link code it" },
     ]);

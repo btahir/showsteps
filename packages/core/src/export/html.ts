@@ -36,8 +36,8 @@ function stepHtml(step: Step, n: number, images: ImageSource, includeUrls: boole
   const parts: string[] = [];
   parts.push(`<li class="step${step.action.type === "note" ? " note" : ""}" id="step-${n}">`);
   parts.push(`<span class="flag" aria-hidden="true">${n}</span>`);
-  parts.push(`<div><h2>${renderInlineHtml(step.title.trim() || "Step")}</h2>`);
-  if (step.description?.trim()) parts.push(`<div class="desc">${renderMarkdownHtml(step.description)}</div>`);
+  parts.push(`<div><h2>${renderInlineHtml(step.title.trim() || "Step", { smartQuotes: true })}</h2>`);
+  if (step.description?.trim()) parts.push(`<div class="desc">${renderMarkdownHtml(step.description, { smartQuotes: true })}</div>`);
   parts.push("</div>");
   const showUrl = includeUrls && !!step.page.url;
   if (bytes || showUrl) {
@@ -97,7 +97,7 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
   html.push("<header>");
   html.push(`<div class="eyebrow"><span class="flag sm" aria-hidden="true">${steps.length}</span><span class="mono">${steps.length === 1 ? "STEP" : "STEPS"} · ${minutes(steps.length)}</span></div>`);
   html.push(`<h1>${escapeHtml(title)}</h1>`);
-  if (guide.description?.trim()) html.push(`<div class="lede">${renderMarkdownHtml(guide.description)}</div>`);
+  if (guide.description?.trim()) html.push(`<div class="lede">${renderMarkdownHtml(guide.description, { smartQuotes: true })}</div>`);
   if (facts.length) html.push(`<div class="facts">${facts.join("")}</div>`);
   html.push("</header>");
   html.push('<ol class="steps">');

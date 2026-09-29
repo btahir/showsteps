@@ -1,11 +1,11 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { exportDocx, type Guide, type Step } from "../src";
+import { exportDocx, typographicQuotes, type Guide, type Step } from "../src";
 import { SAMPLE_CANARY_PASSWORD, sample11Guide, sample11Images } from "./fixtures/sample11";
 import { sha256 } from "./golden";
 
-const plain = (t: string): string => t.replace(/\*\*/g, "");
+const plain = (t: string): string => typographicQuotes(t.replace(/\*\*/g, ""));
 const unxml = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 
 describe("B-DOCX: exportDocx(sample-11) parsed back", () => {
