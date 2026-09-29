@@ -30,7 +30,7 @@ showsteps export reset-password.showsteps --format skill --out ./skill --json`;
 
 const mcpConfig = `{
   "mcpServers": {
-    "showsteps": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+    "showsteps": { "command": "npx", "args": ["-y", "@showsteps/mcp"] }
   }
 }`;
 
@@ -74,7 +74,7 @@ const path = "/docs/agents/";
         </p>
 
         <h2>CLI</h2>
-        <Code code={`npx -y @stepsnap/cli --help`} caption="shell" />
+        <Code code={`npx -y @showsteps/cli --help`} caption="shell" />
         <div class="table-scroll" role="region" aria-label="CLI commands" tabindex="0">
           <table class="compare">
             <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
@@ -133,7 +133,7 @@ const path = "/docs/agents/";
 
         <h2>MCP server</h2>
         <p><code>showsteps-mcp</code> speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.</p>
-        <Code code={`claude mcp add showsteps -- npx -y @stepsnap/mcp`} caption="Claude Code" />
+        <Code code={`claude mcp add showsteps -- npx -y @showsteps/mcp`} caption="Claude Code" />
         <Code code={mcpConfig} caption="Claude Desktop (claude_desktop_config.json) and Cursor (.cursor/mcp.json)" />
         <div class="table-scroll" role="region" aria-label="MCP tools" tabindex="0">
           <table class="compare">

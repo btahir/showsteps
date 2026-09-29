@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 // Run only through the shared limiter:
-//   research/heavy.sh pnpm --filter @stepsnap/dom exec playwright test --workers=2
+//   research/heavy.sh pnpm --filter @showsteps/dom exec playwright test --workers=2
 export default defineConfig({
   testDir: "e2e",
   testMatch: /.*\.spec\.ts/,

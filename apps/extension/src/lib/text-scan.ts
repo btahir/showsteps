@@ -7,7 +7,7 @@
 // Values of ordinary text inputs are checked too (a card number pasted into a notes field):
 // the whole field is blurred. Values never leave the page, only rectangles do.
 
-import type { Rect } from "@stepsnap/core";
+import type { Rect } from "@showsteps/core";
 import { findSecrets, KIND_LABEL, mightContainSecret } from "./text-patterns";
 import type { PatternOptions, SecretKind } from "./text-patterns";
 

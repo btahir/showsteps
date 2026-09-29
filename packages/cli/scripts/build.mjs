@@ -1,4 +1,4 @@
-// Bundles the CLI (with @stepsnap/core inlined) into one file that runs on plain Node, e.g. via npx.
+// Bundles the CLI (with @showsteps/core inlined) into one file that runs on plain Node, e.g. via npx.
 import { build } from "esbuild";
 import { chmod } from "node:fs/promises";
 

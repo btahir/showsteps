@@ -2,8 +2,8 @@
 // recorder measures how much page text each of the four candidate tab positions would cover and
 // stores the corner with the least (`screenshot.highlight.corner`). Brand's tabCorner() uses it,
 // and its edge rules still keep the tab inside the image.
-import type { Rect, TabCorner } from "@stepsnap/core";
-import { highlight as flag, minRingBox } from "@stepsnap/brand";
+import type { Rect, TabCorner } from "@showsteps/core";
+import { highlight as flag, minRingBox } from "@showsteps/brand";
 
 /** The four places the tab could go, in the page's CSS px (the same geometry the export draws). */
 export function tabCandidates(target: Rect, viewportWidth: number): Record<TabCorner, Rect> {

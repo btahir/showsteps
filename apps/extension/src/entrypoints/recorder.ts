@@ -7,8 +7,8 @@
 // screen (shadow DOM and frames included) so those pixels get redacted.
 
 import { localIso } from "../lib/time";
-import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@stepsnap/dom";
-import type { ElementDescriptor, Rect, StepAction, TabCorner } from "@stepsnap/core";
+import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@showsteps/dom";
+import type { ElementDescriptor, Rect, StepAction, TabCorner } from "@showsteps/core";
 import { TypingTracker } from "../lib/typing";
 import { RecBar } from "../lib/rec-bar";
 import { pickCorner, tabCandidates, textRectsNear } from "../lib/tab-corner";
@@ -57,7 +57,7 @@ interface PendingPointer {
 
 declare global {
   interface Window {
-    __stepsnapRecorder?: { sync(): void };
+    __showstepsRecorder?: { sync(): void };
   }
 }
 
@@ -66,8 +66,8 @@ export default defineUnlistedScript(() => {
   if (!isRootFrame()) return;
   const isTop = window.top === window;
   const DEBUG = import.meta.env.MODE === "e2e";
-  if (window.__stepsnapRecorder) {
-    window.__stepsnapRecorder.sync();
+  if (window.__showstepsRecorder) {
+    window.__showstepsRecorder.sync();
     return;
   }
 
@@ -266,7 +266,7 @@ export default defineUnlistedScript(() => {
 
   /**
    * Every sensitive field on screen, in this root's viewport CSS px: our document, open and
-   * closed shadow roots, same-origin frames (via @stepsnap/dom and our own walk), and
+   * closed shadow roots, same-origin frames (via @showsteps/dom and our own walk), and
    * cross-origin frames, whose recorders are asked over postMessage. A frame that does not
    * answer in time is blurred whole when it looks like a payment or sign-in widget.
    */
@@ -281,7 +281,7 @@ export default defineUnlistedScript(() => {
       labels.push(r.label ?? null);
     }
     try {
-      // @stepsnap/dom's scan as a second opinion (duplicates are merged when the step is built).
+      // @showsteps/dom's scan as a second opinion (duplicates are merged when the step is built).
       for (const r of domSensitiveRects(document, { pad: 2 })) {
         rects.push(r);
         labels.push(null);
@@ -811,7 +811,7 @@ export default defineUnlistedScript(() => {
       .catch(() => {});
   }
 
-  window.__stepsnapRecorder = { sync };
+  window.__showstepsRecorder = { sync };
   sync();
   // Back/forward cache restores keep this script alive; re-check the recording state.
   window.addEventListener("pageshow", (e) => e.persisted && sync());

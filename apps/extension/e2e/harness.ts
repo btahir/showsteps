@@ -60,7 +60,7 @@ export async function readGuide(page: Page, guideId: string): Promise<any> {
   return page.evaluate(
     (id) =>
       new Promise((res, rej) => {
-        const r = indexedDB.open("stepsnap");
+        const r = indexedDB.open("showsteps");
         r.onerror = () => rej(r.error);
         r.onsuccess = () => {
           const tx = r.result.transaction("guides", "readonly");
@@ -78,7 +78,7 @@ export async function readImage(page: Page, guideId: string, path: string): Prom
   return page.evaluate(
     ({ id, p }) =>
       new Promise<string | undefined>((res, rej) => {
-        const r = indexedDB.open("stepsnap");
+        const r = indexedDB.open("showsteps");
         r.onerror = () => rej(r.error);
         r.onsuccess = () => {
           const q = r.result.transaction("images", "readonly").objectStore("images").get(`${id}/${p}`);
@@ -139,7 +139,7 @@ export async function regionStats(extPage: Page, src: { guideId: string; path: s
         blob = new Blob([bytes], { type: "image/png" });
       } else {
         blob = await new Promise<Blob>((res, rej) => {
-          const r = indexedDB.open("stepsnap");
+          const r = indexedDB.open("showsteps");
           r.onerror = () => rej(r.error);
           r.onsuccess = () => {
             const q = r.result.transaction("images").objectStore("images").get(`${src.guideId}/${src.path}`);

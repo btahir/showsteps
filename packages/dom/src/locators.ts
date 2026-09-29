@@ -1,7 +1,7 @@
 // Locator generation. Every locator emitted is checked to resolve to exactly this element within its
 // scope: the element's own root (document, or shadow root plus everything nested below it), inside its
 // own frame. Playwright locators pierce open shadow roots, so nested shadow content counts too.
-import type { Locator } from "@stepsnap/core";
+import type { Locator } from "@showsteps/core";
 import { accessibleName, getRole, isHidden, isLabelable, labelElements } from "./aria";
 import { attrValue, byId, clip, cssEscape, isElement, isShadowRoot, norm, rootOf, xpathString, type RootNode } from "./util";
 

@@ -1,4 +1,4 @@
-// Bundles the MCP server (with @stepsnap/core and the shared CLI ops inlined) into one Node file.
+// Bundles the MCP server (with @showsteps/core and the shared CLI ops inlined) into one Node file.
 import { build } from "esbuild";
 import { chmod } from "node:fs/promises";
 

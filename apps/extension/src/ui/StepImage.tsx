@@ -5,9 +5,9 @@
 // In "highlight" mode the ring gets a move handle and four corner handles (mouse or arrow keys).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as RKeyboardEvent, PointerEvent as RPointerEvent } from "react";
-import { isInputLike } from "@stepsnap/core";
-import type { Rect, Step } from "@stepsnap/core";
-import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
+import { isInputLike } from "@showsteps/core";
+import type { Rect, Step } from "@showsteps/core";
+import { drawFlagHighlight, highlight as flag, highlightScale } from "@showsteps/brand";
 import { displayRectToImage, focusFrame, moveRect, resizeRect } from "../lib/rect";
 import type { Corner } from "../lib/rect";
 

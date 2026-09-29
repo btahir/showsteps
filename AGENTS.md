@@ -23,8 +23,8 @@ Every command and tool accepts both (older `.stepsnap` files also open; the form
 ## CLI
 
 ```sh
-npx -y @stepsnap/cli --help
-# or, from a checkout: pnpm --filter @stepsnap/cli build && node packages/cli/dist/showsteps.js --help
+npx -y @showsteps/cli --help
+# or, from a checkout: pnpm --filter @showsteps/cli build && node packages/cli/dist/showsteps.js --help
 ```
 
 | Command | What it does |
@@ -117,7 +117,7 @@ Guides made this way have no screenshots. Exports still work, and `--format skil
 Claude Code:
 
 ```sh
-claude mcp add showsteps -- npx -y @stepsnap/mcp
+claude mcp add showsteps -- npx -y @showsteps/mcp
 ```
 
 Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
@@ -125,12 +125,12 @@ Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "showsteps": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+    "showsteps": { "command": "npx", "args": ["-y", "@showsteps/mcp"] }
   }
 }
 ```
 
-From a checkout, build first (`pnpm --filter @stepsnap/mcp build`) and use `"command": "node", "args": ["/abs/path/to/stepsnap/packages/mcp/dist/showsteps-mcp.js"]`.
+From a checkout, build first (`pnpm --filter @showsteps/mcp build`) and use `"command": "node", "args": ["/abs/path/to/showsteps/packages/mcp/dist/showsteps-mcp.js"]`.
 
 | Tool | Inputs | Returns |
 | --- | --- | --- |

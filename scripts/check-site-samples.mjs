@@ -14,7 +14,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(ROOT, "packages/cli/dist/showsteps.js");
 const OUT = join(ROOT, "apps/site/src/data/samples");
 const WRITE = process.argv.includes("--write");
-if (!process.argv.includes("--no-build") || !existsSync(CLI)) execFileSync("pnpm", ["--filter", "@stepsnap/cli", "build"], { cwd: ROOT, stdio: "ignore" });
+if (!process.argv.includes("--no-build") || !existsSync(CLI)) execFileSync("pnpm", ["--filter", "@showsteps/cli", "build"], { cwd: ROOT, stdio: "ignore" });
 
 const tmp = mkdtempSync(join(tmpdir(), "showsteps-samples-"));
 const env = { ...process.env, SOURCE_DATE_EPOCH: "1790553600" }; // 2026-09-28

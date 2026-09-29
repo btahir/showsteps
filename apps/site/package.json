@@ -1,5 +1,5 @@
 {
-  "name": "@stepsnap/site",
+  "name": "@showsteps/site",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@stepsnap/brand": "workspace:*",
-    "@stepsnap/core": "workspace:*",
+    "@showsteps/brand": "workspace:*",
+    "@showsteps/core": "workspace:*",
     "astro": "^7.3.5"
   },
   "devDependencies": {

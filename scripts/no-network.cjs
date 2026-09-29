@@ -5,7 +5,7 @@
 // One file, three uses:
 //
 //  1. Node preload (D-NONET, MCP6). Blocks every non-loopback connection in a Node process tree:
-//       NODE_OPTIONS="--require $PWD/scripts/no-network.cjs" pnpm --filter @stepsnap/cli test
+//       NODE_OPTIONS="--require $PWD/scripts/no-network.cjs" pnpm --filter @showsteps/cli test
 //     net.Socket.connect, dns.lookup/resolve*, http(s).request/get and fetch throw for any host other
 //     than localhost / 127.0.0.0/8 / ::1 (Unix sockets and named pipes are allowed: stdio MCP and vitest
 //     IPC need them). Set NO_NETWORK_REPORT=<file> to also append every blocked attempt as a JSON line.
@@ -206,7 +206,7 @@ async function siteMode() {
   const dist = path.join(siteDir, "dist");
   const lines = [];
   if (!fs.existsSync(path.join(dist, "index.html"))) {
-    return finish({ mode: "site", status: "fail", lines: [`apps/site/dist/index.html missing: run pnpm --filter @stepsnap/site build first`] });
+    return finish({ mode: "site", status: "fail", lines: [`apps/site/dist/index.html missing: run pnpm --filter @showsteps/site build first`] });
   }
   const pages = walk(dist).filter((f) => f.endsWith(".html")).map((f) => {
     let rel = "/" + path.relative(dist, f).split(path.sep).join("/");
@@ -378,7 +378,7 @@ async function extensionMode() {
   let build = flag("--build");
   const candidates = ["chrome-mv3-e2e", "chrome-mv3-production", "chrome-mv3"].map((d) => path.join(extDir, ".output", d));
   if (!build) build = candidates.find((d) => fs.existsSync(path.join(d, "manifest.json")));
-  if (!build || !fs.existsSync(path.join(build, "manifest.json"))) return pending("apps/extension has no build (.output/chrome-mv3-e2e or -production): run pnpm --filter @stepsnap/extension build:e2e");
+  if (!build || !fs.existsSync(path.join(build, "manifest.json"))) return pending("apps/extension has no build (.output/chrome-mv3-e2e or -production): run pnpm --filter @showsteps/extension build:e2e");
   const manifest = JSON.parse(fs.readFileSync(path.join(build, "manifest.json"), "utf8"));
   const hasHostAccess = (manifest.host_permissions || []).includes("<all_urls>");
   lines.push(`build: ${path.relative(ROOT, build)} (${hasHostAccess ? "host access granted at install: can record" : "store build: optional host permission cannot be granted headlessly, recorder not driven"})`);

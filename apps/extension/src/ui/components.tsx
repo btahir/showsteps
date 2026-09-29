@@ -1,8 +1,8 @@
 // Shared UI pieces: inline-Markdown titles, the export sheet with the post-export support
 // moment (SPEC §6, §8), and the edit toast.
 import { useEffect, useRef, useState } from "react";
-import { typographicQuotes } from "@stepsnap/core";
-import type { Guide } from "@stepsnap/core";
+import { typographicQuotes } from "@showsteps/core";
+import type { Guide } from "@showsteps/core";
 import { FORMATS } from "../lib/formats";
 import type { ExportFormat } from "../lib/formats";
 import { getImages } from "../lib/db";

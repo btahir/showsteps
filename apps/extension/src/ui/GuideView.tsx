@@ -3,7 +3,7 @@
 import { localIso } from "../lib/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent as RKeyboardEvent, ReactNode } from "react";
-import type { Guide, Rect, Step } from "@stepsnap/core";
+import type { Guide, Rect, Step } from "@showsteps/core";
 import { getImage } from "../lib/db";
 import {
   addNote,

@@ -1,5 +1,5 @@
 {
-  "name": "@stepsnap/mcp",
+  "name": "@showsteps/mcp",
   "version": "0.1.0",
   "description": "Showsteps MCP server (stdio): validate, inspect, edit and export step-by-step guides from an agent. Fully local, no network.",
   "type": "module",
@@ -26,8 +26,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.1",
-    "@stepsnap/cli": "workspace:*",
-    "@stepsnap/core": "workspace:*",
+    "@showsteps/cli": "workspace:*",
+    "@showsteps/core": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {

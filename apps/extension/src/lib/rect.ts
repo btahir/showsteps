@@ -3,8 +3,8 @@
 // imageWidth / viewportWidth (normally the devicePixelRatio, but zoom and scrollbars
 // make the real ratio differ slightly, so measure it from the image instead of trusting dpr).
 
-import { focusFrame as coreFocusFrame } from "@stepsnap/core";
-import type { Rect } from "@stepsnap/core";
+import { focusFrame as coreFocusFrame } from "@showsteps/core";
+import type { Rect } from "@showsteps/core";
 
 export interface Viewport {
   width: number;

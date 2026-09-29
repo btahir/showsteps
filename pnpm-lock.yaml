@@ -20,13 +20,13 @@ importers:
 
   apps/extension:
     dependencies:
-      '@stepsnap/brand':
+      '@showsteps/brand':
         specifier: workspace:*
         version: link:../../packages/brand
-      '@stepsnap/core':
+      '@showsteps/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@stepsnap/dom':
+      '@showsteps/dom':
         specifier: workspace:*
         version: link:../../packages/dom
       fflate:
@@ -74,10 +74,10 @@ importers:
 
   apps/site:
     dependencies:
-      '@stepsnap/brand':
+      '@showsteps/brand':
         specifier: workspace:*
         version: link:../../packages/brand
-      '@stepsnap/core':
+      '@showsteps/core':
         specifier: workspace:*
         version: link:../../packages/core
       astro:
@@ -95,7 +95,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@stepsnap/core':
+      '@showsteps/core':
         specifier: workspace:*
         version: link:../core
       commander:
@@ -139,7 +139,7 @@ importers:
 
   packages/dom:
     dependencies:
-      '@stepsnap/core':
+      '@showsteps/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -158,10 +158,10 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
-      '@stepsnap/cli':
+      '@showsteps/cli':
         specifier: workspace:*
         version: link:../cli
-      '@stepsnap/core':
+      '@showsteps/core':
         specifier: workspace:*
         version: link:../core
       zod:

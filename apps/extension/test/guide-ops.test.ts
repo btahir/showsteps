@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Guide, Step } from "@stepsnap/core";
+import type { Guide, Step } from "@showsteps/core";
 import {
   addNote,
   addRedaction,

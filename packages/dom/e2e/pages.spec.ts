@@ -61,7 +61,7 @@ async function run(page: import("@playwright/test").Page, golden: string, target
   }
   expect(problems, "every emitted locator resolves to exactly the target in real Playwright").toEqual([]);
   checkGolden(golden, out);
-  return out as Record<string, import("@stepsnap/core").ElementDescriptor>;
+  return out as Record<string, import("@showsteps/core").ElementDescriptor>;
 }
 
 test("login page descriptors", async ({ page }) => {

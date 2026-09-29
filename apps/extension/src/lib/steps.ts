@@ -1,8 +1,8 @@
 // Turns what the recorder saw (action, element, CSS rects, page metrics) plus the captured
 // frame into a schema Step. Pure apart from the core helpers it calls.
 
-import { autoRedactions, defaultGuideTitle, generateStepTitle } from "@stepsnap/core";
-import type { ElementDescriptor, Rect, Redaction, Step, StepAction, TabCorner } from "@stepsnap/core";
+import { autoRedactions, defaultGuideTitle, generateStepTitle } from "@showsteps/core";
+import type { ElementDescriptor, Rect, Redaction, Step, StepAction, TabCorner } from "@showsteps/core";
 import { cssRectToImage, padRect } from "./rect";
 import type { Viewport } from "./rect";
 

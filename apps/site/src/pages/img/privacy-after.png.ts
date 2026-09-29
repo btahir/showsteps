@@ -5,8 +5,8 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { renderStepImage } from "@stepsnap/core";
-import type { Redaction, Rect } from "@stepsnap/core";
+import { renderStepImage } from "@showsteps/core";
+import type { Redaction, Rect } from "@showsteps/core";
 
 const read = (f: string) => readFileSync(resolve(process.cwd(), "src/sample", f));
 

@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
 import { crc32, deflateSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { packBundle, type Guide, type Step } from "@stepsnap/core";
+import { packBundle, type Guide, type Step } from "@showsteps/core";
 
 /** A small solid-colour RGBA PNG made in code (no binary fixtures). */
 export function makePng(width: number, height: number, [r, g, b]: [number, number, number]): Uint8Array {

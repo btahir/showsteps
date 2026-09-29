@@ -4,7 +4,7 @@
 // inspected, so frames that look like payment, card, password or sign-in widgets are
 // redacted whole.
 
-import type { Rect } from "@stepsnap/core";
+import type { Rect } from "@showsteps/core";
 
 export const FIELD_SELECTOR =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';

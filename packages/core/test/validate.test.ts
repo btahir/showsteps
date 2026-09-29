@@ -156,7 +156,7 @@ describe("migrateGuide", () => {
     }
   });
   it("explains a guide from a newer version", () => {
-    expect(() => migrateGuide({ schemaVersion: 7 })).toThrow(/newer Stepsnap/);
+    expect(() => migrateGuide({ schemaVersion: 7 })).toThrow(/newer Showsteps/);
   });
   it("rejects a missing or non-integer version and non-objects", () => {
     expect(() => migrateGuide({})).toThrow(/schemaVersion/);

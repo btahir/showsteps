@@ -1,5 +1,5 @@
 /* Showsteps brand tokens ("Flag" direction). Import once at the app root:
- *   @import "@stepsnap/brand/tokens.css";
+ *   @import "@showsteps/brand/tokens.css";
  * Theme: follows prefers-color-scheme; force with <html data-theme="light|dark">.
  * Prefix: --ss-. Keep canvas values in tokens.ts in sync with the highlight section below. */
 

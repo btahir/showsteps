@@ -1,6 +1,6 @@
 // Round-2 features: typing amends, auto-blur Undo bookkeeping, highlight handles, bar position, chip text.
 import { describe, expect, it } from "vitest";
-import type { Guide, Step } from "@stepsnap/core";
+import type { Guide, Step } from "@showsteps/core";
 import { amendStep, removeAutoRedactions } from "../src/lib/guide-ops";
 import { moveRect, resizeRect } from "../src/lib/rect";
 import { OriginalStore, pendingImageWrites } from "../src/lib/originals";

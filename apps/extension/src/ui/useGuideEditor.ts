@@ -2,7 +2,7 @@
 // undo/redo, debounced atomic saves that merge in steps the recorder adds meanwhile, and a
 // toast with Undo after every change.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Guide } from "@stepsnap/core";
+import type { Guide } from "@showsteps/core";
 import { getGuide, mutateGuide } from "../lib/db";
 import { mergeRemote } from "../lib/guide-ops";
 import { useBroadcast } from "./hooks";

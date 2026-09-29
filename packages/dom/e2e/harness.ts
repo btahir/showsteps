@@ -1,11 +1,11 @@
 import { test as base, expect, type BrowserContext, type Frame, type FrameLocator, type Locator as PwLocator, type Page } from "@playwright/test";
-import type { ElementDescriptor, Locator } from "@stepsnap/core";
+import type { ElementDescriptor, Locator } from "@showsteps/core";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const BUNDLE = join(here, "../dist/stepsnap-dom.iife.js");
+export const BUNDLE = join(here, "../dist/showsteps-dom.iife.js");
 export const GOLDEN_DIR = join(here, "golden");
 export const FIXTURES = join(here, "../../../apps/fixtures");
 
@@ -43,7 +43,7 @@ export async function describeTarget(page: Page, t: Target): Promise<ElementDesc
       for (const h of hosts) root = (root.querySelector(h) as Element).shadowRoot!;
       const el = root.querySelector(selector);
       if (!el) throw new Error(`no element ${selector}`);
-      return StepsnapDom.describeElement(el);
+      return ShowstepsDom.describeElement(el);
     },
     { selector: t.selector, hosts: t.hosts ?? [] },
   ) as Promise<ElementDescriptor>;
@@ -137,14 +137,14 @@ export async function installRecorder(context: BrowserContext): Promise<Recorded
   await context.addInitScript(() => {
     const send = (type: string, e: Event) => {
       try {
-        const el = StepsnapDom.resolveTarget(e);
+        const el = ShowstepsDom.resolveTarget(e);
         void window.__ssRecord?.({
           type,
-          descriptor: StepsnapDom.describeElement(el),
-          rect: StepsnapDom.rectOf(el),
-          metrics: StepsnapDom.pageMetrics(),
+          descriptor: ShowstepsDom.describeElement(el),
+          rect: ShowstepsDom.rectOf(el),
+          metrics: ShowstepsDom.pageMetrics(),
           page: { url: location.href, title: document.title },
-          sensitiveRects: StepsnapDom.sensitiveRects(),
+          sensitiveRects: ShowstepsDom.sensitiveRects(),
         });
       } catch (err) {
         console.error("recorder failed", err);

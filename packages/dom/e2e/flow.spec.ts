@@ -1,7 +1,7 @@
 // Runs the canonical 10-step fixture flow in real Chrome across two tabs with real input events, and
 // checks what the in-page code resolves for every step against apps/fixtures/flows/expected-steps.json.
-import { generateStepTitle } from "@stepsnap/core";
-import type { Step, StepAction } from "@stepsnap/core";
+import { generateStepTitle } from "@showsteps/core";
+import type { Step, StepAction } from "@showsteps/core";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";

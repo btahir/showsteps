@@ -124,7 +124,7 @@ test("R-TEXT secrets shown as text are blurred into the stored screenshot; email
   const meta = await panel.evaluate(
     ({ id, p }) =>
       new Promise<any>((res) => {
-        const r = indexedDB.open("stepsnap");
+        const r = indexedDB.open("showsteps");
         r.onsuccess = () => {
           const q = r.result.transaction("images").objectStore("images").get(`${id}/${p}`);
           q.onsuccess = () => res({ kinds: q.result.kinds, review: q.result.review });
@@ -337,7 +337,7 @@ test("E11 starting on a page Chrome blocks explains why and saves no empty guide
   await page.goto("chrome://version");
   const panel = await panelPage();
   const guidesBefore = await panel.evaluate(() => new Promise<number>((res) => {
-    const r = indexedDB.open("stepsnap");
+    const r = indexedDB.open("showsteps");
     r.onsuccess = () => {
       const q = r.result.transaction("guides").objectStore("guides").count();
       q.onsuccess = () => res(q.result);
@@ -358,7 +358,7 @@ test("E11 starting on a page Chrome blocks explains why and saves no empty guide
   const r = await ctl(panel, { type: "ctl:stop", openEditor: false });
   expect(r.ok).toBe(true);
   const guidesAfter = await panel.evaluate(() => new Promise<number>((res) => {
-    const r = indexedDB.open("stepsnap");
+    const r = indexedDB.open("showsteps");
     r.onsuccess = () => {
       const q = r.result.transaction("guides").objectStore("guides").count();
       q.onsuccess = () => res(q.result);

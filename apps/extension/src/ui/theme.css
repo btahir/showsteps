@@ -1,6 +1,6 @@
 /* Showsteps extension UI, built on the brand tokens (packages/brand/tokens.css, "Flag").
    Every colour, radius and duration comes from a token. */
-@import "@stepsnap/brand/tokens.css";
+@import "@showsteps/brand/tokens.css";
 
 *,
 *::before,

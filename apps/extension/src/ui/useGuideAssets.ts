@@ -5,7 +5,7 @@
 // automatic redactions (the chip's Undo), the original pixels are written back; when they come
 // back (⌘Z), they are burnt in again from the same original. Closing the editor drops everything.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Step } from "@stepsnap/core";
+import type { Step } from "@showsteps/core";
 import { getImageMeta, replaceImageBlob } from "../lib/db";
 import type { ImageMeta } from "../lib/db";
 import { autoRedactionsOf, base64ToBlob, pendingImageWrites, PORT_NAME } from "../lib/originals";

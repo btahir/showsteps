@@ -3,7 +3,7 @@
 
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { Guide, Rect, Step } from "@stepsnap/core";
+import type { Guide, Rect, Step } from "@showsteps/core";
 
 export interface ImageRecord {
   key: string; // `${guideId}/${path}`
@@ -21,7 +21,7 @@ export interface ImageRecord {
 /** Per-image facts the editor shows next to a step (not part of the guide schema). */
 export type ImageMeta = Pick<ImageRecord, "kinds" | "review">;
 
-interface StepsnapDB extends DBSchema {
+interface ShowstepsDB extends DBSchema {
   guides: { key: string; value: Guide; indexes: { updatedAt: string } };
   images: { key: string; value: ImageRecord; indexes: { guideId: string } };
 }
@@ -52,10 +52,10 @@ function hostOf(g: Guide): string | undefined {
   return undefined;
 }
 
-let dbp: Promise<IDBPDatabase<StepsnapDB>> | undefined;
+let dbp: Promise<IDBPDatabase<ShowstepsDB>> | undefined;
 
-export function db(): Promise<IDBPDatabase<StepsnapDB>> {
-  dbp ??= openDB<StepsnapDB>("stepsnap", 1, {
+export function db(): Promise<IDBPDatabase<ShowstepsDB>> {
+  dbp ??= openDB<ShowstepsDB>("showsteps", 1, {
     upgrade(d) {
       const g = d.createObjectStore("guides", { keyPath: "id" });
       g.createIndex("updatedAt", "updatedAt");

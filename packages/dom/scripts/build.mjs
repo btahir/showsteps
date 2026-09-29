@@ -7,14 +7,14 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 await build({
   entryPoints: [join(root, "src/index.ts")],
-  outfile: join(root, "dist/stepsnap-dom.iife.js"),
+  outfile: join(root, "dist/showsteps-dom.iife.js"),
   bundle: true,
   format: "iife",
-  globalName: "StepsnapDom",
+  globalName: "ShowstepsDom",
   target: "es2022",
   minify: false,
   legalComments: "none",
   // Some injectors (Playwright init scripts) evaluate the file inside a function, so `var` would not be global.
-  footer: { js: "globalThis.StepsnapDom = StepsnapDom;" },
+  footer: { js: "globalThis.ShowstepsDom = ShowstepsDom;" },
 });
-console.log("built dist/stepsnap-dom.iife.js");
+console.log("built dist/showsteps-dom.iife.js");

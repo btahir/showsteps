@@ -82,7 +82,7 @@ const idbGet = (page, store, key) =>
   page.evaluate(
     ({ store, key }) =>
       new Promise((res, rej) => {
-        const r = indexedDB.open("stepsnap");
+        const r = indexedDB.open("showsteps");
         r.onerror = () => rej(r.error);
         r.onsuccess = () => {
           const q = r.result.transaction(store, "readonly").objectStore(store).get(key);
@@ -326,7 +326,7 @@ async function guideAndReplay(out, context, theme) {
 }
 
 if (!existsSync(join(EXT_SRC, "manifest.json"))) {
-  console.error(`Missing ${EXT_SRC}. Build it first: pnpm --filter @stepsnap/extension build:e2e`);
+  console.error(`Missing ${EXT_SRC}. Build it first: pnpm --filter @showsteps/extension build:e2e`);
   process.exit(2);
 }
 // Work on a private copy so a rebuild by another agent cannot change the extension mid-capture.

@@ -1,4 +1,4 @@
-// Node file access for guide files. All guide logic lives in @stepsnap/core.
+// Node file access for guide files. All guide logic lives in @showsteps/core.
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
@@ -7,7 +7,7 @@ import {
   unpackBundle,
   validateGuide,
   type Guide,
-} from "@stepsnap/core";
+} from "@showsteps/core";
 import { invalid, ioError } from "./errors.ts";
 
 export type ImageSource = Record<string, Uint8Array>;

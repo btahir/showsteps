@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Static checks on apps/site/dist (ACCEPTANCE K2-K15, K20 and part of K16/K19). Owned by the verifier.
 //   node scripts/check-site.mjs [--json]
-// Needs `pnpm --filter @stepsnap/site build` first. No browser: reads the built HTML.
+// Needs `pnpm --filter @showsteps/site build` first. No browser: reads the built HTML.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { dirname, join } from "node:path";

@@ -1,4 +1,4 @@
-# @stepsnap/core
+# @showsteps/core
 
 The headless core of Showsteps: the guide format, validation, step-title writing, screenshot rendering (redaction, highlight, crop) and every exporter. Pure TypeScript with no DOM and no Node-only APIs in `src/`, so the same code runs in the Chrome extension (page and service worker), in Node (CLI, MCP server, tests) and in any bundler. Dependencies: `fflate` (zip and PNG deflate), `pdf-lib` and `@pdf-lib/fontkit` (PDF), `docx` (DOCX). All MIT.
 
@@ -9,7 +9,7 @@ import {
   validateGuide, migrateGuide, generateStepTitle, regenerateTitles, applyAutoRedactions,
   exportMarkdown, exportHtml, exportPlaywright, exportAgentSkill, exportPdf, exportDocx,
   packBundle, unpackBundle,
-} from "@stepsnap/core";
+} from "@showsteps/core";
 ```
 
 ## Guide: validate and migrate
@@ -98,9 +98,9 @@ const { guide, images } = unpackBundle(bytes); // typed errors (BundleError, Gui
 ## Tests
 
 ```bash
-pnpm --filter @stepsnap/core test         # vitest, about 500 tests
-pnpm --filter @stepsnap/core typecheck
-UPDATE_GOLDEN=1 pnpm --filter @stepsnap/core test   # rewrite golden files in test/golden, then review the diff
+pnpm --filter @showsteps/core test         # vitest, about 500 tests
+pnpm --filter @showsteps/core typecheck
+UPDATE_GOLDEN=1 pnpm --filter @showsteps/core test   # rewrite golden files in test/golden, then review the diff
 ```
 
 Fixtures: `test/fixtures/guide.ts` (10 steps across 2 tabs with a password field, a select, a checkbox, an iframe button and an icon-only button; tiny PNGs drawn in code) and `test/fixtures/sample11.ts` (the 11-step guide from `sample-11.guide.json`, with 2880x1800 synthetic screenshots). Goldens cover titles (`titles.golden.json`, 90+ cases), Markdown, HTML, the Playwright script, the agent skill and the bundle hash.

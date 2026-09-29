@@ -2,7 +2,7 @@
 // worker uses appendStep while recording. Every function returns a new Guide.
 
 import { localIso } from "./time";
-import type { Guide, Rect, Redaction, Step } from "@stepsnap/core";
+import type { Guide, Rect, Redaction, Step } from "@showsteps/core";
 
 export function newId(prefix = "s"): string {
   const bytes = new Uint8Array(6);

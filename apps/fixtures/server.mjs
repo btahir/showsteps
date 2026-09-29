@@ -1,5 +1,5 @@
 // Zero-dependency static server for the Acme Books fixture site. Port 4517 by default.
-//   pnpm --filter @stepsnap/fixtures serve            (or: node server.mjs [--port 4517])
+//   pnpm --filter @showsteps/fixtures serve            (or: node server.mjs [--port 4517])
 // `/` serves the login page and `/dashboard/*` falls back to dashboard.html so the SPA can pushState.
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";

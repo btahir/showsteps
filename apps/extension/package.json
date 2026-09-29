@@ -1,5 +1,5 @@
 {
-  "name": "@stepsnap/extension",
+  "name": "@showsteps/extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,9 +15,9 @@
     "e2e": "playwright test --workers=2"
   },
   "dependencies": {
-    "@stepsnap/brand": "workspace:*",
-    "@stepsnap/core": "workspace:*",
-    "@stepsnap/dom": "workspace:*",
+    "@showsteps/brand": "workspace:*",
+    "@showsteps/core": "workspace:*",
+    "@showsteps/dom": "workspace:*",
     "fflate": "^0.8.3",
     "idb": "^8.0.3",
     "react": "^19.3.0",

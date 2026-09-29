@@ -1,4 +1,4 @@
-# @stepsnap/brand
+# @showsteps/brand
 
 The Showsteps look in one place: design tokens for CSS and canvas, the logo and icons, and the self-hosted fonts. The design rationale and full component spec live in the gitignored `docs/design/` (`DECISION.md`, `SPEC.md`).
 
@@ -7,7 +7,7 @@ The Showsteps look in one place: design tokens for CSS and canvas, the logo and 
 Every exported screenshot gets **the flag**: a persimmon ring around the clicked element, with a folder tab growing out of its top-right corner that carries the step number, plus a soft 16% dim around it. Don't redraw it by hand. Call `drawFlagHighlight` so the side panel, HTML, PDF, DOCX and Markdown images all match.
 
 ```ts
-import { drawFlagHighlight, highlightScale, highlight } from "@stepsnap/brand";
+import { drawFlagHighlight, highlightScale, highlight } from "@showsteps/brand";
 
 // after drawing the screenshot and its redactions onto ctx
 drawFlagHighlight(ctx, {
@@ -26,7 +26,7 @@ It works with `CanvasRenderingContext2D`, `OffscreenCanvasRenderingContext2D` or
 ## CSS
 
 ```css
-@import "@stepsnap/brand/tokens.css";
+@import "@showsteps/brand/tokens.css";
 body { background: var(--ss-bg); color: var(--ss-ink); font-family: var(--ss-font-ui); }
 .primary { background: var(--ss-accent-strong); color: var(--ss-on-accent); border-radius: var(--ss-radius-md); }
 .step-marker { background: var(--ss-accent); color: #fff; border-radius: var(--ss-radius-flag); }
@@ -53,6 +53,6 @@ body { background: var(--ss-bg); color: var(--ss-ink); font-family: var(--ss-fon
 
 Rasterise PNG icons at build time (for example `sharp` or a Playwright screenshot of the SVG at 16, 32, 48 and 128). Don't commit rasters here.
 
-`pnpm --filter @stepsnap/brand typecheck` checks that `Ctx2D` accepts real canvas contexts.
+`pnpm --filter @showsteps/brand typecheck` checks that `Ctx2D` accepts real canvas contexts.
 
 Licence: MIT for the code and SVGs. The fonts are under OFL-1.1 (see `FONTS.md`).

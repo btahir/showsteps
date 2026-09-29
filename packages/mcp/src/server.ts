@@ -13,7 +13,7 @@ import {
   listSteps,
   loadGuideFile,
   regenTitlesFile,
-} from "@stepsnap/cli/ops";
+} from "@showsteps/cli/ops";
 import pkg from "../package.json" with { type: "json" };
 
 export const SERVER_NAME = "showsteps";

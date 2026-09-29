@@ -5,8 +5,8 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { unpackBundle, exportHtml, regenerateTitles } from "@stepsnap/core";
-import type { Guide } from "@stepsnap/core";
+import { unpackBundle, exportHtml, regenerateTitles } from "@showsteps/core";
+import type { Guide } from "@showsteps/core";
 
 export function GET() {
   const bytes = new Uint8Array(readFileSync(resolve(process.cwd(), "src/sample/acme-sign-in.showsteps")));

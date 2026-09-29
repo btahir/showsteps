@@ -2,7 +2,7 @@
 // Verifier's own end-to-end pass over the extension (ACCEPTANCE E1a, E1b, R1, R2, R7, H1-H7, G1-G3, G5, D9).
 // Independent of the extension agent's specs: it re-derives every number from the acceptance text.
 //
-//   pnpm --filter @stepsnap/extension build:e2e
+//   pnpm --filter @showsteps/extension build:e2e
 //   HEAVY_LABEL=showsteps-verify-e2e ../research/heavy.sh node scripts/e2e-extension.mjs [--dpr 1,2] [--json]
 //
 // Needs Playwright's bundled Chromium (branded Chrome ignores --load-extension) and the fixture server on 4517
@@ -34,7 +34,7 @@ const check = (id, ok, detail) => { results.push({ id, ok, detail }); console.lo
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const say = (m) => { if (process.env.VERBOSE) console.error(`[e2e ${new Date().toISOString().slice(11, 19)}] ${m}`); };
 
-if (!existsSync(join(BUILD, "manifest.json"))) { console.error("no e2e build: pnpm --filter @stepsnap/extension build:e2e"); process.exit(2); }
+if (!existsSync(join(BUILD, "manifest.json"))) { console.error("no e2e build: pnpm --filter @showsteps/extension build:e2e"); process.exit(2); }
 rmSync(ART, { recursive: true, force: true });
 mkdirSync(ART, { recursive: true });
 

@@ -18,7 +18,7 @@ export function expectGolden(name: string, actual: string): void {
     writeFileSync(file, actual);
     return;
   }
-  if (!existsSync(file)) throw new Error(`Missing golden file test/golden/${name}. Run: UPDATE_GOLDEN=1 pnpm --filter @stepsnap/core test`);
+  if (!existsSync(file)) throw new Error(`Missing golden file test/golden/${name}. Run: UPDATE_GOLDEN=1 pnpm --filter @showsteps/core test`);
   const expected = readFileSync(file, "utf8");
   expect(actual, `golden test/golden/${name} (UPDATE_GOLDEN=1 to accept changes)`).toBe(expected);
 }

@@ -1,12 +1,12 @@
-# @stepsnap/cli
+# @showsteps/cli
 
 Command line for [Showsteps](../../README.md) guides: validate, inspect, edit and export. Local only, no network, no account. Made for people and for agents (`--json`, stable exit codes).
 
 ```sh
-npx -y @stepsnap/cli export onboarding.showsteps --format md,pdf --out ./out
+npx -y @showsteps/cli export onboarding.showsteps --format md,pdf --out ./out
 ```
 
-Requires Node 20 or newer. From a checkout: `pnpm --filter @stepsnap/cli build`, then `node packages/cli/dist/showsteps.js`.
+Requires Node 20 or newer. From a checkout: `pnpm --filter @showsteps/cli build`, then `node packages/cli/dist/showsteps.js`.
 
 ## Commands
 
@@ -59,14 +59,14 @@ See the step fields and a full example in [AGENTS.md](../../AGENTS.md#worked-exa
 
 ## Library use
 
-`@stepsnap/cli/ops` exports the same operations the commands use (`guideInfo`, `listSteps`, `editStep`, `createGuideFromSteps`, `exportGuideFiles`, and more). The MCP server is built on it.
+`@showsteps/cli/ops` exports the same operations the commands use (`guideInfo`, `listSteps`, `editStep`, `createGuideFromSteps`, `exportGuideFiles`, and more). The MCP server is built on it.
 
 ## Development
 
 ```sh
-pnpm --filter @stepsnap/cli test        # vitest: golden output, exit codes, built binary
-pnpm --filter @stepsnap/cli typecheck
-pnpm --filter @stepsnap/cli build       # dist/showsteps.js, core bundled in
+pnpm --filter @showsteps/cli test        # vitest: golden output, exit codes, built binary
+pnpm --filter @showsteps/cli typecheck
+pnpm --filter @showsteps/cli build       # dist/showsteps.js, core bundled in
 ```
 
 MIT. Free forever; if it saves you time, support it at https://showsteps.vercel.app/support/

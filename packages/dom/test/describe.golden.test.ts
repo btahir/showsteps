@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { ElementDescriptor, Locator } from "@stepsnap/core";
+import type { ElementDescriptor, Locator } from "@showsteps/core";
 import { describeElement } from "../src";
 import { $, mount } from "./helpers";
 

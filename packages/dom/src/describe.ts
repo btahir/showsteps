@@ -1,4 +1,4 @@
-import type { ElementDescriptor } from "@stepsnap/core";
+import type { ElementDescriptor } from "@showsteps/core";
 import { accessibleName, getRole, labelText, visibleText } from "./aria";
 import { buildLocators, frameChain, Scope, shadowChain } from "./locators";
 import { isSensitive } from "./sensitive";

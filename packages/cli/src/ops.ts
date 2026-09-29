@@ -1,5 +1,5 @@
 // Guide operations shared by the CLI and the MCP server. Thin: anything that is real guide logic
-// (validation, titles, exporters, bundles) is called from @stepsnap/core.
+// (validation, titles, exporters, bundles) is called from @showsteps/core.
 import { join, resolve } from "node:path";
 import {
   exportAgentSkill,
@@ -16,7 +16,7 @@ import {
   type StepAction,
   type ElementDescriptor,
   type Locator,
-} from "@stepsnap/core";
+} from "@showsteps/core";
 import { ShowstepsError, invalid, usage } from "./errors.ts";
 import {
   confinedJoin,

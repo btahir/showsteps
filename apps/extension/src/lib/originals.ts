@@ -10,7 +10,7 @@
 // the original pixels back and removes the automatic redactions from the step. Undoing the Undo
 // (⌘Z) re-bakes from the same in-memory original.
 
-import type { Redaction, Step } from "@stepsnap/core";
+import type { Redaction, Step } from "@showsteps/core";
 
 export const PORT_NAME = "showsteps:originals";
 

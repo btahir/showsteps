@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Static checks on the built extension (ACCEPTANCE P1-P5 and the size budgets of E12). Owned by the verifier
 // because the extension agent did not ship one. No browser needed.
-//   pnpm --filter @stepsnap/extension build && pnpm --filter @stepsnap/extension build:e2e
+//   pnpm --filter @showsteps/extension build && pnpm --filter @showsteps/extension build:e2e
 //   node scripts/check-manifest.mjs [--json]
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";

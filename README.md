@@ -62,7 +62,7 @@ Every screenshot, name and value above comes from a mock app ("Acme Books") that
 
 ```bash
 pnpm install
-pnpm --filter @stepsnap/extension build     # writes apps/extension/.output/chrome-mv3-production
+pnpm --filter @showsteps/extension build     # writes apps/extension/.output/chrome-mv3-production
 ```
 
 Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked** and pick `apps/extension/.output/chrome-mv3-production`.
@@ -105,7 +105,7 @@ The recording is a human's account of a task. Your agent can pick it up from the
 From a checkout:
 
 ```bash
-pnpm --filter @stepsnap/cli build
+pnpm --filter @showsteps/cli build
 node packages/cli/dist/showsteps.js export onboarding.showsteps --format skill --out ./out --json
 cp -r ./out/skill ~/.claude/skills/onboarding      # Claude Code picks it up as a skill
 ```
@@ -138,8 +138,8 @@ pnpm verify --skip-heavy    # tests, typechecks and the licence check, no browse
 The extension is tested end to end: Playwright loads the unpacked build into Chromium and records a 10-step, two-tab flow on the mock site, then checks the steps, titles, highlight boxes, redactions and every export, and replays the exported skill.
 
 ```bash
-pnpm --filter @stepsnap/extension build:e2e   # test build: host access granted at install
-pnpm --filter @stepsnap/extension e2e         # starts the mock site on port 4517 if it is not running
+pnpm --filter @showsteps/extension build:e2e   # test build: host access granted at install
+pnpm --filter @showsteps/extension e2e         # starts the mock site on port 4517 if it is not running
 ```
 
 | Folder | What it is |

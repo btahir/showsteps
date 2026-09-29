@@ -13,7 +13,7 @@
 // Nothing secret crosses these messages (rects and metrics only). A page could forge replies;
 // the worst it can do is add blur boxes or misplace a highlight.
 
-import type { Rect } from "@stepsnap/core";
+import type { Rect } from "@showsteps/core";
 
 export const TAG = "__showsteps";
 

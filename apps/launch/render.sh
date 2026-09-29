@@ -45,7 +45,7 @@ mkdir -p "$MEDIA" "$ROOT/docs/screenshots" "$ROOT/docs/launch/store"
 
 if [ -z "$ONLY" ] && [ "$SKIP_BUILD" = 0 ]; then
   step "extension e2e build"
-  (cd "$ROOT" && heavy pnpm --filter @stepsnap/extension build:e2e)
+  (cd "$ROOT" && heavy pnpm --filter @showsteps/extension build:e2e)
 fi
 if [ -z "$ONLY" ] && [ "$SKIP_CAPTURE" = 0 ]; then
   step "footage (Playwright drives the extension on the Acme Books fixtures)"

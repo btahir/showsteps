@@ -56,18 +56,18 @@ steps.push({ name: "licences (prod)", cmd: ["node", "scripts/check-licenses.mjs"
 steps.push({ name: "licences (all)", cmd: ["node", "scripts/check-licenses.mjs", "--all"] });
 steps.push({ name: "licence SPDX self-test", cmd: ["node", "scripts/check-licenses.mjs", "--self-test"], parse: (o) => o.trim() });
 steps.push({ name: "no-network preload self-test", cmd: ["node", "scripts/no-network.cjs", "--self-test"], parse: (o) => (o.match(/self-test: .*/) || [""])[0] });
-steps.push({ name: "extension build (store)", cmd: ["pnpm", "--filter", "@stepsnap/extension", "build"], heavy: true, label: "showsteps-ext-build" });
-steps.push({ name: "extension build (e2e)", cmd: ["pnpm", "--filter", "@stepsnap/extension", "build:e2e"], heavy: true, label: "showsteps-ext-build" });
-steps.push({ name: "site build", cmd: ["pnpm", "--filter", "@stepsnap/site", "build"], heavy: true, label: "showsteps-site-build", parse: (o) => (o.match(/(\d+) page\(s\) built/) || [])[0] || "" });
+steps.push({ name: "extension build (store)", cmd: ["pnpm", "--filter", "@showsteps/extension", "build"], heavy: true, label: "showsteps-ext-build" });
+steps.push({ name: "extension build (e2e)", cmd: ["pnpm", "--filter", "@showsteps/extension", "build:e2e"], heavy: true, label: "showsteps-ext-build" });
+steps.push({ name: "site build", cmd: ["pnpm", "--filter", "@showsteps/site", "build"], heavy: true, label: "showsteps-site-build", parse: (o) => (o.match(/(\d+) page\(s\) built/) || [])[0] || "" });
 steps.push({ name: "site static checks (K2-K20)", cmd: ["node", "scripts/check-site.mjs"], parse: (o) => (o.match(/\d+\/\d+ static site checks pass/) || [""])[0] });
 steps.push({ name: "site no-network", cmd: ["node", "scripts/no-network.cjs", "site"], heavy: true, label: "showsteps-nonet-site", parse: (o) => o.split("\n").filter((l) => /pages x|external \(non-localhost\)/.test(l)).map((l) => l.trim()).join("; ") });
 steps.push({ name: "site axe", cmd: ["node", "scripts/axe.mjs"], heavy: true, label: "showsteps-site-axe", cwd: "apps/site", parse: (o) => (o.match(/axe: .*|\d+ serious.*/) || [""])[0] });
 steps.push({ name: "extension no-network", cmd: ["node", "scripts/no-network.cjs", "extension", "--idle-ms", "60000"], heavy: true, label: "showsteps-nonet-ext", pendingExit: 3, parse: (o) => (o.split("\n").find((l) => /pending|PASS|FAIL/i.test(l)) || "").trim() });
 steps.push({ name: "cli and mcp black-box (D, MCP)", cmd: ["node", "scripts/check-cli-mcp.mjs"], parse: (o) => (o.match(/\d+\/\d+ CLI and MCP checks pass/) || [""])[0] });
 steps.push({ name: "extension static (P1-P5)", cmd: ["node", "scripts/check-manifest.mjs"], parse: (o) => (o.match(/\d+\/\d+ extension static checks pass/) || [""])[0] });
-steps.push({ name: "extension e2e (builder)", cmd: ["pnpm", "--filter", "@stepsnap/extension", "e2e"], heavy: true, label: "showsteps-ext-e2e", parse: (o) => (o.match(/\d+ passed[^\n]*/) || [""])[0] });
+steps.push({ name: "extension e2e (builder)", cmd: ["pnpm", "--filter", "@showsteps/extension", "e2e"], heavy: true, label: "showsteps-ext-e2e", parse: (o) => (o.match(/\d+ passed[^\n]*/) || [""])[0] });
 steps.push({ name: "extension acceptance e2e (E1 R H G)", cmd: ["node", "scripts/e2e-extension.mjs"], heavy: true, label: "showsteps-verify-e2e", parse: (o) => (o.match(/\d+\/\d+ extension acceptance checks pass/) || [""])[0] });
-steps.push({ name: "dom e2e", cmd: ["pnpm", "--filter", "@stepsnap/dom", "exec", "playwright", "test", "--workers=2", "--project=chrome"], heavy: true, label: "showsteps-dom-e2e", parse: (o) => (o.match(/\d+ passed[^\n]*/) || [""])[0] });
+steps.push({ name: "dom e2e", cmd: ["pnpm", "--filter", "@showsteps/dom", "exec", "playwright", "test", "--workers=2", "--project=chrome"], heavy: true, label: "showsteps-dom-e2e", parse: (o) => (o.match(/\d+ passed[^\n]*/) || [""])[0] });
 
 const rows = [];
 const started = Date.now();

@@ -1,5 +1,5 @@
 {
-  "name": "@stepsnap/dom",
+  "name": "@showsteps/dom",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@stepsnap/core": "workspace:*"
+    "@showsteps/core": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

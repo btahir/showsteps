@@ -378,7 +378,7 @@ export function migrateGuide(x: unknown): Guide {
   let v: number = raw;
   if (v > SCHEMA_VERSION) {
     throw new GuideValidationError([
-      `guide.schemaVersion: ${v} was written by a newer Stepsnap; this build reads version ${SCHEMA_VERSION}. Update Stepsnap to open it.`,
+      `guide.schemaVersion: ${v} was written by a newer Showsteps; this build reads version ${SCHEMA_VERSION}. Update Showsteps to open it.`,
     ]);
   }
   while (v < SCHEMA_VERSION) {

@@ -1,6 +1,6 @@
 // Text of the auto-redaction chip under a step (SPEC §4): "Password blurred · Undo", or, when the
 // unredacted original is no longer in memory, "Blurred at capture for safety" without Undo.
-import type { Step } from "@stepsnap/core";
+import type { Step } from "@showsteps/core";
 import { KIND_LABEL } from "./text-patterns";
 import type { SecretKind } from "./text-patterns";
 

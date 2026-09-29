@@ -1,5 +1,5 @@
 {
-  "name": "@stepsnap/cli",
+  "name": "@showsteps/cli",
   "version": "0.1.0",
   "description": "Showsteps command line: validate, inspect, edit and export step-by-step guides. Fully local, no network.",
   "type": "module",
@@ -26,7 +26,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@stepsnap/core": "workspace:*",
+    "@showsteps/core": "workspace:*",
     "commander": "^15.0.0"
   },
   "devDependencies": {

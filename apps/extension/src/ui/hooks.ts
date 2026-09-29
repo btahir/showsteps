@@ -1,6 +1,6 @@
 // React hooks shared by the side panel and the editor.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Guide } from "@stepsnap/core";
+import type { Guide } from "@showsteps/core";
 import type { Broadcast, ControlMessage, ControlReply } from "../lib/messages";
 import type { SessionState } from "../lib/session";
 import { IDLE } from "../lib/session";

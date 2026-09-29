@@ -1,6 +1,6 @@
 // App-wide constants. Keep every URL and product string the extension shows in this one file.
 
-/** Product name (the packages keep their @stepsnap/* names until the coordinator renames them). */
+/** Product name (packages are published as @showsteps/*). */
 export const APP_NAME = "Showsteps";
 
 /** Project file extension (a zip: guide.json + images/). */

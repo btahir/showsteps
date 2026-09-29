@@ -4,8 +4,8 @@ import { defineConfig } from "@playwright/test";
 // Playwright cannot click Chrome's permission prompt) into Playwright's bundled Chromium:
 // branded Chrome (137+) ignores --load-extension, see e2e/README.md.
 // Run through the machine-wide limiter:
-//   ../../../research/heavy.sh pnpm --filter @stepsnap/extension build:e2e
-//   ../../../research/heavy.sh pnpm --filter @stepsnap/extension e2e
+//   ../../../research/heavy.sh pnpm --filter @showsteps/extension build:e2e
+//   ../../../research/heavy.sh pnpm --filter @showsteps/extension e2e
 export default defineConfig({
   testDir: "e2e",
   // Generated files (the exported replay.spec.ts) live under e2e/.artifacts and are run by record.spec.ts itself.

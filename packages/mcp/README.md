@@ -1,4 +1,4 @@
-# @stepsnap/mcp
+# @showsteps/mcp
 
 [Model Context Protocol](https://modelcontextprotocol.io) server (stdio) for [Showsteps](../../README.md) guides. Lets an agent validate, inspect, edit and export step-by-step guides, and create new ones from a step list. Fully local: no network, no keys. Files are passed by absolute path.
 
@@ -9,7 +9,7 @@ Requires Node 20 or newer.
 Claude Code:
 
 ```sh
-claude mcp add showsteps -- npx -y @stepsnap/mcp
+claude mcp add showsteps -- npx -y @showsteps/mcp
 ```
 
 Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
@@ -17,12 +17,12 @@ Claude Desktop (`claude_desktop_config.json`) or Cursor (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "showsteps": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+    "showsteps": { "command": "npx", "args": ["-y", "@showsteps/mcp"] }
   }
 }
 ```
 
-From a checkout: `pnpm --filter @stepsnap/mcp build`, then point `command` at `node` with `args: ["/abs/path/to/stepsnap/packages/mcp/dist/showsteps-mcp.js"]`.
+From a checkout: `pnpm --filter @showsteps/mcp build`, then point `command` at `node` with `args: ["/abs/path/to/showsteps/packages/mcp/dist/showsteps-mcp.js"]`.
 
 ## Tools
 
@@ -45,9 +45,9 @@ Step format, export layout and worked examples: [AGENTS.md](../../AGENTS.md).
 ## Development
 
 ```sh
-pnpm --filter @stepsnap/mcp test        # spawns the built server, drives it with the SDK client
-pnpm --filter @stepsnap/mcp typecheck
-pnpm --filter @stepsnap/mcp build       # dist/showsteps-mcp.js, core bundled in
+pnpm --filter @showsteps/mcp test        # spawns the built server, drives it with the SDK client
+pnpm --filter @showsteps/mcp typecheck
+pnpm --filter @showsteps/mcp build       # dist/showsteps-mcp.js, core bundled in
 ```
 
 MIT. Free forever; if it saves you time, support it at https://showsteps.vercel.app/support/

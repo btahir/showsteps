@@ -12,9 +12,9 @@ import {
   packBundle,
   unpackBundle,
   validateGuide,
-} from "@stepsnap/core";
-import * as core from "@stepsnap/core";
-import type { Guide, ImageSource, Step } from "@stepsnap/core";
+} from "@showsteps/core";
+import * as core from "@showsteps/core";
+import type { Guide, ImageSource, Step } from "@showsteps/core";
 import { zipSync, strToU8 } from "fflate";
 import { bakeRedactions, renderAnnotated } from "./render";
 import { visibleSteps } from "./guide-ops";

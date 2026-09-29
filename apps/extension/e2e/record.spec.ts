@@ -272,7 +272,7 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
   const ids = await panel.evaluate(
     () =>
       new Promise<string[]>((res) => {
-        const r = indexedDB.open("stepsnap");
+        const r = indexedDB.open("showsteps");
         r.onsuccess = () => {
           const q = r.result.transaction("guides").objectStore("guides").getAllKeys();
           q.onsuccess = () => res(q.result as string[]);
