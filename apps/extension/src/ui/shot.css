@@ -1,0 +1,100 @@
+.shot {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--ss-radius-sm);
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-line);
+  user-select: none;
+  touch-action: none;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.shot-loading {
+  position: absolute;
+  inset: 0;
+}
+.shot-empty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 7;
+  color: var(--ss-muted);
+  font-size: 13px;
+}
+.shot-compact.shot-empty {
+  aspect-ratio: 16 / 10;
+  font-size: 11px;
+}
+.shot-hl {
+  position: absolute;
+  border: 2px solid var(--ss-accent);
+  border-radius: 5px;
+  box-shadow: 0 0 0 9999px rgba(20, 16, 12, 0.18);
+  pointer-events: none;
+}
+.shot-compact .shot-hl {
+  border-width: 1.5px;
+}
+.shot-marker {
+  position: absolute;
+  left: -11px;
+  top: -11px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ss-accent);
+  color: #fff;
+  font: 700 12px/1 var(--ss-font);
+  border: 1.5px solid #fff;
+}
+.shot-compact .shot-marker {
+  display: none;
+}
+.shot-redact {
+  position: absolute;
+  pointer-events: none;
+  backdrop-filter: blur(9px) saturate(0.6);
+  background: rgba(128, 128, 128, 0.2);
+  outline: 1px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: -1px;
+}
+.shot-redact-solid {
+  backdrop-filter: none;
+  background: #1a1a1a;
+}
+.shot-crop {
+  position: absolute;
+  outline: 2px dashed var(--ss-focus);
+  box-shadow: 0 0 0 9999px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  .shot-crop {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  }
+}
+.shot-drawing {
+  cursor: crosshair;
+}
+.shot-drawing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  outline: 2px solid var(--ss-focus);
+  outline-offset: -2px;
+  pointer-events: none;
+}
+.shot-drag {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px solid var(--ss-focus);
+  background: color-mix(in srgb, var(--ss-focus) 18%, transparent);
+}
+.shot-drag-blur {
+  backdrop-filter: blur(6px);
+}

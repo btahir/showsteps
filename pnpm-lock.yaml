@@ -51,9 +51,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@wxt-dev/module-react':
-        specifier: ^1.2.2
-        version: 1.2.2(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))(wxt@0.21.4(esbuild@0.28.2)(rolldown@1.2.11)(rollup@4.63.5)(typescript@5.9.3)(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0)))
+      '@vitejs/plugin-react':
+        specifier: ^6.1.1
+        version: 6.1.1(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))
       wxt:
         specifier: ^0.21.4
         version: 0.21.4(esbuild@0.28.2)(rolldown@1.2.11)(rollup@4.63.5)(typescript@5.9.3)(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))
@@ -1114,12 +1114,6 @@ packages:
 
   '@wxt-dev/browser@0.3.0':
     resolution: {integrity: sha512-GlqW+uqJP8s/pwqfR1buA2DckxC/mttCudDKBmop5iCerTtPZ6emd9bOAEpUdp3yIVdQCBfHT6iIRKPZsqddjw==}
-
-  '@wxt-dev/module-react@1.2.2':
-    resolution: {integrity: sha512-+lRLi1r9dAXpLySWSIWHLJ1h/nFzR20iQnx3RNrKyA6oJg4+ClOluVXozHjfPg9Okfy/umtffiOopGayASrg6w==}
-    peerDependencies:
-      vite: ^5.4.19 || ^6.3.4 || ^7.0.0 || ^8.0.0-0
-      wxt: '>=0.19.16'
 
   '@wxt-dev/storage@1.2.9':
     resolution: {integrity: sha512-dh9TJwvLBM2x4wyy9nE7eYE3wA8pgz1TXSyz7RbdjkJxLfFfWkbeIqiU7VkGy7Vx8sJBmQjoSpk9zSUb3Bjy0Q==}
@@ -3569,16 +3563,6 @@ snapshots:
     dependencies:
       '@types/filesystem': 0.0.36
       '@types/har-format': 1.2.16
-
-  '@wxt-dev/module-react@1.2.2(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))(wxt@0.21.4(esbuild@0.28.2)(rolldown@1.2.11)(rollup@4.63.5)(typescript@5.9.3)(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0)))':
-    dependencies:
-      '@vitejs/plugin-react': 6.1.1(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))
-      vite: 8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0)
-      wxt: 0.21.4(esbuild@0.28.2)(rolldown@1.2.11)(rollup@4.63.5)(typescript@5.9.3)(vite@8.3.1(@types/node@25.9.8)(esbuild@0.28.2)(jiti@2.7.0))
-    transitivePeerDependencies:
-      - '@rolldown/plugin-babel'
-      - babel-plugin-react-compiler
-      - oxc-transform-react
 
   '@wxt-dev/storage@1.2.9':
     dependencies:

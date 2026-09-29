@@ -1,0 +1,18 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    ".wxt/wxt.d.ts",
+    "src",
+    "test",
+    "e2e",
+    "wxt.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
+}
