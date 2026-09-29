@@ -1,0 +1,36 @@
+{
+  "name": "@stepsnap/mcp",
+  "version": "0.1.0",
+  "description": "Stepsnap MCP server (stdio): validate, inspect, edit and export step-by-step guides from an agent. Fully local, no network.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "stepsnap-mcp": "./dist/stepsnap-mcp.js"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "@stepsnap/cli": "workspace:*",
+    "@stepsnap/core": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

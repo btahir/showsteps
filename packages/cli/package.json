@@ -1,0 +1,35 @@
+{
+  "name": "@stepsnap/cli",
+  "version": "0.1.0",
+  "description": "Stepsnap command line: validate, inspect, edit and export step-by-step guides. Fully local, no network.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "stepsnap": "./dist/stepsnap.js"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ops": "./src/ops.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stepsnap/core": "workspace:*",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
