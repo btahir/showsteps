@@ -19,6 +19,16 @@ Playwright drives the unpacked extension against the Acme Books fixture site (`a
   downloads and parses, and the `.showsteps` file imports back.
 - **Artifacts:** `e2e/.artifacts/record/` (guide.json, every export, `capture-rungs.json` = which capture
   path each step used) and `e2e/.artifacts/screens/` (side panel and editor, light and dark).
-- **Replay check (manual for now):** unzip the exported skill, start the fixture server, then
-  `SHOWSTEPS_SECRET_1=Correct-Horse-9 npx playwright test replay.spec.ts` in the skill folder. Passed on
-  2026-09-28.
+- **Replay:** `record.spec.ts` unzips the exported skill into `e2e/.artifacts/replay/`, writes a minimal
+  `playwright.config.ts` and runs the generated `replay.spec.ts` against the fixtures in a child Playwright
+  run: `1 passed` with `SHOWSTEPS_SECRET_1` set, `1 skipped` without it (ACCEPTANCE G3, G5). Output in
+  `e2e/.artifacts/record/replay-output.txt`. `e2e/.artifacts/**` is ignored as a test directory.
+- **What `round2.spec.ts` checks:** text-pattern redaction on `apps/fixtures/site/patterns.html` (cards, SSN,
+  IBAN, JWT, a token that appears 600 ms after load, a card pasted in an input; order number, epoch, date,
+  UUID and phone untouched; emails only with the preset) burnt into the stored pixels; the in-page recording
+  bar (roles and names, pause/resume/discard/stop from the bar, clicks on it are never steps, and its ink and
+  dot colours in **no** stored screenshot, with a positive control); typing amends; auto-blur Undo from the
+  in-memory original, Ctrl+Z re-burns, a reopened editor offers no Undo; highlight handles by mouse and
+  keyboard; starting on `chrome://version`; and a real DPR 2 run (`--force-device-scale-factor=2`: an
+  emulated `deviceScaleFactor` alone changes `devicePixelRatio` but not the captured pixels).
+- **Console:** `SHOW_CONSOLE=1` prints the worker's and the pages' console output during `round2.spec.ts`.
