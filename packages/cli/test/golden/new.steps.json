@@ -1,0 +1,58 @@
+[
+  {
+    "id": "s1",
+    "title": "Go to **Sign in**",
+    "action": {
+      "type": "navigate",
+      "url": "https://app.example.test/login"
+    },
+    "sensitive": false
+  },
+  {
+    "id": "s2",
+    "title": "Click **Forgot password**",
+    "action": {
+      "type": "click"
+    },
+    "target": "Forgot password",
+    "sensitive": false
+  },
+  {
+    "id": "s3",
+    "title": "Type \"jane@example.test\" in **Email**",
+    "action": {
+      "type": "type",
+      "value": "jane@example.test"
+    },
+    "target": "Email",
+    "sensitive": false
+  },
+  {
+    "id": "s4",
+    "title": "Fill in **New password**",
+    "action": {
+      "type": "type",
+      "value": "•••",
+      "masked": true
+    },
+    "target": "New password",
+    "sensitive": true
+  },
+  {
+    "id": "s5",
+    "title": "Click **Reset password**",
+    "action": {
+      "type": "click"
+    },
+    "target": "Reset password",
+    "sensitive": false
+  },
+  {
+    "id": "s6",
+    "title": "Check your inbox for the confirmation email.",
+    "action": {
+      "type": "note"
+    },
+    "sensitive": false
+  }
+]

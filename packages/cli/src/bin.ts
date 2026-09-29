@@ -5,7 +5,7 @@ run(process.argv.slice(2)).then(
     process.exitCode = code;
   },
   (e) => {
-    process.stderr.write(`stepsnap: ${(e as Error)?.stack ?? e}\n`);
+    process.stderr.write(`showsteps: ${(e as Error)?.stack ?? e}\n`);
     process.exitCode = 1;
   },
 );

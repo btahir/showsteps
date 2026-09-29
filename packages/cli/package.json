@@ -1,11 +1,11 @@
 {
   "name": "@stepsnap/cli",
   "version": "0.1.0",
-  "description": "Stepsnap command line: validate, inspect, edit and export step-by-step guides. Fully local, no network.",
+  "description": "Showsteps command line: validate, inspect, edit and export step-by-step guides. Fully local, no network.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "stepsnap": "./dist/stepsnap.js"
+    "showsteps": "./dist/showsteps.js"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",

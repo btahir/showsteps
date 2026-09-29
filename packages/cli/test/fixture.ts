@@ -1,24 +1,46 @@
 // A tiny synthetic guide, generated in code. No recorded data, no real sites.
 import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
+import { crc32, deflateSync } from "node:zlib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { packBundle, type Guide, type Step } from "@stepsnap/core";
 
-// 1x1 transparent PNG.
-export const PNG_1X1 = Uint8Array.from(
-  Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"),
-);
+/** A small solid-colour RGBA PNG made in code (no binary fixtures). */
+export function makePng(width: number, height: number, [r, g, b]: [number, number, number]): Uint8Array {
+  const row = Buffer.alloc(1 + width * 4);
+  for (let x = 0; x < width; x++) row.set([r, g, b, 255], 1 + x * 4);
+  const raw = Buffer.concat(Array.from({ length: height }, () => row));
+  const chunk = (type: string, data: Buffer) => {
+    const head = Buffer.alloc(8);
+    head.writeUInt32BE(data.length, 0);
+    head.write(type, 4, "ascii");
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), data])), 0);
+    return Buffer.concat([head, data, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.set([8, 6, 0, 0, 0], 8);
+  return new Uint8Array(
+    Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]),
+  );
+}
+
+export const IMG_W = 96;
+export const IMG_H = 64;
+export const PNG_SCREENSHOT = makePng(IMG_W, IMG_H, [0x2b, 0x6c, 0xb0]);
 
 const T = "2026-01-01T00:00:00.000Z";
 const page = (path: string, title: string) => ({ url: `https://app.example.test${path}`, title });
 
 const shot = (id: string) => ({
   image: `images/${id}.png`,
-  width: 1,
-  height: 1,
+  width: IMG_W,
+  height: IMG_H,
   devicePixelRatio: 1,
   viewport: { width: 1280, height: 800, scrollX: 0, scrollY: 0 },
-  highlight: { x: 0, y: 0, width: 1, height: 1 },
+  highlight: { x: 10, y: 10, width: 30, height: 14 },
 });
 
 export function fixtureGuide(): Guide {
@@ -47,7 +69,7 @@ export function fixtureGuide(): Guide {
       title: "Type in **Password**",
       page: page("/login", "Sign in – Acme"),
       timestamp: T,
-      screenshot: { ...shot("s3"), redactions: [{ rect: { x: 0, y: 0, width: 1, height: 1 }, style: "blur", auto: true }] },
+      screenshot: { ...shot("s3"), redactions: [{ rect: { x: 50, y: 30, width: 30, height: 14 }, style: "blur", auto: true }] },
     },
     {
       id: "s4",
@@ -84,14 +106,14 @@ export function fixtureGuide(): Guide {
     description: "Synthetic fixture guide.",
     createdAt: T,
     updatedAt: T,
-    app: { name: "stepsnap", version: "0.0.0-test" },
+    app: { name: "showsteps", version: "0.0.0-test" },
     steps,
   };
 }
 
 export function fixtureImages(guide: Guide = fixtureGuide()): Record<string, Uint8Array> {
   const images: Record<string, Uint8Array> = {};
-  for (const s of guide.steps) if (s.screenshot) images[s.screenshot.image] = PNG_1X1;
+  for (const s of guide.steps) if (s.screenshot) images[s.screenshot.image] = PNG_SCREENSHOT;
   return images;
 }
 
@@ -101,16 +123,18 @@ export interface Sandbox {
   json: string;
 }
 
-/** A fresh temp folder holding the fixture as `guide.stepsnap` and `guide.json`. */
+/** A fresh temp folder holding the fixture as `guide.showsteps` and `guide.json`. */
 export async function makeSandbox(): Promise<Sandbox> {
-  const dir = await realpath(await mkdtemp(join(tmpdir(), "stepsnap-cli-")));
+  const dir = await realpath(await mkdtemp(join(tmpdir(), "showsteps-cli-")));
   const guide = fixtureGuide();
-  const bundle = join(dir, "guide.stepsnap");
+  const bundle = join(dir, "guide.showsteps");
   await writeFile(bundle, packBundle(guide, fixtureImages(guide)));
   const jsonDir = join(dir, "bare");
   await mkdir(jsonDir);
   const json = join(jsonDir, "guide.json");
   await writeFile(json, JSON.stringify(guide, null, 2));
+  await mkdir(join(jsonDir, "images"));
+  for (const [rel, bytes] of Object.entries(fixtureImages(guide))) await writeFile(join(jsonDir, rel), bytes);
   return { dir, bundle, json };
 }
 

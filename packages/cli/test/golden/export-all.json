@@ -1,0 +1,42 @@
+{
+  "files": [
+    "guide.docx",
+    "guide.html",
+    "guide.md",
+    "guide.pdf",
+    "images/s1.png",
+    "images/s2.png",
+    "images/s3.png",
+    "images/s4.png",
+    "replay.spec.ts",
+    "skill/SKILL.md",
+    "skill/images/s1.png",
+    "skill/images/s2.png",
+    "skill/images/s3.png",
+    "skill/images/s4.png",
+    "skill/replay.spec.ts",
+    "skill/steps.json"
+  ],
+  "reported": [
+    "guide.docx",
+    "guide.html",
+    "guide.md",
+    "guide.pdf",
+    "images/s1.png",
+    "images/s2.png",
+    "images/s3.png",
+    "images/s4.png",
+    "replay.spec.ts",
+    "skill/SKILL.md",
+    "skill/images/s1.png",
+    "skill/images/s2.png",
+    "skill/images/s3.png",
+    "skill/images/s4.png",
+    "skill/replay.spec.ts",
+    "skill/steps.json"
+  ],
+  "skill": {
+    "name": "set-up-billing",
+    "dir": "<TMP>/export-all/skill"
+  }
+}

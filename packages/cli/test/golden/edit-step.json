@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "file": "<TMP>/guide.stepsnap",
-  "out": "<TMP>/edited.stepsnap",
+  "file": "<TMP>/guide.showsteps",
+  "out": "<TMP>/edited.showsteps",
   "changed": [
     "title",
     "description",

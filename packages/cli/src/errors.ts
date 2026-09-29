@@ -12,18 +12,18 @@ export const EXIT = {
 export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
 
 /** Any failure the CLI or MCP server reports on purpose. Everything else is a bug. */
-export class StepsnapError extends Error {
+export class ShowstepsError extends Error {
   readonly exitCode: 1 | 2 | 3;
   /** Machine-readable detail lines (for example every schema violation). */
   readonly details: string[];
   constructor(exitCode: 1 | 2 | 3, message: string, details: string[] = []) {
     super(message);
-    this.name = "StepsnapError";
+    this.name = "ShowstepsError";
     this.exitCode = exitCode;
     this.details = details;
   }
 }
 
-export const invalid = (message: string, details?: string[]) => new StepsnapError(EXIT.invalid, message, details);
-export const usage = (message: string) => new StepsnapError(EXIT.usage, message);
-export const ioError = (message: string) => new StepsnapError(EXIT.io, message);
+export const invalid = (message: string, details?: string[]) => new ShowstepsError(EXIT.invalid, message, details);
+export const usage = (message: string) => new ShowstepsError(EXIT.usage, message);
+export const ioError = (message: string) => new ShowstepsError(EXIT.io, message);

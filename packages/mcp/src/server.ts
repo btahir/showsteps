@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   EXPORT_FORMATS,
-  StepsnapError,
+  ShowstepsError,
   checkGuideFile,
   createGuideFile,
   editStepFile,
@@ -16,10 +16,10 @@ import {
 } from "@stepsnap/cli/ops";
 import pkg from "../package.json" with { type: "json" };
 
-export const SERVER_NAME = "stepsnap";
+export const SERVER_NAME = "showsteps";
 export const SERVER_VERSION: string = pkg.version;
 
-const INSTRUCTIONS = `Stepsnap guides are step-by-step how-to guides (a .stepsnap bundle or a guide.json). All tools work on local files named by ABSOLUTE path, offline. Typical flow: guide_info or list_steps to understand a guide, edit_step / regenerate_titles to fix wording, export_guide to produce Markdown, HTML, PDF, DOCX, a Playwright script or an agent skill. create_guide_from_steps builds a new guide (without screenshots) from a step list you write. A guide recorded in the Stepsnap Chrome extension can be opened by a person to review, blur and share; typed passwords are never stored.`;
+const INSTRUCTIONS = `Showsteps guides are step-by-step how-to guides (a .showsteps bundle or a guide.json). All tools work on local files named by ABSOLUTE path, offline. Typical flow: guide_info or list_steps to understand a guide, edit_step / regenerate_titles to fix wording, export_guide to produce Markdown, HTML, PDF, DOCX, a Playwright script or an agent skill. create_guide_from_steps builds a new guide (without screenshots) from a step list you write. A guide recorded in the Showsteps Chrome extension can be opened by a person to review, blur and share; typed passwords are never stored.`;
 
 const absPath = (what: string) =>
   z
@@ -27,7 +27,7 @@ const absPath = (what: string) =>
     .describe(`Absolute path to ${what}.`)
     .refine((p) => isAbsolute(p), { message: "must be an absolute path" });
 
-const guidePath = absPath("a .stepsnap bundle or guide.json file");
+const guidePath = absPath("a .showsteps bundle or guide.json file");
 
 type Data = Record<string, unknown>;
 
@@ -36,7 +36,7 @@ function ok(data: Data) {
 }
 
 function failure(e: unknown) {
-  const se = e instanceof StepsnapError ? e : undefined;
+  const se = e instanceof ShowstepsError ? e : undefined;
   const kind = se ? (se.exitCode === 3 ? "io" : se.exitCode === 2 ? "usage" : "invalid") : "error";
   const message = se ? se.message : (e as Error)?.message ?? String(e);
   const errors = se?.details ?? [];
@@ -97,7 +97,7 @@ export function createServer(): McpServer {
     {
       title: "Validate a guide",
       description:
-        "Check that a .stepsnap bundle or guide.json is a valid Stepsnap guide (schema v1). Returns { valid: true, steps } or { valid: false, errors: [...] } listing every problem with its JSON path. Errors here mean the file is unusable; a missing file is a tool error.",
+        "Check that a .showsteps bundle or guide.json is a valid Showsteps guide (schema v1). Returns { valid: true, steps } or { valid: false, errors: [...] } listing every problem with its JSON path. Errors here mean the file is unusable; a missing file is a tool error.",
       inputSchema: { path: guidePath },
       annotations: { title: "Validate a guide", ...readOnly },
     },
@@ -105,7 +105,7 @@ export function createServer(): McpServer {
       guarded(async () => {
         const r = await checkGuideFile(path);
         if (!r.ok) return { valid: false, file: r.path, errors: r.errors };
-        return { valid: true, file: r.loaded.path, format: r.loaded.kind, schemaVersion: r.loaded.guide.schemaVersion, steps: r.loaded.guide.steps.length };
+        return { valid: true, file: r.loaded.path, format: r.loaded.kind, schemaVersion: r.loaded.guide.schemaVersion, steps: r.loaded.guide.steps.length, warnings: r.loaded.warnings };
       }),
   );
 
@@ -121,7 +121,7 @@ export function createServer(): McpServer {
     ({ path }) =>
       guarded(async () => {
         const l = await loadGuideFile(path);
-        return { file: l.path, format: l.kind, ...guideInfo(l.guide, l.images) };
+        return { file: l.path, format: l.kind, ...guideInfo(l.guide, l.images), warnings: l.warnings };
       }),
   );
 
@@ -186,19 +186,26 @@ export function createServer(): McpServer {
     {
       title: "Export a guide",
       description:
-        "Export a guide into a folder (created if missing) and return the absolute paths written. Formats: md (guide.md + images/), html (one self-contained guide.html), pdf (guide.pdf), docx (guide.docx), playwright (replay.spec.ts), skill (skill/SKILL.md + skill/steps.json + skill/replay.spec.ts, a replayable agent skill), or all. Skipped steps are left out.",
+        "Export a guide into a folder (created if missing) and return the absolute paths written. Formats: md (guide.md + images/), html (one self-contained guide.html), pdf (guide.pdf), docx (guide.docx), playwright (replay.spec.ts), skill (skill/SKILL.md + skill/steps.json + skill/replay.spec.ts + skill/images/, a replayable agent skill; result includes skill.name and skill.dir so you can install the folder), or all. Skipped steps are left out and redactions are always baked into exported images.",
       inputSchema: {
         path: guidePath,
         format: z.enum([...EXPORT_FORMATS, "all"]).describe("Export format, or \"all\"."),
         out_dir: absPath("the output folder"),
+        include_images: z.boolean().default(true).describe("Include screenshots in the md and skill exports (default true). Redactions are always baked in."),
+        skill_name: z.string().optional().describe("Agent skill name for format skill: lowercase letters, digits, hyphens."),
+        skill_description: z.string().optional().describe("Agent skill description for format skill: when an agent should use it."),
       },
       annotations: { title: "Export a guide", ...writes },
     },
-    ({ path, format, out_dir }) =>
+    ({ path, format, out_dir, include_images, skill_name, skill_description }) =>
       guarded(async () => {
         const l = await loadGuideFile(path);
-        const files = await exportGuideFiles(l, format === "all" ? "all" : [format], out_dir);
-        return { format, out_dir, files };
+        const r = await exportGuideFiles(l, format === "all" ? "all" : [format], out_dir, {
+          images: include_images,
+          skillName: skill_name,
+          skillDescription: skill_description,
+        });
+        return { format, out_dir, files: r.files, ...(r.skill ? { skill: r.skill } : {}) };
       }),
   );
 
@@ -207,9 +214,9 @@ export function createServer(): McpServer {
     {
       title: "Create a guide from a step list",
       description:
-        "Create a new guide (no screenshots) from steps you write, saved to out_path (.stepsnap bundle, or .json if the path ends in .json). Titles are generated from action and target unless given. Fails with every problem listed if a step is malformed. Type steps with masked: true never store a value. Use export_guide afterwards to turn it into docs or a Playwright script.",
+        "Create a new guide (no screenshots) from steps you write, saved to out_path (.showsteps bundle, or .json if the path ends in .json). Titles are generated from action and target unless given. Fails with every problem listed if a step is malformed. Type steps with masked: true never store a value. Use export_guide afterwards to turn it into docs or a Playwright script.",
       inputSchema: {
-        out_path: absPath("the guide to create, ending in .stepsnap or .json"),
+        out_path: absPath("the guide to create, ending in .showsteps or .json"),
         title: z.string().min(1).describe("Guide title."),
         description: z.string().optional().describe("Guide description (Markdown)."),
         start_url: z.string().optional().describe("Page URL for steps that name none."),
@@ -219,7 +226,7 @@ export function createServer(): McpServer {
     },
     ({ out_path, title, description, start_url, steps }) =>
       guarded(async () => {
-        if (!/\.(stepsnap|json)$/i.test(out_path)) throw invalid("out_path must end in .stepsnap or .json");
+        if (!/\.(showsteps|stepsnap|json)$/i.test(out_path)) throw invalid("out_path must end in .showsteps or .json");
         const r = await createGuideFile({ title, description, startUrl: start_url, steps }, out_path);
         return { out: r.out, format: r.kind, id: r.id, title: r.title, steps: r.steps };
       }),

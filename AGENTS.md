@@ -1,6 +1,6 @@
-# Stepsnap for agents
+# Showsteps for agents
 
-Stepsnap turns a recorded browser task into a step-by-step guide. A person records it in the Chrome extension; you (an agent) can read, fix, export and create guides from files, with no network, no account and no API key.
+Showsteps turns a recorded browser task into a step-by-step guide. A person records it in the Chrome extension; you (an agent) can read, fix, export and create guides from files, with no network, no account and no API key.
 
 What you can do:
 
@@ -15,10 +15,10 @@ Everything below works offline on local files. Passwords and other sensitive fie
 
 A guide is either:
 
-- `something.stepsnap`: a zip with `guide.json` and `images/<stepId>.png`, or
+- `something.showsteps`: a zip with `guide.json` and `images/<stepId>.png`, or
 - a bare `guide.json` (screenshots are picked up from an `images/` folder next to it, if present).
 
-Every command and tool accepts both. Schema (versioned, v1): [docs/schema.md](docs/schema.md). Key fields: `title`, `steps[]` with `id`, `action`, `target` (name, role, locators), `title`, `description`, `page.url`, `skipped`.
+Every command and tool accepts both (older `.stepsnap` files also open; the format is detected from the content). Schema (versioned, v1): [docs/schema.md](docs/schema.md). Key fields: `title`, `steps[]` with `id`, `action`, `target` (name, role, locators), `title`, `description`, `page.url`, `skipped`.
 
 ## CLI
 
@@ -29,13 +29,13 @@ npx -y @stepsnap/cli --help
 
 | Command | What it does |
 | --- | --- |
-| `stepsnap validate <file> [--json]` | Checks the file against the schema. Exit 1 lists every problem. |
-| `stepsnap info <file> [--json]` | Title, step counts, actions, pages, sensitive steps, screenshot counts. |
-| `stepsnap steps <file> [--json]` | Steps with id, title, action, target, skipped and sensitive flags. |
-| `stepsnap edit-step <file> --id <id> [--title T] [--description D] [--skip\|--unskip] [--out F]` | Edit one step. Overwrites `<file>` unless `--out` is given. |
-| `stepsnap regen-titles <file> [--out F]` | Regenerate generated titles. Hand-edited titles are kept. |
-| `stepsnap export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|all --out <dir> [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
-| `stepsnap new --from-steps <steps.json> --out <file.stepsnap> [--title T]` | Create a guide from a step list. |
+| `showsteps validate <file> [--json]` | Checks the file against the schema. Exit 1 lists every problem. |
+| `showsteps info <file> [--json]` | Title, step counts, actions, pages, sensitive steps, screenshot counts. |
+| `showsteps steps <file> [--json]` | Steps with id, title, action, target, skipped and sensitive flags. |
+| `showsteps edit-step <file> --id <id> [--title T] [--description D] [--skip\|--unskip] [--out F]` | Edit one step. Overwrites `<file>` unless `--out` is given. |
+| `showsteps regen-titles <file> [--out F]` | Regenerate generated titles. Hand-edited titles are kept. |
+| `showsteps export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|all --out <dir> [--no-images] [--skill-name N] [--skill-description D] [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
+| `showsteps new --from-steps <steps.json> --out <file.showsteps> [--title T]` | Create a guide from a step list. |
 
 Rules an agent can rely on:
 
@@ -56,19 +56,31 @@ Rules an agent can rely on:
 | `pdf` | `guide.pdf` |
 | `docx` | `guide.docx` |
 | `playwright` | `replay.spec.ts` |
-| `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts` |
+| `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts`, `skill/images/*.png` |
 
-`--json` returns `{"ok": true, "files": ["/abs/path", ...]}`. Steps with `skipped: true` are left out of every export.
+`--json` returns `{"ok": true, "files": ["/abs/path", ...]}` and, for `skill`, `"skill": {"name": "...", "dir": "/abs/.../skill"}`. Steps with `skipped: true` are left out of every export. Screenshots are re-rendered on export with redactions baked into the pixels and the click target highlighted; the original screenshot bytes are never written. `--no-images` drops screenshots from `md` and `skill`.
+
+### Agent skill export
+
+`--format skill` is the hand-off from a recording to an agent:
+
+- `SKILL.md`: frontmatter (`name`, `description`), numbered steps, a "Find it by" locator hint per step, and a Secrets section.
+- `steps.json`: machine-readable steps (`format: "showsteps-steps"`, `version: 1`): action, page and tab, every locator best first, a ready Playwright snippet per step, and `secrets: [{env, step, field}]`.
+- `replay.spec.ts`: a Playwright test for the whole flow. Run `npx playwright test replay.spec.ts` in that folder.
+
+Values typed into password or other sensitive fields were never stored. The skill lists an environment variable per such field (`SHOWSTEPS_SECRET_1`, ...); set them before replaying.
+
+To install it for Claude Code: `cp -r <out>/skill ~/.claude/skills/<skill.name>` (use `--skill-name` and `--skill-description` to choose what the agent sees).
 
 ### Worked example: fix wording, then export
 
 ```sh
-stepsnap info onboarding.stepsnap --json
-stepsnap steps onboarding.stepsnap --json          # find the step ids
-stepsnap edit-step onboarding.stepsnap --id s4 \
+showsteps info onboarding.showsteps --json
+showsteps steps onboarding.showsteps --json          # find the step ids
+showsteps edit-step onboarding.showsteps --id s4 \
   --title "Open **Billing** in the sidebar" \
-  --description "You need the Admin role to see this." --out reviewed.stepsnap
-stepsnap export reviewed.stepsnap --format md,pdf,skill --out ./out --json
+  --description "You need the Admin role to see this." --out reviewed.showsteps
+showsteps export reviewed.showsteps --format md,pdf,skill --out ./out --json
 ```
 
 ### Worked example: write a guide from scratch
@@ -90,22 +102,22 @@ stepsnap export reviewed.stepsnap --format md,pdf,skill --out ./out --json
 ```
 
 ```sh
-stepsnap new --from-steps steps.json --out reset-password.stepsnap --json
-stepsnap export reset-password.stepsnap --format skill --out ./skill --json
+showsteps new --from-steps steps.json --out reset-password.showsteps --json
+showsteps export reset-password.showsteps --format skill --out ./skill --json
 ```
 
 Step fields: `action` (`navigate`, `click`, `type`, `select`, `check`, `press`, `scroll`, `hover`, `note`), `title` (generated when omitted, required for `note`), `description`, `target` (element name, or `{role, name, label, text, placeholder}`), `url`, `value`, `optionText`, `key`, `checked`, `masked`, `page` (`{url, title}`), `skipped`. Later steps inherit the last URL. Guide-level: `title`, `description`, `id`, `startUrl`. Titles you give are treated as hand-edited and survive `regen-titles`. Every problem in the file is reported at once, so fix them in one pass.
 
-Guides made this way have no screenshots. Exports still work; a person can open the file in the extension to review it.
+Guides made this way have no screenshots. Exports still work, and `--format skill` gives an agent a replayable script even though nobody recorded anything. A person can open the file in the extension to review it.
 
 ## MCP server
 
-`stepsnap-mcp` speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.
+`showsteps-mcp` speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.
 
 Claude Code:
 
 ```sh
-claude mcp add stepsnap -- npx -y @stepsnap/mcp
+claude mcp add showsteps -- npx -y @stepsnap/mcp
 ```
 
 Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
@@ -113,7 +125,7 @@ Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "stepsnap": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+    "showsteps": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
   }
 }
 ```
@@ -136,4 +148,4 @@ Results are JSON in both the text content and `structuredContent`. Invalid guide
 
 ## Working with people
 
-The recording is a human's account of a task. Suggested split: you fix wording, structure and exports; the person reviews screenshots and redactions in the extension (`.stepsnap` files open there directly) before sharing. Send them the file path, not the contents.
+The recording is a human's account of a task. Suggested split: you fix wording, structure and exports; the person reviews screenshots and redactions in the extension (`.showsteps` files open there directly) before sharing. Send them the file path, not the contents.

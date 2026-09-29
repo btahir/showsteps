@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Command, CommanderError } from "commander";
-import { EXIT, StepsnapError, invalid, ioError, usage } from "./errors.ts";
+import { EXIT, ShowstepsError, invalid, ioError, usage } from "./errors.ts";
 import { checkGuideFile, loadGuideFile } from "./files.ts";
 import {
   createGuideFile,
@@ -31,8 +31,8 @@ const HELP_FOOTER = `
 Exit codes: 0 ok, 1 invalid input, 2 usage error, 3 file error.
 With --json every command prints exactly one JSON object on stdout ({"ok": true, ...} or
 {"ok": false, "error": {...}}); human messages go to stderr.
-Files: a .stepsnap bundle (zip: guide.json + images/) or a bare guide.json.
-Docs: https://stepsnap.vercel.app/docs/agents/`;
+Files: a .showsteps bundle (zip: guide.json + images/) or a bare guide.json.
+Docs: https://showsteps.vercel.app/docs/agents/`;
 
 export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> {
   const out = io?.stdout ?? ((t: string) => void process.stdout.write(t));
@@ -53,8 +53,8 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
 
   const program = new Command();
   program
-    .name("stepsnap")
-    .description("Validate, inspect, edit and export Stepsnap guides. Local only, no network.")
+    .name("showsteps")
+    .description("Validate, inspect, edit and export Showsteps guides. Local only, no network.")
     .version(VERSION, "-v, --version")
     .configureOutput({ writeOut: out, writeErr: err })
     .exitOverride()
@@ -64,7 +64,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
   program
     .command("validate")
     .description("Check that a guide file is valid. Exit 1 if not.")
-    .argument("<file>", ".stepsnap bundle or guide.json")
+    .argument("<file>", ".showsteps bundle or guide.json")
     .option("--json", "print one JSON object")
     .action((file: string, o: { json?: boolean }) =>
       finish(async () => {
@@ -72,8 +72,8 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
         if (!r.ok) throw invalid(`invalid guide: ${r.path}`, r.errors);
         const g = r.loaded.guide;
         return {
-          json: { file: r.loaded.path, valid: true, format: r.loaded.kind, schemaVersion: g.schemaVersion, steps: g.steps.length },
-          text: `valid: ${r.loaded.path} (${g.steps.length} steps)`,
+          json: { file: r.loaded.path, valid: true, format: r.loaded.kind, schemaVersion: g.schemaVersion, steps: g.steps.length, warnings: r.loaded.warnings },
+          text: `valid: ${r.loaded.path} (${g.steps.length} steps)${r.loaded.warnings.map((w) => `\nwarning: ${w}`).join("")}`,
         };
       }, o.json),
     );
@@ -98,7 +98,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
           row("Sensitive", info.sensitiveSteps.length ? info.sensitiveSteps.map((s) => s.index).join(", ") : "none"),
           row("Screenshots", `${info.screenshots.imagesFound}/${info.screenshots.steps} images found, ${info.redactions} redactions`),
         ];
-        return { json: { file: l.path, format: l.kind, ...info }, text: lines.join("\n") };
+        return { json: { file: l.path, format: l.kind, ...info, warnings: l.warnings }, text: [...lines, ...l.warnings.map((w) => `warning: ${w}`)].join("\n") };
       }, o.json),
     );
 
@@ -122,7 +122,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
     .command("edit-step")
     .description("Change a step's title, description or skipped flag. Edits in place unless --out is given.")
     .argument("<file>")
-    .requiredOption("--id <id>", "step id (see `stepsnap steps`)")
+    .requiredOption("--id <id>", "step id (see `showsteps steps`)")
     .option("--title <text>", "new title; marks it as hand-edited so regen-titles keeps it")
     .option("--description <text>", 'new description; "" removes it')
     .option("--skip", "hide the step from exports")
@@ -160,15 +160,18 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
     .argument("<file>")
     .requiredOption("--format <format>", "md | html | pdf | docx | playwright | skill | all")
     .requiredOption("--out <dir>", "output folder (created if missing)")
+    .option("--no-images", "leave screenshots out of the md and skill exports")
+    .option("--skill-name <name>", "agent skill name (lowercase letters, digits, hyphens)")
+    .option("--skill-description <text>", "agent skill description shown to the agent")
     .option("--json", "print one JSON object")
-    .action((file: string, o: { format: string; out: string; json?: boolean }) =>
+    .action((file: string, o: { format: string; out: string; images: boolean; skillName?: string; skillDescription?: string; json?: boolean }) =>
       finish(async () => {
         const formats = parseFormats(o.format);
         const l = await loadGuideFile(file, cwd);
-        const files = await exportGuideFiles(l, formats, resolve(cwd, o.out));
+        const r = await exportGuideFiles(l, formats, resolve(cwd, o.out), { images: o.images, skillName: o.skillName, skillDescription: o.skillDescription });
         return {
-          json: { file: l.path, format: formats, out: resolve(cwd, o.out), files },
-          text: files.join("\n"),
+          json: { file: l.path, format: formats, out: resolve(cwd, o.out), files: r.files, ...(r.skill ? { skill: r.skill } : {}) },
+          text: r.files.join("\n"),
         };
       }, o.json),
     );
@@ -177,7 +180,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
     .command("new")
     .description("Create a guide (no screenshots) from a steps.json an agent wrote.")
     .requiredOption("--from-steps <file>", "steps.json: an array of steps or {title, steps: [...]}")
-    .requiredOption("--out <file>", "where to write the guide (.stepsnap bundle or .json)")
+    .requiredOption("--out <file>", "where to write the guide (.showsteps bundle or .json)")
     .option("--title <text>", "guide title (overrides the one in the steps file)")
     .option("--json", "print one JSON object")
     .action((o: { fromSteps: string; out: string; title?: string; json?: boolean }) =>
@@ -215,9 +218,9 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
 
 /** Print a failure and return its exit code. Unknown errors are bugs: exit 1 with the message. */
 function fail(e: unknown, json: boolean | undefined, out: (t: string) => void, err: (t: string) => void): number {
-  const se = e instanceof StepsnapError ? e : new StepsnapError(EXIT.invalid, (e as Error)?.message ?? String(e));
+  const se = e instanceof ShowstepsError ? e : new ShowstepsError(EXIT.invalid, (e as Error)?.message ?? String(e));
   const kind = se.exitCode === EXIT.io ? "io" : se.exitCode === EXIT.usage ? "usage" : "invalid";
   if (json) out(JSON.stringify({ ok: false, error: { code: kind, message: se.message, ...(se.details.length ? { errors: se.details } : {}) } }) + "\n");
-  err(`stepsnap: ${se.message}\n${se.details.map((d) => `  - ${d}\n`).join("")}`);
+  err(`showsteps: ${se.message}\n${se.details.map((d) => `  - ${d}\n`).join("")}`);
   return se.exitCode;
 }

@@ -1,6 +1,6 @@
 // Guide operations shared by the CLI and the MCP server. Thin: anything that is real guide logic
 // (validation, titles, exporters, bundles) is called from @stepsnap/core.
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import {
   exportAgentSkill,
   exportDocx,
@@ -17,7 +17,7 @@ import {
   type ElementDescriptor,
   type Locator,
 } from "@stepsnap/core";
-import { invalid, usage } from "./errors.ts";
+import { ShowstepsError, invalid, usage } from "./errors.ts";
 import {
   confinedJoin,
   loadGuideFile,
@@ -28,7 +28,7 @@ import {
 } from "./files.ts";
 import { VERSION } from "./version.ts";
 
-export { EXIT, StepsnapError, invalid, ioError, usage } from "./errors.ts";
+export { EXIT, ShowstepsError, invalid, ioError, usage } from "./errors.ts";
 export { checkGuideFile, loadGuideFile, saveGuideFile, type CheckResult, type ImageSource, type LoadedGuide } from "./files.ts";
 
 // ---------------------------------------------------------------- summaries
@@ -352,7 +352,7 @@ export function createGuideFromSteps(input: unknown, opts: { title?: string; now
     ...(raw.description ? { description: raw.description } : {}),
     createdAt: now,
     updatedAt: now,
-    app: { name: "stepsnap", version: VERSION },
+    app: { name: "showsteps", version: VERSION },
     steps,
     ...(anyUrl ? {} : { settings: { includeUrls: false } }),
   };
@@ -366,33 +366,45 @@ export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 type Blob = string | Uint8Array;
 
+export interface ExportOptions {
+  /** Include rendered screenshots in md and skill exports. Default true. */
+  images?: boolean;
+  /** Override the agent skill `name` (lowercase, digits, hyphens). */
+  skillName?: string;
+  /** Override the agent skill `description`. */
+  skillDescription?: string;
+}
+
+export interface ExportOutcome {
+  /** Absolute paths written, sorted. */
+  files: string[];
+  /** Present when the skill format was exported: the skill name and its folder. */
+  skill?: { name?: string; dir: string };
+}
+
 /**
- * Write exports into `outDir` and return absolute paths, sorted. Layout:
- * md → guide.md + images/, html → guide.html, pdf → guide.pdf, docx → guide.docx,
- * playwright → replay.spec.ts, skill → skill/{SKILL.md,steps.json,replay.spec.ts}.
+ * Write exports into `outDir`. Layout: md -> guide.md + images/, html -> guide.html, pdf -> guide.pdf,
+ * docx -> guide.docx, playwright -> replay.spec.ts, skill -> skill/{SKILL.md,steps.json,replay.spec.ts,images/}.
+ * Redactions are baked into every exported screenshot by core; raw screenshots are never written.
  */
 export async function exportGuideFiles(
   loaded: Pick<LoadedGuide, "guide" | "images">,
   formats: ExportFormat[] | "all",
   outDirArg: string,
-): Promise<string[]> {
+  opts: ExportOptions = {},
+): Promise<ExportOutcome> {
   const outDir = resolve(outDirArg);
   const list = formats === "all" ? [...EXPORT_FORMATS] : formats;
   const { guide, images } = loaded;
+  const withImages = opts.images !== false ? images : undefined;
   const planned: [string, Blob][] = [];
+  let skillMd: string | undefined;
   for (const f of list) {
     try {
       switch (f) {
-        case "md": {
-          const md = exportMarkdown(guide);
-          const files: Record<string, Blob> = { ...md.files };
-          for (const st of guide.steps) {
-            const p = st.screenshot?.image;
-            if (p && !(p in files) && images[p] && !st.skipped) files[p] = images[p];
-          }
-          for (const [p, data] of Object.entries(files)) planned.push([p, data]);
+        case "md":
+          for (const [p, data] of Object.entries(exportMarkdown(guide, { images: withImages }).files)) planned.push([p, data]);
           break;
-        }
         case "html":
           planned.push(["guide.html", exportHtml(guide, images)]);
           break;
@@ -405,12 +417,16 @@ export async function exportGuideFiles(
         case "playwright":
           planned.push(["replay.spec.ts", exportPlaywright(guide)]);
           break;
-        case "skill":
-          for (const [p, data] of Object.entries(exportAgentSkill(guide).files)) planned.push([`skill/${p}`, data]);
+        case "skill": {
+          const skill = exportAgentSkill(guide, { images: withImages, name: opts.skillName, description: opts.skillDescription });
+          for (const [p, data] of Object.entries(skill.files)) planned.push([`skill/${p}`, data]);
+          const md = skill.files["SKILL.md"];
+          if (typeof md === "string") skillMd = md;
           break;
+        }
       }
     } catch (e) {
-      if (e instanceof Error && e.name === "StepsnapError") throw e;
+      if (e instanceof ShowstepsError) throw e;
       throw invalid(`export ${f} failed: ${(e as Error).message}`);
     }
   }
@@ -420,7 +436,16 @@ export async function exportGuideFiles(
     await writeFileSafe(abs, data);
     written.push(abs);
   }
-  return written.sort();
+  const files = written.sort();
+  if (skillMd === undefined) return { files };
+  const name = /^name:\s*(.+)$/m.exec(skillMd)?.[1];
+  let parsed: string | undefined;
+  try {
+    parsed = name ? (JSON.parse(name) as string) : undefined;
+  } catch {
+    parsed = name;
+  }
+  return { files, skill: { ...(parsed ? { name: parsed } : {}), dir: join(outDir, "skill") } };
 }
 
 export function parseFormats(spec: string): ExportFormat[] | "all" {

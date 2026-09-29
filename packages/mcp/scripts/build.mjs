@@ -10,7 +10,7 @@ const banner = [
 
 await build({
   entryPoints: ["src/bin.ts"],
-  outfile: "dist/stepsnap-mcp.js",
+  outfile: "dist/showsteps-mcp.js",
   bundle: true,
   platform: "node",
   format: "esm",
@@ -19,4 +19,4 @@ await build({
   legalComments: "none",
   logLevel: "info",
 });
-await chmod("dist/stepsnap-mcp.js", 0o755);
+await chmod("dist/showsteps-mcp.js", 0o755);

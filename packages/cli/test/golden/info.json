@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "file": "<TMP>/guide.stepsnap",
+  "file": "<TMP>/guide.showsteps",
   "format": "bundle",
   "id": "g_fixture",
   "title": "Set up billing",
@@ -42,5 +42,6 @@
     "imagesFound": 4,
     "imagesMissing": 0
   },
-  "redactions": 1
+  "redactions": 1,
+  "warnings": []
 }

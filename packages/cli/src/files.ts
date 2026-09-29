@@ -20,6 +20,8 @@ export interface LoadedGuide {
   guide: Guide;
   /** Screenshot bytes keyed by `step.screenshot.image`. Empty for a bare guide.json without images. */
   images: ImageSource;
+  /** Non-fatal problems found while reading, e.g. a screenshot the guide references that is missing. */
+  warnings: string[];
 }
 
 export type CheckResult =
@@ -55,49 +57,53 @@ function validated(raw: unknown): { ok: true; guide: Guide } | { ok: false; erro
 }
 
 /** Read guide.json images that sit next to it (`<dir>/images/...`), ignoring anything outside <dir>. */
-async function readSiblingImages(dir: string, guide: Guide): Promise<ImageSource> {
+async function readSiblingImages(dir: string, guide: Guide): Promise<{ images: ImageSource; warnings: string[] }> {
   const images: ImageSource = {};
+  const warnings: string[] = [];
   for (const step of guide.steps) {
     const rel = step.screenshot?.image;
     if (!rel) continue;
     const abs = resolve(dir, rel);
     const back = relative(dir, abs);
-    if (back.startsWith("..") || isAbsolute(back)) continue;
+    if (back.startsWith("..") || isAbsolute(back)) {
+      warnings.push(`screenshot path leaves the guide folder and was ignored: ${rel}`);
+      continue;
+    }
     try {
       images[rel] = new Uint8Array(await readFile(abs));
     } catch {
-      // Missing image: reported by `info`, not fatal here.
+      warnings.push(`screenshot not found next to guide.json: ${rel}`);
     }
   }
-  return images;
+  return { images, warnings };
 }
 
-/** Load and validate a `.stepsnap` bundle or a bare `guide.json`. Never throws for an invalid guide. */
+/** Load and validate a `.showsteps` bundle or a bare `guide.json`. Never throws for an invalid guide. */
 export async function checkGuideFile(file: string, cwd = process.cwd()): Promise<CheckResult> {
   const path = resolve(cwd, file);
   const bytes = await readBytes(path);
   if (isZip(bytes)) {
-    let unpacked: { guide: unknown; images: ImageSource };
+    let unpacked: { guide: unknown; images: ImageSource; warnings?: string[] };
     try {
-      unpacked = unpackBundle(bytes) as { guide: unknown; images: ImageSource };
+      unpacked = unpackBundle(bytes) as typeof unpacked;
     } catch (e) {
       const errs = (e as { errors?: unknown }).errors;
-      return { ok: false, path, errors: Array.isArray(errs) ? (errs as string[]) : [`not a readable .stepsnap bundle: ${(e as Error).message}`] };
+      return { ok: false, path, errors: Array.isArray(errs) ? (errs as string[]) : [`not a readable .showsteps bundle: ${(e as Error).message}`] };
     }
     const v = validated(unpacked.guide);
     if (!v.ok) return { ok: false, path, errors: v.errors };
-    return { ok: true, loaded: { path, kind: "bundle", guide: v.guide, images: unpacked.images ?? {} } };
+    return { ok: true, loaded: { path, kind: "bundle", guide: v.guide, images: unpacked.images ?? {}, warnings: unpacked.warnings ?? [] } };
   }
   let raw: unknown;
   try {
     raw = JSON.parse(new TextDecoder().decode(bytes));
   } catch (e) {
-    return { ok: false, path, errors: [`not a .stepsnap bundle or guide.json (invalid JSON: ${(e as Error).message})`] };
+    return { ok: false, path, errors: [`not a .showsteps bundle or guide.json (invalid JSON: ${(e as Error).message})`] };
   }
   const v = validated(raw);
   if (!v.ok) return { ok: false, path, errors: v.errors };
-  const images = await readSiblingImages(dirname(path), v.guide);
-  return { ok: true, loaded: { path, kind: "json", guide: v.guide, images } };
+  const { images, warnings } = await readSiblingImages(dirname(path), v.guide);
+  return { ok: true, loaded: { path, kind: "json", guide: v.guide, images, warnings } };
 }
 
 /** Like checkGuideFile but throws exit-code-1 errors for an invalid guide. */
@@ -127,7 +133,7 @@ export async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-/** Save a guide. Format follows the output extension (.json bare, .stepsnap bundle), else the input kind. */
+/** Save a guide. Format follows the output extension (.json bare, .showsteps bundle; legacy .stepsnap also a bundle), else the input kind. */
 export async function saveGuideFile(
   guide: Guide,
   images: ImageSource,
@@ -135,9 +141,18 @@ export async function saveGuideFile(
   fallbackKind: GuideFileKind,
 ): Promise<GuideFileKind> {
   const lower = outPath.toLowerCase();
-  const kind: GuideFileKind = lower.endsWith(".json") ? "json" : lower.endsWith(".stepsnap") ? "bundle" : fallbackKind;
-  if (kind === "json") await writeFileSafe(outPath, JSON.stringify(guide, null, 2) + "\n");
-  else await writeFileSafe(outPath, packBundle(guide, images));
+  const kind: GuideFileKind = lower.endsWith(".json") ? "json" : /\.(showsteps|stepsnap)$/.test(lower) ? "bundle" : fallbackKind;
+  if (kind === "json") {
+    await writeFileSafe(outPath, JSON.stringify(guide, null, 2) + "\n");
+    return kind;
+  }
+  let bytes: Uint8Array;
+  try {
+    bytes = packBundle(guide, images);
+  } catch (e) {
+    throw invalid(`cannot save ${outPath}: ${(e as Error).message}`, (e as { errors?: string[] }).errors);
+  }
+  await writeFileSafe(outPath, bytes);
   return kind;
 }
 

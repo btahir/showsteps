@@ -1,26 +1,26 @@
 # @stepsnap/cli
 
-Command line for [Stepsnap](../../README.md) guides: validate, inspect, edit and export. Local only, no network, no account. Made for people and for agents (`--json`, stable exit codes).
+Command line for [Showsteps](../../README.md) guides: validate, inspect, edit and export. Local only, no network, no account. Made for people and for agents (`--json`, stable exit codes).
 
 ```sh
-npx -y @stepsnap/cli export onboarding.stepsnap --format md,pdf --out ./out
+npx -y @stepsnap/cli export onboarding.showsteps --format md,pdf --out ./out
 ```
 
-Requires Node 20 or newer. From a checkout: `pnpm --filter @stepsnap/cli build`, then `node packages/cli/dist/stepsnap.js`.
+Requires Node 20 or newer. From a checkout: `pnpm --filter @stepsnap/cli build`, then `node packages/cli/dist/showsteps.js`.
 
 ## Commands
 
 ```
-stepsnap validate <file> [--json]
-stepsnap info <file> [--json]
-stepsnap steps <file> [--json]
-stepsnap edit-step <file> --id <id> [--title T] [--description D] [--skip | --unskip] [--out F] [--json]
-stepsnap regen-titles <file> [--out F] [--json]
-stepsnap export <file> --format md|html|pdf|docx|playwright|skill|all --out <dir> [--json]
-stepsnap new --from-steps <steps.json> --out <file.stepsnap|file.json> [--title T] [--json]
+showsteps validate <file> [--json]
+showsteps info <file> [--json]
+showsteps steps <file> [--json]
+showsteps edit-step <file> --id <id> [--title T] [--description D] [--skip | --unskip] [--out F] [--json]
+showsteps regen-titles <file> [--out F] [--json]
+showsteps export <file> --format md|html|pdf|docx|playwright|skill|all --out <dir> [--no-images] [--skill-name N] [--skill-description D] [--json]
+showsteps new --from-steps <steps.json> --out <file.showsteps|file.json> [--title T] [--json]
 ```
 
-`<file>` is a `.stepsnap` bundle or a bare `guide.json`.
+`<file>` is a `.showsteps` bundle or a bare `guide.json`.
 
 ## Output and exit codes
 
@@ -36,8 +36,8 @@ With `--json`, stdout carries exactly one JSON object with `"ok": true|false`; f
 Example:
 
 ```
-$ stepsnap validate onboarding.stepsnap --json
-{"ok":true,"file":"/work/onboarding.stepsnap","valid":true,"format":"bundle","schemaVersion":1,"steps":6}
+$ showsteps validate onboarding.showsteps --json
+{"ok":true,"file":"/work/onboarding.showsteps","valid":true,"format":"bundle","schemaVersion":1,"steps":6}
 ```
 
 ## Export layout
@@ -49,9 +49,9 @@ $ stepsnap validate onboarding.stepsnap --json
 | `pdf` | `guide.pdf` |
 | `docx` | `guide.docx` |
 | `playwright` | `replay.spec.ts` |
-| `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts` |
+| `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts`, `skill/images/` |
 
-`--format all` writes everything; a comma list (`md,pdf`) writes several. Skipped steps are omitted.
+`--format all` writes everything; a comma list (`md,pdf`) writes several. Skipped steps are omitted. Screenshots are re-rendered with redactions baked in; raw screenshots are never written. `--no-images` leaves them out of `md` and `skill`. With `skill`, `--json` also returns `skill.name` and `skill.dir`. Values typed into sensitive fields are never stored; the skill names an environment variable per field (`SHOWSTEPS_SECRET_1`, ...) to set before replaying.
 
 ## Creating a guide from steps
 
@@ -66,7 +66,7 @@ See the step fields and a full example in [AGENTS.md](../../AGENTS.md#worked-exa
 ```sh
 pnpm --filter @stepsnap/cli test        # vitest: golden output, exit codes, built binary
 pnpm --filter @stepsnap/cli typecheck
-pnpm --filter @stepsnap/cli build       # dist/stepsnap.js, core bundled in
+pnpm --filter @stepsnap/cli build       # dist/showsteps.js, core bundled in
 ```
 
-MIT. Free forever; if it saves you time, support it at https://stepsnap.vercel.app/support/
+MIT. Free forever; if it saves you time, support it at https://showsteps.vercel.app/support/

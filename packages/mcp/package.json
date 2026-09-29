@@ -1,11 +1,11 @@
 {
   "name": "@stepsnap/mcp",
   "version": "0.1.0",
-  "description": "Stepsnap MCP server (stdio): validate, inspect, edit and export step-by-step guides from an agent. Fully local, no network.",
+  "description": "Showsteps MCP server (stdio): validate, inspect, edit and export step-by-step guides from an agent. Fully local, no network.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "stepsnap-mcp": "./dist/stepsnap-mcp.js"
+    "showsteps-mcp": "./dist/showsteps-mcp.js"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",

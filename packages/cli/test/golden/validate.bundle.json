@@ -1,8 +1,9 @@
 {
   "ok": true,
-  "file": "<TMP>/guide.stepsnap",
+  "file": "<TMP>/guide.showsteps",
   "valid": true,
   "format": "bundle",
   "schemaVersion": 1,
-  "steps": 6
+  "steps": 6,
+  "warnings": []
 }
