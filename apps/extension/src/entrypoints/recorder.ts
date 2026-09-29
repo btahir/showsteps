@@ -638,4 +638,6 @@ export default defineUnlistedScript(() => {
 
   window.__stepsnapRecorder = { sync };
   sync();
+  // Back/forward cache restores keep this script alive; re-check the recording state.
+  window.addEventListener("pageshow", (e) => e.persisted && sync());
 });
