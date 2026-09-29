@@ -4,13 +4,21 @@
 // and tell exporters so with `imagesPrerendered`.
 
 import type { Rect, Redaction, Step } from "./schema";
-import { clampRect, defaultHighlightMetrics, expandRect, isEmptyRect, roundRectOut, scaleRect } from "./geometry";
+import { clampRect, isEmptyRect, roundRectOut, scaleRect } from "./geometry";
 import { decodePng, encodePng, isPng, PngError, type RgbaImage } from "./png";
 
 export type Screenshot = NonNullable<Step["screenshot"]>;
 
-export const DEFAULT_HIGHLIGHT_COLOR = "#ff5a1f";
-export const SOLID_REDACTION_RGB: [number, number, number] = [26, 26, 26];
+export const DEFAULT_HIGHLIGHT_COLOR = "#EB4E26";
+/** Brand `redactSolidColor` (#1F1C19). */
+export const SOLID_REDACTION_RGB: [number, number, number] = [31, 28, 25];
+/** Pixelate/blur cells are at least this many CSS px (brand: "cells of at least 8 CSS px"). */
+export const REDACT_MIN_CELL_CSS_PX = 8;
+
+/** Cell size in image pixels for pixelate/blur redactions at `scale` image px per CSS px. */
+export function redactCell(scale: number): number {
+  return Math.max(4, Math.round(REDACT_MIN_CELL_CSS_PX * (scale > 0 ? scale : 1)));
+}
 
 export class RenderError extends Error {
   constructor(message: string) {
@@ -20,10 +28,16 @@ export class RenderError extends Error {
 }
 
 export interface RenderOptions {
-  /** Draw the highlight ring. Default true. */
+  /** Draw the highlight (ring, spotlight, numbered tab). Default true. */
   highlight?: boolean;
   /** CSS colour for the ring (hex or rgb()). Default `DEFAULT_HIGHLIGHT_COLOR`. */
   highlightColor?: string;
+  /** Number shown on the highlight's tab (the step number). Omit for a plain ring. */
+  stepNumber?: number;
+  /** Dim everything outside the highlight (brand "spotlight"). Default true. */
+  spotlight?: boolean;
+  /** Right-to-left page: the numbered tab grows out of the top-left corner instead. */
+  rtl?: boolean;
   /** Bake `screenshot.redactions` into the pixels. Default true; turning it off is only safe if already baked. */
   redact?: boolean;
   /** Apply `screenshot.crop`. Default true. */
@@ -124,8 +138,12 @@ function boxBlur(img: RgbaImage, r: Rect, radius: number, passes: number): void 
   }
 }
 
-/** Cover `rect` (image pixels) in place. Blur is pixelate-then-blur, so it is not reversible. */
-export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style"]): void {
+/**
+ * Cover `rect` (image pixels) in place. `pixelate` averages square cells of `cell` px (`redactCell`);
+ * `blur` pixelates the same way and then smooths the cell edges lightly. Both are irreversible:
+ * the original detail is gone from the pixels, not hidden. `solid` fills `SOLID_REDACTION_RGB`.
+ */
+export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style"], cell = redactCell(1)): void {
   const r = roundRectOut(clampRect(rect, img));
   if (isEmptyRect(r)) return;
   if (style === "solid") {
@@ -137,45 +155,228 @@ export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style
     }
     return;
   }
-  const side = Math.min(r.width, r.height);
-  if (style === "pixelate") {
-    pixelate(img, r, Math.max(4, Math.round(side / 3)));
-    return;
+  pixelate(img, r, cell);
+  if (style === "blur") {
+    const side = Math.min(r.width, r.height);
+    const radius = Math.min(Math.max(1, Math.round(cell / 3)), Math.floor(side / 2) - 1);
+    if (radius >= 1) boxBlur(img, r, radius, 1);
   }
-  const block = Math.max(3, Math.round(side / 4));
-  pixelate(img, r, block);
-  boxBlur(img, r, Math.max(2, Math.min(block, Math.floor(side / 2) - 1)), 2);
 }
 
 // ---- highlight ----------------------------------------------------------------------------
+// The "Flag" highlight from packages/brand/tokens.ts, rasterised without a canvas: spotlight dim,
+// white halo, coloured ring whose one square corner grows into a numbered tab.
 
-function sdRoundRect(px: number, py: number, cx: number, cy: number, hw: number, hh: number, rad: number): number {
-  const qx = Math.abs(px - cx) - (hw - rad);
-  const qy = Math.abs(py - cy) - (hh - rad);
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rad;
+/** Highlight geometry in CSS px of the captured page; multiply by `highlightScale(...)`. Mirrors brand tokens. */
+export const FLAG = {
+  ringWidth: 3,
+  haloWidth: 2,
+  pad: 4,
+  radius: 8,
+  spotlightDim: [28, 18, 12, 0.16] as [number, number, number, number],
+  tab: { height: 24, minWidth: 27, paddingX: 8.5, cornerRadius: 7, fillet: 7, fontSizeRatio: 0.6 },
+} as const;
+
+/** Image pixels per CSS px of highlight geometry: `devicePixelRatio * clamp(viewportCssWidth / 960, 1, 2)`. */
+export function highlightScale(viewportCssWidth: number, devicePixelRatio: number): number {
+  const s = Math.min(2, Math.max(1, viewportCssWidth / 960));
+  return (devicePixelRatio > 0 ? devicePixelRatio : 1) * s;
 }
 
-/** Draw the highlight ring (anti-aliased stroke plus a faint tint) around `rect` in place. */
-export function drawHighlight(img: RgbaImage, rect: Rect, colorCss: string, devicePixelRatio: number): void {
-  const color = parseColor(colorCss) ?? (parseColor(DEFAULT_HIGHLIGHT_COLOR) as [number, number, number]);
-  const m = defaultHighlightMetrics(devicePixelRatio);
-  const box = expandRect(rect, m.pad);
-  if (isEmptyRect(box)) return;
-  const rad = Math.min(m.radius, box.width / 2, box.height / 2);
-  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
-  const hw = box.width / 2, hh = box.height / 2;
-  const x0 = Math.max(0, Math.floor(box.x) - 1), x1 = Math.min(img.width, Math.ceil(box.x + box.width) + 1);
-  const y0 = Math.max(0, Math.floor(box.y) - 1), y1 = Math.min(img.height, Math.ceil(box.y + box.height) + 1);
-  const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
-  for (let y = y0; y < y1; y++) {
-    for (let x = x0; x < x1; x++) {
-      const d = sdRoundRect(x + 0.5, y + 0.5, cx, cy, hw, hh, rad);
-      const inside = clamp01(0.5 - d);
-      if (inside <= 0) continue;
-      const ring = inside * clamp01(d + m.stroke + 0.5);
-      const alpha = Math.max(ring, inside * 0.1);
-      const p = (y * img.width + x) * 4;
-      for (let c = 0; c < 3; c++) img.data[p + c] = Math.round((img.data[p + c] as number) * (1 - alpha) + (color[c] as number) * alpha);
+type Poly = [number, number][];
+
+function arcPoints(cx: number, cy: number, r: number, a0: number, a1: number, n = 10): Poly {
+  const pts: Poly = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return pts;
+}
+
+/** Signed distance from (px, py) to a closed polygon: negative inside. */
+function polySd(px: number, py: number, poly: Poly): number {
+  let d2 = Infinity;
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i] as [number, number];
+    const [xj, yj] = poly[j] as [number, number];
+    const ex = xj - xi, ey = yj - yi;
+    const wx = px - xi, wy = py - yi;
+    const t = Math.max(0, Math.min(1, (wx * ex + wy * ey) / (ex * ex + ey * ey || 1)));
+    const dx = wx - ex * t, dy = wy - ey * t;
+    d2 = Math.min(d2, dx * dx + dy * dy);
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  const d = Math.sqrt(d2);
+  return inside ? -d : d;
+}
+
+/** Distance from a point to the segment a-b. */
+function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const ex = bx - ax, ey = by - ay;
+  const t = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1)));
+  return Math.hypot(px - (ax + ex * t), py - (ay + ey * t));
+}
+
+/** SDF of a rectangle with per-corner radii [tl, tr, br, bl]. */
+function sdBox(px: number, py: number, cx: number, cy: number, hw: number, hh: number, r: [number, number, number, number]): number {
+  const rad = px > cx ? (py > cy ? r[2] : r[1]) : py > cy ? r[3] : r[0];
+  const qx = Math.abs(px - cx) - hw + rad;
+  const qy = Math.abs(py - cy) - hh + rad;
+  return Math.min(Math.max(qx, qy), 0) + Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - rad;
+}
+
+// Digit strokes on a 1 x 1.6 grid (y down). Each digit is a list of polylines.
+const DIGITS: Record<string, Poly[]> = (() => {
+  const loop = (cx: number, cy: number, rx: number, ry: number, a0 = 0, a1 = 360): Poly =>
+    arcPoints(0, 0, 1, a0, a1, 24).map(([x, y]) => [cx + x * rx, cy + y * ry] as [number, number]);
+  const six: Poly[] = [
+    [[0.9, 0.12], [0.62, -0.02], [0.36, 0.08], [0.14, 0.5], [0.03, 1.1]],
+    loop(0.5, 1.1, 0.47, 0.5, 180, 540),
+  ];
+  return {
+    "0": [loop(0.5, 0.8, 0.48, 0.8)],
+    "1": [[[0.18, 0.34], [0.58, 0], [0.58, 1.6]]],
+    "2": [[...arcPoints(0.5, 0.5, 0.47, 180, 385, 14), [0.02, 1.6], [1, 1.6]]],
+    "3": [arcPoints(0.5, 0.42, 0.4, 205, 450, 14), arcPoints(0.5, 1.15, 0.45, 270, 525, 14)],
+    "4": [[[0.74, 1.6], [0.74, 0], [0.02, 1.12], [1, 1.12]]],
+    "5": [[[0.92, 0], [0.16, 0], [0.1, 0.72]], arcPoints(0.5, 1.14, 0.46, 235, 512, 14)],
+    "6": six,
+    "7": [[[0.02, 0], [1, 0], [0.34, 1.6]]],
+    "8": [loop(0.5, 0.42, 0.4, 0.4), loop(0.5, 1.15, 0.46, 0.45)],
+    "9": six.map((pl) => pl.map(([x, y]) => [1 - x, 1.6 - y] as [number, number])),
+  };
+})();
+
+interface FlagOptions {
+  target: Rect;
+  /** Step number for the tab; omit to draw the ring only. */
+  n?: number;
+  scale: number;
+  color: [number, number, number];
+  dim?: [number, number, number, number] | null;
+  rtl?: boolean;
+}
+
+function blend(img: RgbaImage, p: number, rgb: readonly number[], a: number): void {
+  if (a <= 0) return;
+  const d = img.data;
+  const ia = 1 - a;
+  d[p] = Math.round((d[p] as number) * ia + (rgb[0] as number) * a);
+  d[p + 1] = Math.round((d[p + 1] as number) * ia + (rgb[1] as number) * a);
+  d[p + 2] = Math.round((d[p + 2] as number) * ia + (rgb[2] as number) * a);
+}
+
+const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/** Draw the Showsteps "Flag" highlight in place: spotlight dim, haloed ring, numbered tab. */
+export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
+  const k = o.scale;
+  const pad = FLAG.pad * k, sw = FLAG.ringWidth * k, halo = FLAG.haloWidth * k;
+  const x = o.target.x - pad, y = o.target.y - pad, w = o.target.width + pad * 2, h = o.target.height + pad * 2;
+  const rad = Math.min(FLAG.radius * k, h / 2, w / 2);
+  const cx = x + w / 2, cy = y + h / 2, hw = w / 2, hh = h / 2;
+  const T = FLAG.tab;
+  const th = T.height * k, fs = th * T.fontSizeRatio, rt = T.cornerRadius * k, f = T.fillet * k;
+  const digits = o.n !== undefined ? String(Math.max(0, Math.floor(o.n))) : "";
+  const advance = fs * 0.6;
+  const tw = digits ? Math.max(T.minWidth * k, digits.length * advance + T.paddingX * 2 * k) : 0;
+
+  // corner for the tab (mirrors brand tabCorner)
+  const vertical = y - th < 0 ? "bottom" : "top";
+  let side: "left" | "right" = o.rtl ? "left" : "right";
+  if (side === "right" && x + w + tw * 0.25 > img.width) side = "left";
+  if (side === "left" && x - tw * 0.25 < 0) side = "right";
+  const top = vertical === "top", right = side === "right";
+  const radii: [number, number, number, number] = [rad, rad, rad, rad];
+  if (digits) radii[top ? (right ? 1 : 0) : right ? 2 : 3] = 0;
+
+  const W = img.width, H = img.height;
+  const pxIdx = (i: number, j: number): number => (j * W + i) * 4;
+
+  // 1. spotlight dim with the ring box cut out
+  if (o.dim && o.dim[3] > 0) {
+    const bx0 = Math.max(0, Math.floor(x) - 2), bx1 = Math.min(W, Math.ceil(x + w) + 2);
+    const by0 = Math.max(0, Math.floor(y) - 2), by1 = Math.min(H, Math.ceil(y + h) + 2);
+    for (let j = 0; j < H; j++) {
+      const inRow = j >= by0 && j < by1;
+      for (let i = 0; i < W; i++) {
+        let a = o.dim[3];
+        if (inRow && i >= bx0 && i < bx1) a *= 1 - clamp01(0.5 - sdBox(i + 0.5, j + 0.5, cx, cy, hw, hh, radii));
+        blend(img, pxIdx(i, j), o.dim, a);
+      }
+    }
+  }
+
+  // tab polygon (drawn for top-right, mirrored)
+  let tab: Poly | undefined;
+  let tabBox: Rect | undefined;
+  if (digits) {
+    const sx = right ? 1 : -1, sy = top ? 1 : -1;
+    const ax = right ? x + w + sw / 2 : x - sw / 2;
+    const ay = top ? y + sw / 2 : y + h - sw / 2;
+    const P = (dx: number, dy: number): [number, number] => [ax + sx * dx, ay + sy * dy];
+    const pts: Poly = [P(0, 0), P(0, -(th - rt))];
+    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-rt + ux * rt, -(th - rt) - uy * rt)); // top-right corner
+    pts.push(P(-(tw - rt), -th));
+    for (const [ux, uy] of arcPoints(0, 0, 1, 90, 180, 8)) pts.push(P(-(tw - rt) + ux * rt, -(th - rt) - uy * rt)); // top-left corner
+    pts.push(P(-tw, -f));
+    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-(tw + f) + f * ux, -f + f * uy)); // concave fillet
+    tab = pts;
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    tabBox = { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+  }
+
+  const ring = (d: number, extra: number): number => clamp01(0.5 - (Math.abs(d) - (sw / 2 + extra)));
+  const region = (r: Rect, m: number): [number, number, number, number] => [
+    Math.max(0, Math.floor(r.x - m)), Math.max(0, Math.floor(r.y - m)), Math.min(W, Math.ceil(r.x + r.width + m)), Math.min(H, Math.ceil(r.y + r.height + m)),
+  ];
+  const HALO: [number, number, number] = [255, 255, 255];
+  const HALO_A = 0.96;
+  const [rx0, ry0, rx1, ry1] = region({ x, y, width: w, height: h }, sw / 2 + halo + 2);
+  const tbb = tabBox ? region(tabBox, halo + 2) : undefined;
+
+  // 2. halo under everything coloured
+  for (let j = ry0; j < ry1; j++) for (let i = rx0; i < rx1; i++) blend(img, pxIdx(i, j), HALO, ring(sdBox(i + 0.5, j + 0.5, cx, cy, hw, hh, radii), halo) * HALO_A);
+  if (tab && tbb) for (let j = tbb[1]; j < tbb[3]; j++) for (let i = tbb[0]; i < tbb[2]; i++) blend(img, pxIdx(i, j), HALO, clamp01(0.5 - (polySd(i + 0.5, j + 0.5, tab) - halo)) * HALO_A);
+  // 3. colour
+  for (let j = ry0; j < ry1; j++) for (let i = rx0; i < rx1; i++) blend(img, pxIdx(i, j), o.color, ring(sdBox(i + 0.5, j + 0.5, cx, cy, hw, hh, radii), 0));
+  if (tab && tbb) for (let j = tbb[1]; j < tbb[3]; j++) for (let i = tbb[0]; i < tbb[2]; i++) blend(img, pxIdx(i, j), o.color, clamp01(0.5 - polySd(i + 0.5, j + 0.5, tab)));
+
+  // 4. numeral
+  if (digits && tabBox) {
+    const lum = (0.2126 * o.color[0] + 0.7152 * o.color[1] + 0.0722 * o.color[2]) / 255;
+    const ink: [number, number, number] = lum > 0.45 ? [26, 11, 5] : [255, 255, 255];
+    const gh = fs * 0.72; // digit height
+    const gw = gh / 1.6 * 1.12;
+    const half = fs * 0.075; // stroke half-width
+    // tab body centre: mid of the tab rectangle (excluding the fillet foot)
+    const sx = right ? 1 : -1, sy = top ? 1 : -1;
+    const ax = right ? x + w + sw / 2 : x - sw / 2;
+    const ay = top ? y + sw / 2 : y + h - sw / 2;
+    const ccx = ax + sx * (-tw / 2), ccy = ay + sy * (-th / 2);
+    const total = digits.length * advance;
+    for (let di = 0; di < digits.length; di++) {
+      const strokes = DIGITS[digits[di] as string] ?? [];
+      const ox = ccx - total / 2 + di * advance + (advance - gw) / 2;
+      const oy = ccy - gh / 2 + fs * 0.02;
+      const segs: [number, number, number, number][] = [];
+      for (const pl of strokes) {
+        for (let s = 0; s + 1 < pl.length; s++) {
+          const a = pl[s] as [number, number], b = pl[s + 1] as [number, number];
+          segs.push([ox + a[0] * gw, oy + (a[1] / 1.6) * gh, ox + b[0] * gw, oy + (b[1] / 1.6) * gh]);
+        }
+      }
+      const gx0 = Math.max(0, Math.floor(ox - half - 1)), gx1 = Math.min(W, Math.ceil(ox + gw + half + 1));
+      const gy0 = Math.max(0, Math.floor(oy - half - 1)), gy1 = Math.min(H, Math.ceil(oy + gh + half + 1));
+      for (let j = gy0; j < gy1; j++) {
+        for (let i = gx0; i < gx1; i++) {
+          let d = Infinity;
+          for (const sg of segs) d = Math.min(d, segDist(i + 0.5, j + 0.5, sg[0], sg[1], sg[2], sg[3]));
+          blend(img, pxIdx(i, j), ink, clamp01(0.5 - (d - half)));
+        }
+      }
     }
   }
 }
@@ -216,8 +417,19 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
   const sx = shot.width > 0 ? img.width / shot.width : 1;
   const sy = shot.height > 0 ? img.height / shot.height : 1;
   const fit = (r: Rect): Rect => (Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001 ? r : scaleRect(r, sx, sy));
-  if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style);
-  if (wantHighlight) drawHighlight(img, fit(shot.highlight as Rect), opts.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR, shot.devicePixelRatio * Math.max(sx, sy));
+  const cell = redactCell(shot.devicePixelRatio * Math.max(sx, sy));
+  if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style, cell);
+  if (wantHighlight) {
+    const color = parseColor(opts.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR) ?? (parseColor(DEFAULT_HIGHLIGHT_COLOR) as [number, number, number]);
+    drawFlagHighlight(img, {
+      target: fit(shot.highlight as Rect),
+      ...(opts.stepNumber !== undefined ? { n: opts.stepNumber } : {}),
+      scale: highlightScale(shot.viewport.width, shot.devicePixelRatio) * Math.max(sx, sy),
+      color,
+      dim: opts.spotlight === false ? null : [...FLAG.spotlightDim],
+      ...(opts.rtl ? { rtl: true } : {}),
+    });
+  }
   if (wantCrop) img = cropImage(img, fit(shot.crop as Rect));
   return encodePng(img, 6);
 }

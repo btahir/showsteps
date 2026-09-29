@@ -19,11 +19,11 @@ test("Update billing settings in Acme", async ({ page, context }) => {
   });
 
   await test.step('2. Type "jane@example.com" in Email', async () => {
-    await page.getByLabel("Email", { exact: true }).fill("jane@example.com");
+    await page.getByLabel("Email").fill("jane@example.com");
   });
 
   await test.step("3. Enter your password", async () => {
-    await page.getByLabel("Password", { exact: true }).fill(secret("SHOWSTEPS_SECRET_1"));
+    await page.getByLabel("Password").fill(secret("SHOWSTEPS_SECRET_1"));
   });
 
   await test.step("4. Click Sign in", async () => {
@@ -31,19 +31,19 @@ test("Update billing settings in Acme", async ({ page, context }) => {
   });
 
   await test.step("5. Click Open settings", async () => {
-    await page.getByRole("button", { name: "Open settings", exact: true }).click();
+    await page.getByRole("button", { name: "Open settings" }).click();
   });
 
   await test.step("6. Select Monthly in Billing period", async () => {
-    await page.getByLabel("Billing period", { exact: true }).selectOption({ label: "Monthly" });
+    await page.getByLabel("Billing period").selectOption({ label: "Monthly" });
   });
 
   await test.step("7. Check Email me invoices", async () => {
-    await page.getByLabel("Email me invoices", { exact: true }).check();
+    await page.getByLabel("Email me invoices").check();
   });
 
   await test.step("8. Click Pay now", async () => {
-    await page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now", exact: true }).click();
+    await page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now" }).click();
   });
 
   await test.step("9. Go to Invoices – Acme Help", async () => {
@@ -52,6 +52,6 @@ test("Update billing settings in Acme", async ({ page, context }) => {
   });
 
   await test.step("10. Press Enter to search", async () => {
-    await page2.getByPlaceholder("Search help", { exact: true }).press("Enter");
+    await page2.getByPlaceholder("Search help").press("Enter");
   });
 });

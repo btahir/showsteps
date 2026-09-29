@@ -83,7 +83,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.getByLabel(\"Email\", { exact: true }).fill(\"jane@example.com\");"
+        "playwright": "await page.getByLabel(\"Email\").fill(\"jane@example.com\");"
       }
     },
     {
@@ -120,7 +120,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.getByLabel(\"Password\", { exact: true }).fill(secret(\"SHOWSTEPS_SECRET_1\"));",
+        "playwright": "await page.getByLabel(\"Password\").fill(secret(\"SHOWSTEPS_SECRET_1\"));",
         "secret": "SHOWSTEPS_SECRET_1"
       }
     },
@@ -190,7 +190,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.getByRole(\"button\", { name: \"Open settings\", exact: true }).click();"
+        "playwright": "await page.getByRole(\"button\", { name: \"Open settings\" }).click();"
       },
       "description": "The gear icon in the top-right corner."
     },
@@ -227,7 +227,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.getByLabel(\"Billing period\", { exact: true }).selectOption({ label: \"Monthly\" });"
+        "playwright": "await page.getByLabel(\"Billing period\").selectOption({ label: \"Monthly\" });"
       },
       "description": "Choose how often you want to be billed."
     },
@@ -263,7 +263,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.getByLabel(\"Email me invoices\", { exact: true }).check();"
+        "playwright": "await page.getByLabel(\"Email me invoices\").check();"
       }
     },
     {
@@ -302,7 +302,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page.frameLocator('iframe[name=\"card-frame\"]').getByRole(\"button\", { name: \"Pay now\", exact: true }).click();"
+        "playwright": "await page.frameLocator('iframe[name=\"card-frame\"]').getByRole(\"button\", { name: \"Pay now\" }).click();"
       }
     },
     {
@@ -358,7 +358,7 @@
       },
       "replay": {
         "replayable": true,
-        "playwright": "await page2.getByPlaceholder(\"Search help\", { exact: true }).press(\"Enter\");"
+        "playwright": "await page2.getByPlaceholder(\"Search help\").press(\"Enter\");"
       }
     }
   ]

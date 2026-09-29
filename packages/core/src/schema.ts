@@ -62,7 +62,7 @@ export interface Step {
   title: string; // "Click **Save**" — Markdown inline allowed; generated, then user-editable
   titleEdited?: boolean; // true once a human edited it; regeneration must not overwrite
   description?: string; // optional Markdown paragraph
-  page: { url: string; title?: string; tabId?: number };
+  page: { url: string; title?: string; tabId?: number; dir?: "ltr" | "rtl" }; // dir: document direction; the highlight tab flips to the left for "rtl"
   screenshot?: {
     image: string; // path inside the guide bundle, e.g. "images/s_ab12.png"
     width: number; // image pixel size

@@ -165,12 +165,12 @@ describe("exportPlaywright", () => {
   it("matches the golden replay.spec.ts", () => expectGolden("playwright/replay.spec.ts.golden", spec));
 
   it("uses the best locator per step", () => {
-    expect(spec).toContain('page.getByLabel("Email", { exact: true }).fill("jane@example.com")');
+    expect(spec).toContain('page.getByLabel("Email").fill("jane@example.com")');
     expect(spec).toContain('page.getByTestId("signin-button").click()');
-    expect(spec).toContain('page.getByRole("button", { name: "Open settings", exact: true }).click()');
-    expect(spec).toContain('page.getByLabel("Billing period", { exact: true }).selectOption({ label: "Monthly" })');
-    expect(spec).toContain('page.getByLabel("Email me invoices", { exact: true }).check()');
-    expect(spec).toContain(`page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now", exact: true }).click()`);
+    expect(spec).toContain('page.getByRole("button", { name: "Open settings" }).click()');
+    expect(spec).toContain('page.getByLabel("Billing period").selectOption({ label: "Monthly" })');
+    expect(spec).toContain('page.getByLabel("Email me invoices").check()');
+    expect(spec).toContain(`page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now" }).click()`);
   });
 
   it("uses goto for the first step and URL assertions later, with a second tab", () => {
@@ -178,7 +178,7 @@ describe("exportPlaywright", () => {
     expect(spec.match(/\.goto\(/g)?.length).toBe(2);
     expect(spec).toContain("page2 = await context.newPage();");
     expect(spec).toContain('await page2.goto("https://help.acme.test/invoices");');
-    expect(spec).toContain("await page2.getByPlaceholder(\"Search help\", { exact: true }).press(\"Enter\");");
+    expect(spec).toContain("await page2.getByPlaceholder(\"Search help\").press(\"Enter\");");
   });
 
   it("never writes the password", () => {
@@ -218,6 +218,27 @@ describe("exportPlaywright", () => {
     expect(exportPlaywright(mk([{ kind: "text", value: "Go" }]))).toContain('page.getByText("Go").click()');
   });
 
+  it("scopes replay by the iframe and shadow-host chains and never uses XPath inside a shadow root", () => {
+    const base = guide.steps[3] as Step;
+    const withTarget = (t: Partial<NonNullable<Step["target"]>>): Guide => ({
+      ...guide,
+      steps: [{ ...base, target: { ...(base.target as NonNullable<Step["target"]>), ...t } }],
+    });
+    const chained = exportPlaywright(
+      withTarget({ frame: ["iframe#a", "iframe#b"], shadow: ["my-app", "app-toolbar"], locators: [{ kind: "role", role: "button", name: "Save" }] }),
+    );
+    expect(chained).toContain(`page.frameLocator("iframe#a").frameLocator("iframe#b").locator("my-app").locator("app-toolbar").getByRole("button", { name: "Save" }).click()`);
+    const noXpath = exportPlaywright(withTarget({ shadow: ["my-app"], locators: [{ kind: "xpath", value: "//button" }, { kind: "css", value: "button.save" }] }));
+    expect(noXpath).toContain('.locator("my-app").locator("button.save").click()');
+    expect(noXpath).not.toContain("xpath=");
+  });
+
+  it("replays data-test style attributes (recorded as css) and exact text", () => {
+    const base = guide.steps[3] as Step;
+    const g: Guide = { ...guide, steps: [{ ...base, target: { ...(base.target as NonNullable<Step["target"]>), locators: [{ kind: "css", value: '[data-cy="go"]' }] } }] };
+    expect(exportPlaywright(g)).toContain(`page.locator('[data-cy="go"]').click()`);
+  });
+
   it("handles click variants, scroll, hover, key presses and notes", () => {
     const t = (guide.steps[3] as Step).target;
     const st = (id: string, action: Step["action"], withTarget = true): Step => ({ ...(guide.steps[3] as Step), id, action, target: withTarget ? t : undefined });
@@ -252,7 +273,7 @@ describe("exportPlaywright", () => {
       steps: [{ ...base, action: { type: "type", value: 'say "hi"\n\u2028ok' }, target: { ...(base.target as NonNullable<Step["target"]>), locators: [{ kind: "label", value: 'Name "quoted"' }] } }],
     };
     const out = exportPlaywright(g);
-    expect(out).toContain(`getByLabel('Name "quoted"', { exact: true })`);
+    expect(out).toContain(`getByLabel('Name "quoted"')`);
     expect(out).toContain(`.fill('say "hi"\\n\u2028ok')`);
   });
 

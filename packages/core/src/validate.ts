@@ -244,6 +244,7 @@ function checkStep(c: Checker, v: unknown, path: string, ids: Set<string>): void
     c.str(page, "url", `${path}.page`);
     c.str(page, "title", `${path}.page`, { optional: true });
     c.num(page, "tabId", `${path}.page`, { optional: true });
+    c.oneOf(page, "dir", `${path}.page`, ["ltr", "rtl"] as const, true);
   }
   if (o.screenshot !== undefined) checkScreenshot(c, o.screenshot, `${path}.screenshot`);
   c.iso(o, "timestamp", path);

@@ -20,12 +20,13 @@ export function isValidRole(role: string): boolean {
 }
 
 /** A locator we would trust on its own. `role` without a name matches too much. */
-function usable(l: Locator): boolean {
+function usable(l: Locator, inShadow = false): boolean {
   switch (l.kind) {
     case "role":
       return isValidRole(l.role) && l.name.trim() !== "";
-    case "css":
     case "xpath":
+      return !inShadow && l.value.trim() !== ""; // XPath cannot see into shadow roots
+    case "css":
     case "testid":
     case "label":
     case "placeholder":
@@ -40,11 +41,11 @@ function locatorOn(scope: string, l: Locator): string {
     case "testid":
       return `${scope}.getByTestId(${q(l.value)})`;
     case "role":
-      return l.name.trim() !== "" ? `${scope}.getByRole(${q(l.role)}, { name: ${q(l.name)}, exact: true })` : `${scope}.getByRole(${q(l.role)})`;
+      return l.name.trim() !== "" ? `${scope}.getByRole(${q(l.role)}, { name: ${q(l.name)} })` : `${scope}.getByRole(${q(l.role)})`;
     case "label":
-      return `${scope}.getByLabel(${q(l.value)}, { exact: true })`;
+      return `${scope}.getByLabel(${q(l.value)})`;
     case "placeholder":
-      return `${scope}.getByPlaceholder(${q(l.value)}, { exact: true })`;
+      return `${scope}.getByPlaceholder(${q(l.value)})`;
     case "text":
       return l.exact ? `${scope}.getByText(${q(l.value)}, { exact: true })` : `${scope}.getByText(${q(l.value)})`;
     case "css":
@@ -57,10 +58,13 @@ function locatorOn(scope: string, l: Locator): string {
 /** Best locator on `pageVar`, following the frame chain; undefined when nothing usable was recorded. */
 export function locatorCode(target: ElementDescriptor | undefined, pageVar: string): string | undefined {
   if (!target) return undefined;
-  const best = target.locators.find(usable);
+  const inShadow = (target.shadow?.length ?? 0) > 0;
+  const best = target.locators.find((l) => usable(l, inShadow));
   if (!best) return undefined;
   let scope = pageVar;
   for (const f of target.frame ?? []) scope += `.frameLocator(${q(f)})`;
+  // Playwright pierces open shadow roots on its own; naming the hosts narrows the search to the right one.
+  for (const host of target.shadow ?? []) scope += `.locator(${q(host)})`;
   return locatorOn(scope, best);
 }
 

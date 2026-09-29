@@ -28,12 +28,13 @@ export interface ImageRenderOptions {
 export function renderGuideImages(guide: Guide, images: ImageSource, opts: ImageRenderOptions = {}): ImageSource {
   const out: ImageSource = {};
   const color = opts.highlightColor ?? guide.settings?.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR;
+  const numbers = stepNumbers(guide);
   for (const step of visibleSteps(guide)) {
     const shot = step.screenshot;
     if (!shot) continue;
     const bytes = images[shot.image];
     if (!bytes) continue;
-    out[shot.image] = opts.imagesPrerendered ? bytes : renderStepImage(bytes, shot, { highlight: opts.highlight !== false, highlightColor: color });
+    out[shot.image] = opts.imagesPrerendered ? bytes : renderStepImage(bytes, shot, { highlight: opts.highlight !== false, highlightColor: color, stepNumber: numbers.get(step.id) as number, rtl: step.page.dir === "rtl" });
   }
   return out;
 }
