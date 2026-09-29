@@ -1,0 +1,25 @@
+// ACCEPTANCE C3: the classic false positives of naive keyword matching must not be flagged, however the
+// text reaches the field (label, aria-label, placeholder). Written by the verifier.
+import { expect, test } from "vitest";
+import { isSensitive } from "../src";
+import { $, mount } from "./helpers";
+
+const NOT_SENSITIVE = ["Passenger name", "Compass heading", "Bypass route", "Address line 1", "Tokenizer settings", "username", "search", "email", "phone", "Passport country", "Social media handle", "Description"];
+const SENSITIVE = ["Password", "Card number", "CVV", "API key", "Security code", "One-time code", "Social Security number"];
+
+for (const text of NOT_SENSITIVE) {
+  test(`not sensitive: "${text}" as label, aria-label and placeholder`, () => {
+    for (const html of [`<label for=t>${text}</label><input id=t>`, `<input id=t aria-label="${text}">`, `<input id=t placeholder="${text}">`]) {
+      mount(html);
+      expect(isSensitive($("#t"), { labelText: document.querySelector("label")?.textContent ?? undefined }), html).toBe(false);
+    }
+  });
+}
+for (const text of SENSITIVE) {
+  test(`sensitive: "${text}" as label, aria-label and placeholder`, () => {
+    for (const html of [`<label for=t>${text}</label><input id=t>`, `<input id=t aria-label="${text}">`, `<input id=t placeholder="${text}">`]) {
+      mount(html);
+      expect(isSensitive($("#t"), { labelText: document.querySelector("label")?.textContent ?? undefined }), html).toBe(true);
+    }
+  });
+}
