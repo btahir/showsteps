@@ -150,6 +150,18 @@ describe("write tools", () => {
     expect((await readFile(join(out, "guide.pdf"))).subarray(0, 5).toString()).toBe("%PDF-");
     expect(r.structuredContent.skill).toEqual({ name: expect.stringMatching(/^[a-z0-9-]+$/), dir: join(out, "skill") });
   });
+  it('export_guide adds the "Made with Showsteps" line only when credit is true', async () => {
+    const off = join(sb.dir, "mcp-credit-off");
+    const on = join(sb.dir, "mcp-credit-on");
+    expect((await call("export_guide", { path: sb.bundle, format: "md", out_dir: off })).isError).toBeFalsy();
+    expect((await call("export_guide", { path: sb.bundle, format: "md", out_dir: on, credit: true })).isError).toBeFalsy();
+    expect(await readFile(join(off, "guide.md"), "utf8")).not.toContain("Made with");
+    expect(await readFile(join(on, "guide.md"), "utf8")).toContain("Made with");
+    const { tools } = await client.listTools();
+    const props = tools.find((t) => t.name === "export_guide")!.inputSchema.properties as any;
+    expect(props.credit.type).toBe("boolean");
+    expect(props.credit.default).toBe(false);
+  });
   it("export_guide skill: names the skill and can leave images out", async () => {
     const out = join(sb.dir, "mcp-skill");
     const r = await call("export_guide", { path: sb.bundle, format: "skill", out_dir: out, skill_name: "set-up-billing", skill_description: "Use when asked to set up billing.", include_images: false });

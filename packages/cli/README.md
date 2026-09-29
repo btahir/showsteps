@@ -16,7 +16,7 @@ showsteps info <file> [--json]
 showsteps steps <file> [--json]
 showsteps edit-step <file> --id <id> [--title T] [--description D] [--skip | --unskip] [--out F] [--json]
 showsteps regen-titles <file> [--out F] [--json]
-showsteps export <file> --format md|html|pdf|docx|playwright|skill|all --out <dir> [--no-images] [--skill-name N] [--skill-description D] [--json]
+showsteps export <file> --format md|html|pdf|docx|playwright|skill|all --out <dir> [--no-images] [--credit] [--skill-name N] [--skill-description D] [--json]
 showsteps new --from-steps <steps.json> --out <file.showsteps|file.json> [--title T] [--json]
 ```
 
@@ -51,7 +51,7 @@ $ showsteps validate onboarding.showsteps --json
 | `playwright` | `replay.spec.ts` |
 | `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts`, `skill/images/` |
 
-`--format all` writes everything; a comma list (`md,pdf`) writes several. Skipped steps are omitted. Screenshots are re-rendered with redactions baked in; raw screenshots are never written. `--no-images` leaves them out of `md` and `skill`. With `skill`, `--json` also returns `skill.name` and `skill.dir`. Values typed into sensitive fields are never stored; the skill names an environment variable per field (`SHOWSTEPS_SECRET_1`, ...) to set before replaying.
+`--format all` writes everything; a comma list (`md,pdf`) writes several. Skipped steps are omitted. Screenshots are re-rendered with redactions baked in; raw screenshots are never written. `--no-images` leaves them out of `md` and `skill`. `--credit` adds a small "Made with Showsteps" line to `md`, `html`, `pdf`, `docx` and `skill` (off by default). With `skill`, `--json` also returns `skill.name` and `skill.dir`. Values typed into sensitive fields are never stored; the skill names an environment variable per field (`SHOWSTEPS_SECRET_1`, ...) to set before replaying.
 
 ## Creating a guide from steps
 

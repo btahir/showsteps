@@ -161,14 +161,15 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
     .requiredOption("--format <format>", "md | html | pdf | docx | playwright | skill | all")
     .requiredOption("--out <dir>", "output folder (created if missing)")
     .option("--no-images", "leave screenshots out of the md and skill exports")
+    .option("--credit", 'add a small "Made with Showsteps" line to the md, html, pdf, docx and skill exports (off by default)')
     .option("--skill-name <name>", "agent skill name (lowercase letters, digits, hyphens)")
     .option("--skill-description <text>", "agent skill description shown to the agent")
     .option("--json", "print one JSON object")
-    .action((file: string, o: { format: string; out: string; images: boolean; skillName?: string; skillDescription?: string; json?: boolean }) =>
+    .action((file: string, o: { format: string; out: string; images: boolean; credit?: boolean; skillName?: string; skillDescription?: string; json?: boolean }) =>
       finish(async () => {
         const formats = parseFormats(o.format);
         const l = await loadGuideFile(file, cwd);
-        const r = await exportGuideFiles(l, formats, resolve(cwd, o.out), { images: o.images, skillName: o.skillName, skillDescription: o.skillDescription });
+        const r = await exportGuideFiles(l, formats, resolve(cwd, o.out), { images: o.images, credit: o.credit === true, skillName: o.skillName, skillDescription: o.skillDescription });
         return {
           json: { file: l.path, format: formats, out: resolve(cwd, o.out), files: r.files, ...(r.skill ? { skill: r.skill } : {}) },
           text: r.files.join("\n"),

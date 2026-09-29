@@ -192,16 +192,18 @@ export function createServer(): McpServer {
         format: z.enum([...EXPORT_FORMATS, "all"]).describe("Export format, or \"all\"."),
         out_dir: absPath("the output folder"),
         include_images: z.boolean().default(true).describe("Include screenshots in the md and skill exports (default true). Redactions are always baked in."),
+        credit: z.boolean().default(false).describe('Add a small "Made with Showsteps" line to the md, html, pdf, docx and skill exports (default false).'),
         skill_name: z.string().optional().describe("Agent skill name for format skill: lowercase letters, digits, hyphens."),
         skill_description: z.string().optional().describe("Agent skill description for format skill: when an agent should use it."),
       },
       annotations: { title: "Export a guide", ...writes },
     },
-    ({ path, format, out_dir, include_images, skill_name, skill_description }) =>
+    ({ path, format, out_dir, include_images, credit, skill_name, skill_description }) =>
       guarded(async () => {
         const l = await loadGuideFile(path);
         const r = await exportGuideFiles(l, format === "all" ? "all" : [format], out_dir, {
           images: include_images,
+          credit,
           skillName: skill_name,
           skillDescription: skill_description,
         });

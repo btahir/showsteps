@@ -373,6 +373,8 @@ export interface ExportOptions {
   skillName?: string;
   /** Override the agent skill `description`. */
   skillDescription?: string;
+  /** Add the small "Made with Showsteps" line to md, html, pdf, docx and skill exports. Default false (opt-in). */
+  credit?: boolean;
 }
 
 export interface ExportOutcome {
@@ -397,28 +399,29 @@ export async function exportGuideFiles(
   const list = formats === "all" ? [...EXPORT_FORMATS] : formats;
   const { guide, images } = loaded;
   const withImages = opts.images !== false ? images : undefined;
+  const branding = opts.credit === true;
   const planned: [string, Blob][] = [];
   let skillMd: string | undefined;
   for (const f of list) {
     try {
       switch (f) {
         case "md":
-          for (const [p, data] of Object.entries(exportMarkdown(guide, { images: withImages }).files)) planned.push([p, data]);
+          for (const [p, data] of Object.entries(exportMarkdown(guide, { images: withImages, branding }).files)) planned.push([p, data]);
           break;
         case "html":
-          planned.push(["guide.html", exportHtml(guide, images)]);
+          planned.push(["guide.html", exportHtml(guide, images, { branding })]);
           break;
         case "pdf":
-          planned.push(["guide.pdf", await exportPdf(guide, images)]);
+          planned.push(["guide.pdf", await exportPdf(guide, images, { branding })]);
           break;
         case "docx":
-          planned.push(["guide.docx", await exportDocx(guide, images)]);
+          planned.push(["guide.docx", await exportDocx(guide, images, { branding })]);
           break;
         case "playwright":
           planned.push(["replay.spec.ts", exportPlaywright(guide)]);
           break;
         case "skill": {
-          const skill = exportAgentSkill(guide, { images: withImages, name: opts.skillName, description: opts.skillDescription });
+          const skill = exportAgentSkill(guide, { images: withImages, name: opts.skillName, description: opts.skillDescription, branding });
           for (const [p, data] of Object.entries(skill.files)) planned.push([`skill/${p}`, data]);
           const md = skill.files["SKILL.md"];
           if (typeof md === "string") skillMd = md;

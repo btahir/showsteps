@@ -34,7 +34,7 @@ npx -y @stepsnap/cli --help
 | `showsteps steps <file> [--json]` | Steps with id, title, action, target, skipped and sensitive flags. |
 | `showsteps edit-step <file> --id <id> [--title T] [--description D] [--skip\|--unskip] [--out F]` | Edit one step. Overwrites `<file>` unless `--out` is given. |
 | `showsteps regen-titles <file> [--out F]` | Regenerate generated titles. Hand-edited titles are kept. |
-| `showsteps export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|all --out <dir> [--no-images] [--skill-name N] [--skill-description D] [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
+| `showsteps export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|all --out <dir> [--no-images] [--credit] [--skill-name N] [--skill-description D] [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
 | `showsteps new --from-steps <steps.json> --out <file.showsteps> [--title T]` | Create a guide from a step list. |
 
 Rules an agent can rely on:
@@ -58,7 +58,7 @@ Rules an agent can rely on:
 | `playwright` | `replay.spec.ts` |
 | `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts`, `skill/images/*.png` |
 
-`--json` returns `{"ok": true, "files": ["/abs/path", ...]}` and, for `skill`, `"skill": {"name": "...", "dir": "/abs/.../skill"}`. Steps with `skipped: true` are left out of every export. Screenshots are re-rendered on export with redactions baked into the pixels and the click target highlighted; the original screenshot bytes are never written. `--no-images` drops screenshots from `md` and `skill`.
+`--json` returns `{"ok": true, "files": ["/abs/path", ...]}` and, for `skill`, `"skill": {"name": "...", "dir": "/abs/.../skill"}`. Steps with `skipped: true` are left out of every export. Screenshots are re-rendered on export with redactions baked into the pixels and the click target highlighted; the original screenshot bytes are never written. `--no-images` drops screenshots from `md` and `skill`. Exports carry no Showsteps branding unless you pass `--credit`, which adds a small "Made with Showsteps" line to `md`, `html`, `pdf`, `docx` and `skill`.
 
 ### Agent skill export
 

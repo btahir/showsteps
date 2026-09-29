@@ -160,6 +160,26 @@ describe("export", () => {
       expect(Buffer.from(exported).equals(Buffer.from(raw)), id).toBe(false);
     }
   });
+  it('the "Made with Showsteps" credit is off by default and --credit turns it on (md, html, skill; pdf and docx still write)', async () => {
+    const off = join(sb.dir, "credit-off");
+    const on = join(sb.dir, "credit-on");
+    const args = ["export", "guide.showsteps", "--format", "md,html,skill,pdf,docx", "--out"];
+    expect((await cli([...args, off], sb.dir)).code).toBe(0);
+    expect((await cli([...args, on, "--credit"], sb.dir)).code).toBe(0);
+    for (const f of ["guide.md", "guide.html", "skill/SKILL.md"]) {
+      expect(await readFile(join(off, f), "utf8"), `${f} default`).not.toContain("Made with");
+      expect(await readFile(join(on, f), "utf8"), `${f} --credit`).toContain("Made with");
+    }
+    expect((await readFile(join(on, "guide.pdf"))).subarray(0, 5).toString()).toBe("%PDF-");
+    expect((await readFile(join(on, "guide.docx"))).subarray(0, 2).toString()).toBe("PK");
+    // the flag only adds the line
+    const offMd = await readFile(join(off, "guide.md"), "utf8");
+    expect((await readFile(join(on, "guide.md"), "utf8")).startsWith(offMd.trimEnd())).toBe(true);
+  });
+  it("export --help lists --credit", async () => {
+    const r = await cli(["export", "--help"], sb.dir);
+    expect(r.out).toContain("--credit");
+  });
   it("--no-images leaves screenshots out of md and skill", async () => {
     const out = join(sb.dir, "export-noimg");
     expect((await cli(["export", "guide.showsteps", "--format", "md,skill", "--out", out, "--no-images"], sb.dir)).code).toBe(0);
