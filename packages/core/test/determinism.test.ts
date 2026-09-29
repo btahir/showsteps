@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exportAgentSkill, exportHtml, exportMarkdown, exportPlaywright, packBundle, type ExportFiles, type Guide } from "../src";
+import { exportAgentSkill, exportDocx, exportHtml, exportMarkdown, exportPdf, exportPlaywright, packBundle, type ExportFiles, type Guide } from "../src";
 import { fixtureGuide, fixtureImages } from "./fixtures/guide";
 import { sha256 } from "./golden";
 
@@ -37,13 +37,26 @@ describe("B-DET: exporters and packBundle are deterministic", () => {
     expect(sha256(packBundle(guide, images))).toBe(sha256(packBundle(guide, images)));
     expect(sha256(packBundle(guide, images))).toBe(sha256(packBundle(reversed(guide), images)));
   });
-  it("does not read the clock or randomness: output is identical across a faked Date", () => {
+  it("pdf and docx: same input and same injected clock give the same bytes, whatever the key order", async () => {
+    const now = new Date("2026-09-28T12:00:00Z");
+    expect(sha256(await exportPdf(guide, images, { now }))).toBe(sha256(await exportPdf(reversed(guide), images, { now })));
+    expect(sha256(await exportDocx(guide, images, { now }))).toBe(sha256(await exportDocx(reversed(guide), images, { now })));
+  });
+  it("pdf and docx follow the injected clock (and only it) for their dates", async () => {
+    const a = await exportPdf(guide, images, { now: new Date("2026-01-01T00:00:00Z") });
+    const b = await exportPdf(guide, images, { now: new Date("2026-06-01T00:00:00Z") });
+    expect(sha256(a)).not.toBe(sha256(b));
+    const c = await exportDocx(guide, images, { now: new Date("2026-01-01T00:00:00Z") });
+    const d = await exportDocx(guide, images, { now: new Date("2026-06-01T00:00:00Z") });
+    expect(sha256(c)).not.toBe(sha256(d));
+  });
+  it("does not read the clock or randomness: output is identical across a faked Date", async () => {
     const real = Date.now;
     try {
       Date.now = () => 42;
-      const a = exportHtml(guide, images) + digest(exportAgentSkill(guide).files) + exportPlaywright(guide);
+      const a = exportHtml(guide, images) + digest(exportAgentSkill(guide).files) + exportPlaywright(guide) + sha256(await exportPdf(guide, images)) + sha256(await exportDocx(guide, images));
       Date.now = () => 1_900_000_000_000;
-      const b = exportHtml(guide, images) + digest(exportAgentSkill(guide).files) + exportPlaywright(guide);
+      const b = exportHtml(guide, images) + digest(exportAgentSkill(guide).files) + exportPlaywright(guide) + sha256(await exportPdf(guide, images)) + sha256(await exportDocx(guide, images));
       expect(a).toBe(b);
     } finally {
       Date.now = real;

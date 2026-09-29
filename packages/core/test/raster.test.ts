@@ -221,6 +221,22 @@ describe("pipeline", () => {
     expect([out.width, out.height]).toEqual([100, 40]);
   });
 
+  it("crops first, so the highlight follows the cropped image (tab flips below at the crop's top edge)", () => {
+    const src = stripes(1440, 900);
+    const bytes = encodePng(src, 3);
+    // target sits 10 px below the crop's top edge: no room for a tab above, so it goes below
+    const sh = shot(src, { highlight: { x: 400, y: 410, width: 300, height: 60 }, crop: { x: 300, y: 400, width: 700, height: 300 }, viewport: { width: 720, height: 450, scrollX: 0, scrollY: 0 } });
+    const out = decodePng(renderStepImage(bytes, sh, { stepNumber: 3 }));
+    expect([out.width, out.height]).toEqual([700, 300]);
+    const color = parseColor("#EB4E26") as number[];
+    const k = highlightScale(720, 2);
+    const pad = 4 * k;
+    const near = (x: number, y: number): boolean => { const p = px(out, Math.round(x), Math.round(y)); return Math.abs((p[0] as number) - (color[0] as number)) <= 2 && Math.abs((p[1] as number) - (color[1] as number)) <= 2; };
+    const right = 100 + 300 + pad; // ring's right edge in crop space
+    expect(near(right - 3 * k, 10 + 60 + pad + 18 * k)).toBe(true); // tab below the ring
+    expect(near(right - 3 * k, 10 - pad - 6 * k + 0)).toBe(false);
+  });
+
   it("passes undecodable images through when only the highlight was wanted", () => {
     const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
     expect(renderStepImage(jpeg, shotOf("s_signin"))).toBe(jpeg);

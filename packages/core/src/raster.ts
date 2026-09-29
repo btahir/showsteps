@@ -378,10 +378,19 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
   const metaScale = Math.max(shot.width > 0 ? img.width / shot.width : 1, shot.height > 0 ? img.height / shot.height : 1);
   const redactScale = shot.width > 0 && shot.viewport.width > 0 ? img.width / shot.viewport.width : shot.devicePixelRatio;
   if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style, redactScale);
+  // Crop before the highlight, like the extension's canvas renderer: the spotlight and the tab's
+  // position (flipped below or to the side near an edge) then follow the cropped image.
+  let dx = 0, dy = 0;
+  if (wantCrop && space.crop) {
+    img = cropImage(img, space.crop);
+    dx = space.crop.x;
+    dy = space.crop.y;
+  }
   if (wantHighlight) {
     const color = parseColor(opts.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR) ?? (parseColor(DEFAULT_HIGHLIGHT_COLOR) as [number, number, number]);
+    const t = fit(shot.highlight as Rect);
     drawFlagHighlight(img, {
-      target: fit(shot.highlight as Rect),
+      target: { x: t.x - dx, y: t.y - dy, width: t.width, height: t.height },
       ...(opts.stepNumber !== undefined ? { n: opts.stepNumber } : {}),
       scale: highlightScale(shot.viewport.width, shot.devicePixelRatio) * metaScale,
       color,
@@ -389,6 +398,5 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
       ...(opts.rtl ? { rtl: true } : {}),
     });
   }
-  if (wantCrop && space.crop) img = cropImage(img, space.crop);
   return encodePng(img, 6);
 }
