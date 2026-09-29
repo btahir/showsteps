@@ -65,6 +65,10 @@ importers:
       astro:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.8)(jiti@2.7.0)
+    devDependencies:
+      playwright-core:
+        specifier: ^1.63.0
+        version: 1.63.0
 
   packages/cli:
     dependencies:
