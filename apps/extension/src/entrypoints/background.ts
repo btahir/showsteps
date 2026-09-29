@@ -13,6 +13,8 @@ import { bakeRedactions } from "../lib/render";
 import { createNavTracker, forgetTab, isRecordableUrl, noteAction, shouldRecordNavigation } from "../lib/nav";
 import { blobToBase64, OriginalStore, PORT_NAME } from "../lib/originals";
 import type { OriginalsPortMsg } from "../lib/originals";
+import { draftForFrame, viewOf } from "../lib/frame-pick";
+import type { FrameScan, FrameView } from "../lib/frame-pick";
 import type { AnyMessage, BarState, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
 
 const RECORDER_ID = "showsteps-recorder";
@@ -33,7 +35,21 @@ export default defineBackground(() => {
   let state: SessionState = IDLE;
   // One capture at a time, at least 520 ms apart: inside Chrome's 2-per-second quota.
   const queue = new CaptureQueue({ maxCalls: 1, windowMs: 520, marginMs: 0 });
-  const frames = new Map<string, { at: number; frame: Promise<Frame | null>; settled: boolean }>();
+  /**
+   * Every capture of this recording by id: which tab, how the page was scrolled when it was asked
+   * for, and (worker-side navigate captures) the redaction scan made with it.
+   */
+  interface FrameEntry {
+    at: number;
+    frame: Promise<Frame | null>;
+    settled: boolean;
+    tabId: number;
+    view?: FrameView;
+    scan?: FrameScan;
+  }
+  const frames = new Map<string, FrameEntry>();
+  /** Capture ids per tab, newest last: fallbacks when a step's own capture came back empty. */
+  const tabFrames = new Map<number, string[]>();
   // e2e builds log which capture rung each step used (PLAN §3.4), in storage.session["debug:capture"].
   const DEBUG = import.meta.env.MODE === "e2e";
   const debugLog: { title: string; rung: string; amend?: boolean; stepId?: string; review?: boolean; needsReview?: string; scanMs?: number; highlight?: boolean }[] = [];
@@ -147,6 +163,11 @@ export default defineBackground(() => {
   function pruneFrames(): void {
     const now = Date.now();
     for (const [id, f] of frames) if (now - f.at > 60_000) frames.delete(id);
+    for (const [t, ids] of tabFrames) {
+      const live = ids.filter((id) => frames.has(id));
+      if (live.length) tabFrames.set(t, live);
+      else tabFrames.delete(t);
+    }
   }
 
   async function grab(tabId: number): Promise<Frame | null> {
@@ -169,6 +190,12 @@ export default defineBackground(() => {
     // A link click may already be loading the next page: note it, so the step can prefer the
     // frame taken before the click (design review R2-1: a ring around nothing on the new page).
     const after = await chrome.tabs.get(tabId).catch(() => undefined);
+    // captureVisibleTab shows whatever tab is in front of the window. If ours lost the front while
+    // the capture ran (a link opening a new tab), the image may be the other tab: never use it.
+    if (!after?.active || after.windowId !== tab.windowId) {
+      if (DEBUG) console.warn("Showsteps: tab left the front during capture, frame dropped");
+      return null;
+    }
     const blob = await (await fetch(dataUrl)).blob();
     const bmp = await createImageBitmap(blob);
     const frame: Frame = { blob, width: bmp.width, height: bmp.height, at: Date.now(), url: after?.url, leaving: !!after?.pendingUrl || (!!after?.url && after.url !== tab.url) };
@@ -182,7 +209,7 @@ export default defineBackground(() => {
    * Live capture (for a step) or, with `settled`, a low-priority refresh of the page's
    * "settled frame" that is skipped when it would get in the way of a real capture.
    */
-  function requestCapture(captureId: string, tabId: number, windowId: number | undefined, settled = false): void {
+  function requestCapture(captureId: string, tabId: number, windowId: number | undefined, settled = false, view?: FrameView): void {
     pruneFrames();
     const key = `w${windowId ?? tabId}`;
     const job = settled ? queue.scheduleIdle(key, () => grab(tabId)) : queue.schedule(key, () => grab(tabId));
@@ -190,29 +217,48 @@ export default defineBackground(() => {
       console.warn("Showsteps: capture failed", e);
       return null;
     });
-    frames.set(captureId, { at: Date.now(), frame, settled });
+    frames.set(captureId, { at: Date.now(), frame, settled, tabId, view });
+    const ids = tabFrames.get(tabId) ?? [];
+    ids.push(captureId);
+    if (ids.length > 8) ids.shift();
+    tabFrames.set(tabId, ids);
   }
 
-  /** The frame a step asked for, or a live capture when that one never happened. */
   type Rung = "settled" | "live" | "earlier" | "late" | "nav" | "none";
   interface Shot {
     frame: Frame | null;
     rung: Rung;
+    /** How the page was scrolled when the frame was asked for, and the scan that came with it. */
+    view?: FrameView;
+    scan?: FrameScan;
   }
 
-  /** The frame a step asked for, or a live capture when that one never happened. */
+  /**
+   * The frame a step asked for; else the newest earlier frame of the same document (the recorder's
+   * own, then any other capture of this tab, such as the navigate capture of this page); else a
+   * late live capture. Frames that show another page are never used.
+   */
   async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined, fallbackIds: string[] = [], pageUrl?: string): Promise<Shot> {
     // A frame taken while the page was already leaving (or after its URL changed) shows the
     // destination, not what was clicked (design review R2-1): never use it for this step.
     const stale = (f: Frame) => !!f.leaving || !sameDoc(f.url, pageUrl);
     const entry = captureId ? frames.get(captureId) : undefined;
     const f = entry ? await entry.frame : null;
-    if (f && !stale(f)) return { frame: f, rung: entry!.settled ? "settled" : "live" };
+    if (f && !stale(f)) return { frame: f, rung: entry!.settled ? "settled" : "live", view: entry!.view, scan: entry!.scan };
     // The newest earlier frame of the same document that still shows it (e.g. the frame taken
-    // right after the last keystroke, or a click that opened a new tab before the live capture ran).
-    for (const id of fallbackIds) {
-      const older = await frames.get(id)?.frame;
-      if (older && !stale(older)) return { frame: older, rung: "earlier" };
+    // right after the last keystroke, or, when a click opened a new tab before its own capture
+    // could run, the settled or navigate frame of this page). The tab-wide list is what makes the
+    // tab-opening click deterministic: its own capture loses to the new tab whenever the rate
+    // limit delays it past the tab switch (E-4 at zoom 125%).
+    const tried = new Set<string>([captureId ?? ""]);
+    const tabIds = (tabFrames.get(tabId) ?? []).slice().reverse();
+    for (const id of [...fallbackIds, ...tabIds]) {
+      if (tried.has(id)) continue;
+      tried.add(id);
+      const e = frames.get(id);
+      if (!e || e.tabId !== tabId || (entry && e.at > entry.at)) continue;
+      const older = await e.frame;
+      if (older && !stale(older)) return { frame: older, rung: "earlier", view: e.view, scan: e.scan };
     }
     // Only the destination is on screen, and it was never scanned for secrets: no screenshot
     // rather than a wrong one (the step keeps its title; the editor can re-capture).
@@ -223,12 +269,15 @@ export default defineBackground(() => {
     return late && !stale(late) ? { frame: late, rung: "late" } : { frame: null, rung: "none" };
   }
 
-  function addStep(tabId: number, draft: StepDraft, shotP: Promise<Shot> | undefined): Promise<void> {
+  function addStep(tabId: number, draftIn: StepDraft, shotP: Promise<Shot> | undefined): Promise<void> {
+    let draft = draftIn;
     const guideId = state.guideId;
     const run = async () => {
       if (!guideId || !acceptsSteps(state) || state.guideId !== guideId) return;
-      const shot = shotP ? await shotP : { frame: null, rung: "none" as Rung };
+      const shot: Shot = shotP ? await shotP : { frame: null, rung: "none" };
       const frame = shot.frame;
+      // An earlier frame may show the page scrolled differently: re-place the target and the blur.
+      if (frame && shot.rung === "earlier") draft = draftForFrame(draft, shot.view, shot.scan);
       // Typing that continues the previous step of this tab (nothing else committed in between)
       // replaces that step instead of adding another (PLAN §3.6).
       const last = lastByTab.get(tabId);
@@ -295,6 +344,12 @@ export default defineBackground(() => {
     const frameP = frames.get(captureId)!.frame;
     // Ask the page for its metrics and sensitive fields so the screenshot is redacted like any other.
     const scan = (await sendToTab(tabId, { type: "tab:scan" }, 600)) as ScanReply | undefined;
+    const navEntry = frames.get(captureId);
+    if (navEntry && scan) {
+      // Later steps of this page may fall back to this frame: keep how it was scrolled and what was blurred.
+      navEntry.view = viewOf(scan.metrics);
+      if (!scan.scanIncomplete) navEntry.scan = { rects: scan.sensitiveRects, labels: scan.sensitiveLabels };
+    }
     const frame = await frameP;
     const vw = tab.width ?? frame?.width ?? 0;
     const vh = tab.height ?? frame?.height ?? 0;
@@ -444,6 +499,7 @@ export default defineBackground(() => {
     for (const t of tabIds) forgetTab(nav, t);
     newTabs.clear();
     frames.clear();
+    tabFrames.clear();
     const guideId = state.guideId;
     const windowId = state.windowId;
     await dispatch({ type: "stopped" });
@@ -505,7 +561,7 @@ export default defineBackground(() => {
           if (!acceptsSteps(state) || !state.tabIds.includes(tabId)) return reply({ captured: false });
           // Settled refreshes only for the tab in front (a background tab would use up the idle slot).
           if (msg.settled && !(await chrome.tabs.get(tabId).then((t) => t.active, () => false))) return reply({ captured: false });
-          requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled);
+          requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled, msg.view);
           // Settled frames report back, so the page only relies on frames that exist.
           reply({ captured: !!(await frames.get(msg.captureId)?.frame) });
         });

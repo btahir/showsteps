@@ -19,6 +19,8 @@ import { parseRedactPrefs, REDACT_PREFS_KEY } from "../lib/prefs";
 import { ask, contentBox, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
 import { composeHops, rectThroughHop, visualViewportOf } from "../lib/rect";
 import type { FrameHop } from "../lib/rect";
+import { viewOf } from "../lib/frame-pick";
+import type { FrameView } from "../lib/frame-pick";
 import type { FrameMsg } from "../lib/frames";
 import type { ControlMessage, HelloReply, RecorderMessage, ScanReply, WorkerToTab } from "../lib/messages";
 import type { StepDraft } from "../lib/steps";
@@ -67,6 +69,10 @@ export default defineUnlistedScript(() => {
   // Same-origin child frames are handled by the root above them.
   if (!isRootFrame()) return;
   const isTop = window.top === window;
+  /** Time budget of one redaction scan in this frame (PLAN §3.7). */
+  const SCAN_BUDGET_MS = 40;
+  /** How long the last scan took (reported with the step, e2e R9). */
+  let lastScanMs: number | undefined;
   /** How long a frame waits for its parent's answer before recording without placement (PLAN §3.8). */
   const HANDSHAKE_MS = 250;
   const DEBUG = import.meta.env.MODE === "e2e";
@@ -127,9 +133,14 @@ export default defineUnlistedScript(() => {
     if (knownFrames.length > 4) knownFrames.shift();
   }
 
+  /** Scroll and size of the top page now (only the top frame knows them; frames send none). */
+  function currentView(): FrameView | undefined {
+    return isTop ? viewOf(metrics()) : undefined;
+  }
+
   function requestCapture(): string {
     const captureId = newCaptureId();
-    send({ type: "rec:capture", captureId });
+    send({ type: "rec:capture", captureId, view: currentView() });
     remember(captureId);
     return captureId;
   }
@@ -184,7 +195,7 @@ export default defineUnlistedScript(() => {
     settled = entry;
     if (!alive()) return;
     chrome.runtime
-      .sendMessage({ type: "rec:capture", captureId, settled: true } satisfies RecorderMessage)
+      .sendMessage({ type: "rec:capture", captureId, settled: true, view: currentView() } satisfies RecorderMessage)
       .then((r: { captured?: boolean } | undefined) => {
         entry.ok = !!r?.captured;
         entry.done = true;
@@ -277,6 +288,22 @@ export default defineUnlistedScript(() => {
     return composeHops(hops);
   }
 
+  /** In a fixed or sticky container of the top document (stays put when the page scrolls). */
+  function isPinned(el: Element): boolean {
+    let cur: Element | null = el;
+    for (let guard = 0; cur && guard < 64; guard++) {
+      if (cur.ownerDocument !== document) return false; // inside a frame: the frame decides, assume it scrolls
+      try {
+        const pos = getComputedStyle(cur).position;
+        if (pos === "fixed" || pos === "sticky") return true;
+      } catch {
+        return false;
+      }
+      cur = cur.parentElement ?? ((cur.getRootNode() as ShadowRoot).host ?? null);
+    }
+    return false;
+  }
+
   /** An element's box in this root's viewport CSS px, through same-origin frames (scaled ones too). */
   function rectInRoot(el: Element): Rect {
     const b = el.getBoundingClientRect();
@@ -301,36 +328,45 @@ export default defineUnlistedScript(() => {
    * answer in time is blurred whole when it looks like a payment or sign-in widget.
    */
   function collectSensitive(): SensitiveScan {
+    // One budget for the whole scan of this frame (PLAN §3.7: 40 ms, then `incomplete`).
+    const t0 = performance.now();
+    const deadline = t0 + SCAN_BUDGET_MS;
     const rects: Rect[] = [];
     const labels: (string | null)[] = [];
     const opaque: Element[] = [];
     const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const budget = { incomplete: false };
     // Our own walk first: it knows each field's name for the "Password blurred" chip.
-    for (const r of scanSensitiveLabeled(document, { isSensitive, rectOf: (el) => rectInRoot(el), viewport, shadowRootOf, opaqueFrames: opaque })) {
+    for (const r of scanSensitiveLabeled(document, { isSensitive, rectOf: (el) => rectInRoot(el), viewport, shadowRootOf, opaqueFrames: opaque, deadline, budget })) {
       rects.push(r.rect);
       labels.push(r.label ?? null);
     }
-    try {
-      // @showsteps/dom's scan as a second opinion (duplicates are merged when the step is built).
-      for (const r of domSensitiveRects(document, { pad: 2 })) {
-        rects.push(r);
-        labels.push(null);
+    // @showsteps/dom's scan as a second opinion (duplicates are merged when the step is built). It
+    // has no time budget of its own, so it only runs while the page has proven cheap to walk.
+    if (!budget.incomplete && performance.now() - t0 < SCAN_BUDGET_MS / 4) {
+      try {
+        for (const r of domSensitiveRects(document, { pad: 2 })) {
+          rects.push(r);
+          labels.push(null);
+        }
+      } catch {
+        /* our own scan above still ran */
       }
-    } catch {
-      /* our own scan above still ran */
     }
-    // Secrets shown as text: card numbers, SSNs, IBANs, tokens (and emails when switched on).
+    // Secrets shown as text: card numbers, SSNs, IBANs, tokens, IP and MAC addresses (and phones and emails when switched on).
     let kinds: string[] = [];
-    let incomplete = false;
+    let incomplete = budget.incomplete;
     try {
-      const text = scanTextSecrets(document, { ...patternOpts, viewport, shadowRootOf, budgetMs: 40 });
+      const left = Math.max(2, deadline - performance.now());
+      const text = scanTextSecrets(document, { ...patternOpts, viewport, shadowRootOf, budgetMs: left });
       rects.push(...text.rects);
       labels.push(...text.labels);
       kinds = text.kinds;
-      incomplete = text.incomplete;
+      incomplete ||= text.incomplete;
     } catch {
       incomplete = true;
     }
+    lastScanMs = performance.now() - t0;
     const local: ScanResult = { rects, labels, kinds, incomplete };
     const visible = opaque.filter((f) => {
       const r = rectInRoot(f);
@@ -371,7 +407,7 @@ export default defineUnlistedScript(() => {
   }
 
   // Redaction presets (Settings). Emails are off by default.
-  let patternOpts: PatternOptions = { emails: false };
+  let patternOpts: PatternOptions = parseRedactPrefs(undefined);
   const readPrefs = (v: unknown) => {
     patternOpts = parseRedactPrefs(v);
   };
@@ -456,12 +492,14 @@ export default defineUnlistedScript(() => {
     if (el) {
       draft.target = snap?.target ?? describe(el);
       draft.rect = snap?.rect ?? rectInRoot(el);
+      if (isTop && isPinned(el)) draft.pinned = true;
       const corner = snap ? snap.corner : cornerFor(el, draft.rect);
       if (corner) draft.corner = corner;
       const label = labelOf(el);
       if (label) draft.labelRect = rectInRoot(label);
     }
     const scan = snap?.sensitive ?? collectSensitive();
+    if (DEBUG && lastScanMs !== undefined) draft.scanMs = Math.round(lastScanMs * 10) / 10;
     const fallbackCaptureIds = knownFrames.filter((id) => id !== captureId).reverse();
     const fallbackCaptureId = fallbackCaptureIds[0];
     // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.

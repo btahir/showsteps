@@ -142,10 +142,10 @@ describe("recording bar and presets", () => {
     expect(clampBottom(-50, 800)).toBe(8);
     expect(clampBottom(5000, 800)).toBe(800 - 48 - 8);
   });
-  it("email preset defaults off", () => {
-    expect(parseRedactPrefs(undefined)).toEqual({ emails: false });
-    expect(parseRedactPrefs({ emails: "yes" })).toEqual({ emails: false });
-    expect(parseRedactPrefs({ emails: true })).toEqual({ emails: true });
+  it("presets default to emails and phones off, IP and MAC addresses on", () => {
+    expect(parseRedactPrefs(undefined)).toEqual({ emails: false, phones: false, ips: true, macs: true });
+    expect(parseRedactPrefs({ emails: "yes" })).toEqual({ emails: false, phones: false, ips: true, macs: true });
+    expect(parseRedactPrefs({ emails: true, ips: false })).toEqual({ emails: true, phones: false, ips: false, macs: true });
   });
 });
 

@@ -32,6 +32,8 @@ export interface StepDraft {
   sensitiveKinds?: string[];
   /** The redaction scan ran out of time or a frame did not answer: the step needs a human look. */
   scanIncomplete?: boolean;
+  /** The target sits in a fixed or sticky container (it does not move when the page scrolls). */
+  pinned?: boolean;
   /** Why the step needs a human look beyond the scan ("frame-handshake": a frame's parent did not answer). */
   needsReview?: string;
   /** Milliseconds the capture-time redaction scan took in the page (e2e debug log, R9). */

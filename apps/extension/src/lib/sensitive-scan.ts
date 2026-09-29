@@ -25,6 +25,10 @@ export interface ScanDeps {
    * caller can ask the recorder inside them) instead of being judged by their attributes.
    */
   opaqueFrames?: Element[];
+  /** Stop walking at this time (from `now`); `budget.incomplete` is then set. */
+  deadline?: number;
+  now?(): number;
+  budget?: { incomplete: boolean };
 }
 
 type Root = Document | ShadowRoot;
@@ -124,8 +128,18 @@ export function scanSensitiveLabeled(doc: Document, deps: ScanDeps): LabeledRect
       }
     }
 
-    for (const el of Array.from(root.querySelectorAll("*"))) {
-      if (++visited > maxEls) break;
+    const all = root.querySelectorAll("*");
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i]!;
+      if (++visited > maxEls) {
+        if (deps.budget) deps.budget.incomplete = true;
+        break;
+      }
+      // Shadow roots and frames further down would go unscanned: say so rather than pass silently.
+      if ((visited & 255) === 0 && deps.deadline !== undefined && (deps.now ?? performance.now.bind(performance))() > deps.deadline) {
+        if (deps.budget) deps.budget.incomplete = true;
+        return out.slice(0, max);
+      }
       const sr = shadowOf(el);
       if (sr) roots.push(sr);
       const tag = el.localName;

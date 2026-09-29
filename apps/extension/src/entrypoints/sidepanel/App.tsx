@@ -13,6 +13,14 @@ import { useTheme } from "../../ui/theme";
 import { loadExportPrefs, loadRedactPrefs, saveExportPrefs, saveRedactPrefs } from "../../lib/prefs";
 import type { ExportPrefs, RedactPrefs } from "../../lib/prefs";
 import type { ThemePref } from "../../ui/theme";
+
+/** Redaction presets in Settings (PLAN §3.7). IP and MAC addresses are on by default, phones and emails off. */
+const REDACT_SWITCHES: { key: keyof RedactPrefs; label: string; hint: string }[] = [
+  { key: "ips", label: "Blur IP addresses", hint: "IPv4 and IPv6 addresses shown on the page. On by default." },
+  { key: "macs", label: "Blur MAC addresses", hint: "Network hardware addresses. On by default." },
+  { key: "phones", label: "Blur phone numbers", hint: "Off by default: support numbers are often part of a guide." },
+  { key: "emails", label: "Blur email addresses", hint: "Off by default because guides often need them." },
+];
 import {
   BrandIcon,
   BrandMark,
@@ -530,28 +538,34 @@ function Settings() {
           )
         )}
       </div>
-      <div className="set-row">
-        <span>
-          <span id="blur-emails-label">Blur email addresses</span>
-          <span className="muted small block" id="blur-emails-hint">
-            Card numbers, bank accounts, social security numbers and access tokens are always blurred. Emails are off because guides often need them.
+      <p className="muted small" id="blur-always">
+        Passwords, card numbers, bank accounts, social security numbers and access tokens are always blurred.
+      </p>
+      {REDACT_SWITCHES.map((sw) => (
+        <div className="set-row" key={sw.key}>
+          <span>
+            <span id={`blur-${sw.key}-label`}>{sw.label}</span>
+            <span className="muted small block" id={`blur-${sw.key}-hint`}>
+              {sw.hint}
+            </span>
           </span>
-        </span>
-        <button
-          type="button"
-          role="switch"
-          className="switch"
-          aria-labelledby="blur-emails-label"
-          aria-describedby="blur-emails-hint"
-          aria-checked={!!prefs?.emails}
-          disabled={!prefs}
-          onClick={async () => {
-            const next = { emails: !prefs?.emails };
-            setPrefs(next);
-            await saveRedactPrefs(next);
-          }}
-        />
-      </div>
+          <button
+            type="button"
+            role="switch"
+            className="switch"
+            aria-labelledby={`blur-${sw.key}-label`}
+            aria-describedby={`blur-${sw.key}-hint`}
+            aria-checked={!!prefs?.[sw.key]}
+            disabled={!prefs}
+            onClick={async () => {
+              if (!prefs) return;
+              const next = { ...prefs, [sw.key]: !prefs[sw.key] };
+              setPrefs(next);
+              await saveRedactPrefs(next);
+            }}
+          />
+        </div>
+      ))}
       <div className="set-row">
         <span>
           <span id="credit-label">Add a small {APP_NAME} credit</span>

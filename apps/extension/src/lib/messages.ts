@@ -2,11 +2,13 @@
 
 import type { SessionState } from "./session";
 import type { StepDraft } from "./steps";
+import type { FrameView } from "./frame-pick";
 
 /** Content script → worker */
 export type RecorderMessage =
   | { type: "rec:hello" }
-  | { type: "rec:capture"; captureId: string; settled?: boolean }
+  /** `view`: scroll and size of the page when the capture was asked for (older frames get re-placed by it). */
+  | { type: "rec:capture"; captureId: string; settled?: boolean; view?: FrameView }
   | {
       type: "rec:step";
       draft: Omit<StepDraft, "page"> & { page: { url: string; title?: string } };

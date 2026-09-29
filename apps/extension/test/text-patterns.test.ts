@@ -81,3 +81,34 @@ describe("ranges", () => {
     expect(t.slice(m[1]!.start, m[1]!.end)).toBe("4242424242424242");
   });
 });
+
+describe("IP, MAC and phone presets (coordinator ruling: IP and MAC on, phones off)", () => {
+  it("IPv4 and IPv6 are found by default", () => {
+    expect(kinds("server 192.168.10.24 is up")).toEqual([["ip", "192.168.10.24"]]);
+    expect(kinds("gateway 10.0.0.1")).toEqual([["ip", "10.0.0.1"]]);
+    expect(kinds("v6 2001:db8:85a3::8a2e:370:7334 ok")).toEqual([["ip", "2001:db8:85a3::8a2e:370:7334"]]);
+    expect(kinds("full 2001:0db8:0000:0000:0000:ff00:0042:8329")).toEqual([["ip", "2001:0db8:0000:0000:0000:ff00:0042:8329"]]);
+    expect(kinds("link fe80::1ff:fe23:4567:890a%eth0")).toContainEqual(["ip", "fe80::1ff:fe23:4567:890a"]);
+    expect(kinds("mapped ::ffff:192.0.2.128")).toContainEqual(["ip", "::ffff:192.0.2.128"]);
+  });
+  it("MAC addresses are found by default, in every common notation", () => {
+    expect(kinds("nic 00:1A:2b:3C:4d:5E")).toEqual([["mac", "00:1A:2b:3C:4d:5E"]]);
+    expect(kinds("nic 00-1A-2B-3C-4D-5E")).toEqual([["mac", "00-1A-2B-3C-4D-5E"]]);
+    expect(kinds("cisco 001a.2b3c.4d5e")).toEqual([["mac", "001a.2b3c.4d5e"]]);
+  });
+  it("switching IP and MAC off stops them", () => {
+    expect(kinds("server 192.168.10.24 nic 00:1A:2B:3C:4D:5E", { ips: false, macs: false })).toEqual([]);
+  });
+  it("phone numbers only with the preset", () => {
+    expect(kinds("call +31 20 794 6000 now")).toEqual([]);
+    expect(kinds("call +31 20 794 6000 now", { phones: true })).toEqual([["phone", "+31 20 794 6000"]]);
+    expect(kinds("us (415) 555-2671", { phones: true })).toEqual([["phone", "(415) 555-2671"]]);
+    expect(kinds("uk 020 7946 0958", { phones: true })).toEqual([["phone", "020 7946 0958"]]);
+  });
+  it("leaves times, dates, versions, UUIDs and order numbers alone, even with every preset on", () => {
+    const all = { emails: true, phones: true, ips: true, macs: true };
+    for (const t of ["at 10:30:15 today", "on 2026-10-14", "version 2.14.3", "v1.2.3.4.5 build", "id 550e8400-e29b-41d4-a716-446655440000", "order 1234 5678 9012 3456", "ratio 16:9 and 4:3", "std::vector<int>"]) {
+      expect(kinds(t, all), t).toEqual([]);
+    }
+  });
+});
