@@ -56,16 +56,14 @@ Every screenshot, name and value above comes from a mock app ("Acme Books") that
 
 ## Try it
 
-**Chrome Web Store:** the listing is not published yet. The link will go here: `https://chromewebstore.google.com/detail/showsteps/<extension-id>`.
-
-**Load it unpacked** (Chrome 120 or newer; needs Node 24 and pnpm 11):
+Showsteps runs as a local, unpacked Chrome extension (Chrome 120 or newer; building it needs Node 24 and pnpm 11):
 
 ```bash
 pnpm install
 pnpm --filter @showsteps/extension build     # writes apps/extension/.output/chrome-mv3-production
 ```
 
-Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked** and pick `apps/extension/.output/chrome-mv3-production`.
+Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked** and pick `apps/extension/.output/chrome-mv3-production`. The `.output` folder is hidden: press ⌘⇧. in the file picker to show it, or ⌘⇧G and paste the path.
 
 Then:
 
