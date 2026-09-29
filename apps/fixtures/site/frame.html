@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Confirmation frame</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body style="background:#fff">
+  <div style="padding:16px">
+    <p class="muted" style="margin-top:0">Embedded confirmation widget (same-origin iframe).</p>
+    <button id="frame-confirm" class="btn" type="button">Confirm in frame</button>
+    <p id="frame-status" role="status"></p>
+  </div>
+  <script>
+    document.getElementById("frame-confirm").addEventListener("click", () => {
+      document.getElementById("frame-status").textContent = "Confirmed";
+    });
+  </script>
+</body>
+</html>

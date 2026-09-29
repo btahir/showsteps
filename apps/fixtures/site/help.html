@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Help centre – Acme Books</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/help.html">Acme Books Help</a>
+  </header>
+  <main>
+    <h1>Help centre</h1>
+    <div class="card">
+      <input id="help-search" type="search" placeholder="Search help" autocomplete="off">
+      <ul id="articles">
+        <li><a href="#invoices">Sending an invoice</a></li>
+        <li><a href="#reports">Reading the quarterly report</a></li>
+        <li><a href="#billing">Changing your billing period</a></li>
+      </ul>
+      <button id="contact-support" class="btn" type="button">Contact support</button>
+      <p id="help-status" role="status"></p>
+    </div>
+  </main>
+  <script>
+    document.getElementById("contact-support").addEventListener("click", () => {
+      document.getElementById("help-status").textContent = "A support agent will reply within one business day.";
+    });
+    document.getElementById("help-search").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      for (const li of document.querySelectorAll("#articles li")) li.hidden = !!q && !li.textContent.toLowerCase().includes(q);
+    });
+  </script>
+</body>
+</html>

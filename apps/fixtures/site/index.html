@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in – Acme Books</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <main class="card narrow">
+    <h1>Sign in to Acme Books</h1>
+    <p class="muted">Acme Books is a fictional bookkeeping app used as a test fixture.</p>
+    <form id="login-form" novalidate>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" placeholder="you@acme.test">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <label class="inline"><input id="remember" type="checkbox" name="remember"> Keep me signed in</label>
+      <div class="actions">
+        <button id="sign-in" class="btn primary" type="submit">Sign in</button>
+        <a id="forgot" class="btn" href="#forgot">Forgot password?</a>
+      </div>
+      <p id="login-status" role="status"></p>
+    </form>
+  </main>
+  <script src="/assets/login.js"></script>
+</body>
+</html>

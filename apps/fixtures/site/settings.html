@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings – Acme Books</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/acme-tip.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/dashboard.html">Acme Books</a>
+    <nav aria-label="Primary">
+      <a href="/dashboard/">Overview</a>
+      <a href="/settings.html" aria-current="page">Settings</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Settings</h1>
+    <form id="settings-form" novalidate>
+      <section class="card" aria-labelledby="profile-h">
+        <h2 id="profile-h">Profile</h2>
+        <label for="full-name">Full name</label>
+        <input id="full-name" name="full_name" type="text" value="Jane Doe" autocomplete="name">
+        <label for="settings-email">Email</label>
+        <input id="settings-email" name="email" type="email" value="jane@example.com" data-testid="settings-email">
+        <label for="billing-period">Billing period</label>
+        <select id="billing-period" name="billing_period">
+          <option value="monthly" selected>Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+        <fieldset id="plan-group">
+          <legend>Plan</legend>
+          <label class="inline"><input id="plan-free" type="radio" name="plan" value="free" checked> Free</label>
+          <label class="inline"><input id="plan-pro" type="radio" name="plan" value="pro"> Pro</label>
+        </fieldset>
+        <label class="inline"><input id="email-invoices" type="checkbox" name="email_invoices"> Email me invoices</label>
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Anything else we should know?"></textarea>
+        <label id="signature-label" for="signature">Signature</label>
+        <div id="signature" class="editable" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="signature-label" data-testid="signature"></div>
+      </section>
+
+      <section class="card" aria-labelledby="billing-h">
+        <h2 id="billing-h">Payment method</h2>
+        <label for="card-number">Card number</label>
+        <input id="card-number" name="card_number" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="1234 1234 1234 1234">
+        <div class="row">
+          <div class="grow"><label for="card-expiry">Expiry</label><input id="card-expiry" name="card_expiry" type="text" autocomplete="cc-exp" placeholder="MM / YY"></div>
+          <div class="grow"><label for="card-cvc">Security code</label><input id="card-cvc" name="card_cvc" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="CVC"></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="embeds-h">
+        <h2 id="embeds-h">Embedded widgets</h2>
+        <iframe id="confirm-frame" name="confirm" src="/frame.html" title="Confirmation frame"></iframe>
+        <acme-tip id="tip-host"></acme-tip>
+      </section>
+
+      <div class="actions">
+        <button id="cancel" class="btn" type="button">Cancel</button>
+        <button id="save" class="btn primary" type="submit" data-testid="save-settings">Save</button>
+      </div>
+      <p id="save-status" role="status"></p>
+    </form>
+  </main>
+  <script src="/assets/settings.js"></script>
+</body>
+</html>
