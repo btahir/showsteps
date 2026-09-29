@@ -1,0 +1,302 @@
+/* Guide header, step cards and toolbar (SPEC §2, §4, §5). Shared by panel and editor. */
+
+.guide-head {
+  display: grid;
+  gap: 6px;
+  padding: 4px var(--ss-panel-gutter) 14px;
+}
+.guide-title {
+  font-size: var(--ss-text-2xl);
+  line-height: var(--ss-lh-2xl);
+  font-weight: var(--ss-weight-bold);
+  letter-spacing: var(--ss-tracking-tight);
+  text-wrap: balance;
+}
+.guide-title-btn {
+  display: block;
+  width: 100%;
+  margin: -2px -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--ss-radius-sm);
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: text;
+}
+.guide-title-btn:hover {
+  background: color-mix(in srgb, var(--ss-surface-2) 60%, transparent);
+}
+.guide-title-input {
+  font-size: var(--ss-text-2xl);
+  font-weight: var(--ss-weight-bold);
+}
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12.5px;
+  color: var(--ss-ink-3);
+}
+.guide-meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---- steps ---- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px;
+  display: grid;
+  gap: 4px;
+}
+.step {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ss-radius-lg);
+  transition: background var(--ss-dur-fast) var(--ss-ease-out);
+}
+.step:hover {
+  background: color-mix(in srgb, var(--ss-surface-2) 50%, transparent);
+}
+.step.is-selected {
+  background: var(--ss-surface);
+  border-color: var(--ss-line);
+  box-shadow: var(--ss-shadow-2);
+}
+.step.is-dragging {
+  opacity: 0.5;
+  box-shadow: var(--ss-shadow-3);
+}
+.step.drop-before::before,
+.step.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ss-accent);
+}
+.step.drop-before::before {
+  top: -3px;
+}
+.step.drop-after::after {
+  bottom: -3px;
+}
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.step-row .flag {
+  margin-top: 1px;
+}
+.step-title {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: var(--ss-text-lg);
+  line-height: var(--ss-lh-lg);
+  font-weight: var(--ss-weight-medium);
+  overflow-wrap: anywhere;
+  border-radius: var(--ss-radius-xs);
+}
+.step-title.is-editable {
+  cursor: text;
+}
+.step-title.is-editable:hover {
+  text-decoration: underline dotted var(--ss-ink-3);
+  text-underline-offset: 4px;
+}
+.step-title-big {
+  font-size: var(--ss-text-2xl);
+  line-height: var(--ss-lh-2xl);
+  font-weight: var(--ss-weight-semibold);
+  letter-spacing: var(--ss-tracking-tight);
+}
+.title-edit {
+  flex: 1;
+}
+.step.is-skipped .step-title {
+  color: var(--ss-ink-3);
+}
+.step.is-skipped .step-thumb {
+  opacity: 0.45;
+}
+.grip {
+  opacity: 0;
+  cursor: grab;
+  margin: -4px -6px 0 0;
+}
+.step:hover .grip,
+.step.is-selected .grip,
+.grip:focus-visible {
+  opacity: 1;
+}
+.step-thumb {
+  cursor: pointer;
+}
+.step.is-selected .step-thumb {
+  cursor: default;
+}
+.step-detail {
+  display: grid;
+  gap: 10px;
+}
+.step-desc {
+  font-size: var(--ss-text-md);
+}
+.note-body {
+  padding: 10px 12px;
+  border-radius: var(--ss-radius-md);
+  background: var(--ss-surface);
+  color: var(--ss-ink-2);
+  white-space: pre-wrap;
+}
+.chip-ok {
+  justify-self: start;
+}
+.chip-ok .i {
+  width: 16px;
+  height: 16px;
+}
+
+/* insert between steps */
+.insert {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: -12px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--ss-dur-fast) var(--ss-ease-out);
+  z-index: 2;
+}
+.insert::after {
+  content: "";
+  flex: 1;
+  margin-left: 8px;
+  border-top: 1px dashed var(--ss-line-2);
+}
+.step:hover > .insert,
+.insert:focus-within {
+  opacity: 1;
+}
+.insert-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--ss-line-2);
+  border-radius: 50%;
+  background: var(--ss-bg);
+  color: var(--ss-ink-2);
+}
+.insert-btn .i {
+  width: 14px;
+  height: 14px;
+}
+
+/* waiting row while recording */
+.step-waiting {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  font-size: var(--ss-text-sm);
+}
+.ring-placeholder {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border: 2px dashed var(--ss-line-2);
+  border-radius: 6px 0 6px 6px;
+}
+.ring-placeholder::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -10px;
+  width: 14px;
+  height: 10px;
+  border: 2px dashed var(--ss-line-2);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+}
+
+/* ---- segmented toolbar ---- */
+
+.seg {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--ss-radius-md);
+  background: var(--ss-bg);
+  border: 1px solid var(--ss-line);
+}
+.seg-btn {
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 4px 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ss-ink-2);
+  font-size: 11px;
+  font-weight: var(--ss-weight-semibold);
+  transition: background var(--ss-dur-fast) var(--ss-ease-out);
+}
+.seg-btn:hover {
+  background: color-mix(in srgb, var(--ss-surface) 60%, transparent);
+  color: var(--ss-ink);
+}
+.seg-btn[aria-pressed="true"] {
+  background: var(--ss-surface);
+  box-shadow: var(--ss-shadow-1);
+  color: var(--ss-ink);
+}
+.seg-btn[aria-pressed="true"] .i {
+  color: var(--ss-accent);
+}
+.seg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.seg-danger:hover {
+  color: var(--ss-danger);
+}
+.seg-sep {
+  width: 1px;
+  margin: 6px 3px;
+  background: var(--ss-line-2);
+}
+.tool-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--ss-text-sm);
+  color: var(--ss-ink-2);
+}
+.tool-hint .btn {
+  min-height: 28px;
+}

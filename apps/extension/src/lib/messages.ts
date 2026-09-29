@@ -7,11 +7,18 @@ import type { StepDraft } from "./steps";
 export type RecorderMessage =
   | { type: "rec:hello" }
   | { type: "rec:capture"; captureId: string; settled?: boolean }
-  | { type: "rec:step"; draft: Omit<StepDraft, "page"> & { page: { url: string; title?: string } }; captureId?: string };
+  | {
+      type: "rec:step";
+      draft: Omit<StepDraft, "page"> & { page: { url: string; title?: string } };
+      captureId?: string;
+      /** An earlier frame of the same document, used if `captureId` produced nothing. */
+      fallbackCaptureId?: string;
+    };
 
 /** Extension pages → worker */
 export type ControlMessage =
-  | { type: "ctl:start"; windowId: number; tabId?: number }
+  | { type: "ctl:start"; windowId: number; tabId?: number; /** Append to this guide ("Record more"). */ guideId?: string }
+  | { type: "ctl:discard" }
   | { type: "ctl:pause" }
   | { type: "ctl:resume" }
   | { type: "ctl:stop"; openEditor?: boolean }

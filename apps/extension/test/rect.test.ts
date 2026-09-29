@@ -24,6 +24,16 @@ describe("rect mapping", () => {
     expect(cssRectToImage({ x: 0, y: 0, width: 10, height: 10 }, { width: 0, height: 800 }, { width: 1280, height: 800 })).toBeNull();
   });
 
+  it("scales both axes by the width ratio even when the captured height differs", () => {
+    // Captured surface taller than innerHeight (e.g. emulated viewport): y must not stretch.
+    expect(cssRectToImage({ x: 100, y: 200, width: 50, height: 30 }, { width: 1280, height: 702 }, { width: 1280, height: 800 })).toEqual({
+      x: 100,
+      y: 200,
+      width: 50,
+      height: 30,
+    });
+  });
+
   it("rounds fractional device pixels outward-consistently (edges, not sizes)", () => {
     expect(roundRect({ x: 10.4, y: 10.6, width: 10.2, height: 10.2 })).toEqual({ x: 10, y: 11, width: 11, height: 10 });
   });

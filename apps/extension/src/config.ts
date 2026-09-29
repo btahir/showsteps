@@ -15,5 +15,9 @@ export const SUPPORT_URL = "https://showsteps.vercel.app/support/";
 /** Project repository (README, source, issues). Placeholder until the owner creates it. */
 export const REPO_URL = "https://github.com/btahir/showsteps";
 
-/** Shown once per successful export, next to the support link. */
-export const SUPPORT_PITCH = "Scribe charges $35/month for this. It was free. Support it?";
+/**
+ * Post-export support card (docs/design/SPEC.md §8). The "$35 a month on Scribe" comparison is
+ * not verified, so the spec's fallback heading is used.
+ */
+export const SUPPORT_HEADING = "That export is a paid feature elsewhere.";
+export const SUPPORT_BODY = "Showsteps made it for free, on your machine. If it saved you an afternoon, a small tip keeps it that way.";

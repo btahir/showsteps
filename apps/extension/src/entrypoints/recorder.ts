@@ -48,6 +48,7 @@ export default defineUnlistedScript(() => {
   // Same-origin child frames are handled by the root above them.
   if (!isRootFrame()) return;
   const isTop = window.top === window;
+  const DEBUG = import.meta.env.MODE === "e2e";
   if (window.__stepsnapRecorder) {
     window.__stepsnapRecorder.sync();
     return;
@@ -79,9 +80,17 @@ export default defineUnlistedScript(() => {
 
   const newCaptureId = () => `c${Date.now().toString(36)}_${(captureSeq++).toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
+  /** Captures of this document, newest last (the worker falls back to an earlier one). */
+  const knownFrames: string[] = [];
+  function remember(id: string): void {
+    knownFrames.push(id);
+    if (knownFrames.length > 4) knownFrames.shift();
+  }
+
   function requestCapture(): string {
     const captureId = newCaptureId();
     send({ type: "rec:capture", captureId });
+    remember(captureId);
     return captureId;
   }
 
@@ -93,7 +102,7 @@ export default defineUnlistedScript(() => {
 
   let lastDirtyAt = 0;
   let armedUntil = 0;
-  let settled: { captureId: string; sentAt: number; sig: string } | undefined;
+  let settled: { captureId: string; sentAt: number; sig: string; ok: boolean; done: boolean } | undefined;
   let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
   function viewportSig(): string {
@@ -106,7 +115,8 @@ export default defineUnlistedScript(() => {
     settleTimer = setTimeout(settleCheck, 260);
   }
 
-  function markDirty(): void {
+  function markDirty(why?: string): void {
+    if (DEBUG && why) console.debug(`[showsteps] dirty ${why}`);
     lastDirtyAt = Date.now();
     if (recording && isTop) scheduleSettle();
   }
@@ -119,17 +129,31 @@ export default defineUnlistedScript(() => {
 
   function settleCheck(): void {
     const now = Date.now();
+    if (DEBUG) console.debug(`[showsteps] check rec=${recording} hidden=${document.hidden} expired=${now > armedUntil} quietMs=${now - lastDirtyAt}`);
     if (!recording || !isTop || document.hidden || now > armedUntil) return;
     if (now - lastDirtyAt < 250) return scheduleSettle();
-    if (settled && settled.sentAt > lastDirtyAt && settled.sig === viewportSig()) return;
+    // Already have (or are waiting for) a frame of this exact state.
+    if (settled && (settled.ok || !settled.done) && settled.sentAt > lastDirtyAt && settled.sig === viewportSig()) return;
     const captureId = newCaptureId();
-    send({ type: "rec:capture", captureId, settled: true });
-    settled = { captureId, sentAt: now, sig: viewportSig() };
+    const entry = { captureId, sentAt: now, sig: viewportSig(), ok: false, done: false };
+    settled = entry;
+    if (!alive()) return;
+    chrome.runtime
+      .sendMessage({ type: "rec:capture", captureId, settled: true } satisfies RecorderMessage)
+      .then((r: { captured?: boolean } | undefined) => {
+        entry.ok = !!r?.captured;
+        entry.done = true;
+        if (entry.ok) remember(entry.captureId);
+        if (DEBUG) console.debug(`[showsteps] settled ok=${entry.ok}`);
+        // Skipped (a real capture was busy): try again shortly while the user is still active.
+        if (!entry.ok && settled === entry) setTimeout(scheduleSettle, 1100);
+      })
+      .catch(() => {});
   }
 
   /** The settled frame if the page has not changed since it was requested, else a live capture. */
   function preActionCapture(): string {
-    if (isTop && settled && lastDirtyAt + 80 <= settled.sentAt && settled.sig === viewportSig()) return settled.captureId;
+    if (isTop && settled?.ok && lastDirtyAt + 80 <= settled.sentAt && settled.sig === viewportSig()) return settled.captureId;
     return requestCapture();
   }
 
@@ -256,9 +280,10 @@ export default defineUnlistedScript(() => {
       draft.rect = snap?.rect ?? rectOf(el);
     }
     const scan = snap?.sensitive ?? collectSensitive();
+    const fallbackCaptureId = knownFrames.filter((id) => id !== captureId).at(-1);
     // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.
     if (isTop && !scan.remote && chainDepth === 0) {
-      send({ type: "rec:step", captureId, draft: { ...draft, sensitiveRects: scan.local } });
+      send({ type: "rec:step", captureId, fallbackCaptureId, draft: { ...draft, sensitiveRects: scan.local } });
       return;
     }
     chainDepth++;
@@ -273,7 +298,7 @@ export default defineUnlistedScript(() => {
           // Unknown metrics are filled in by the worker from the tab.
           draft.metrics = off.metrics;
         }
-        send({ type: "rec:step", captureId, draft });
+        send({ type: "rec:step", captureId, fallbackCaptureId, draft });
       })
       .catch(() => {})
       .finally(() => {
@@ -558,10 +583,10 @@ export default defineUnlistedScript(() => {
   document.addEventListener("visibilitychange", () => recording && document.hidden && flushTyping(), true);
 
   for (const t of ["pointermove", "wheel", "touchstart"] as const) on(t, () => recording && arm());
-  for (const t of ["input", "change", "keydown", "scroll", "resize", "transitionend", "animationend"] as const) on(t, () => recording && markDirty());
+  for (const t of ["input", "change", "keydown", "scroll", "resize", "transitionend", "animationend"] as const) on(t, () => recording && markDirty(t));
   on("keydown", () => recording && arm());
   if (isTop) {
-    new MutationObserver(() => recording && markDirty()).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+    new MutationObserver(() => recording && markDirty("mutation")).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
   }
 
   // Attach to the top window and every same-origin iframe (their events do not reach us otherwise).

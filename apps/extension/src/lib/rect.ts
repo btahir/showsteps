@@ -30,17 +30,18 @@ export function clipRect(r: Rect, w: number, h: number): Rect | null {
 
 /**
  * Viewport-relative CSS rect → image-pixel rect, clipped to the image.
- * Returns null when the rect is entirely off-screen or the inputs are degenerate.
+ * One scale for both axes, measured from the width (PLAN §0.7: imageRect = cssRect × imageWidth /
+ * viewportWidth). The captured height can differ from innerHeight (browser UI, emulated
+ * viewports), the width does not. Returns null when the rect is off-screen or inputs are degenerate.
  */
 export function cssRectToImage(
   css: Rect,
   viewport: Pick<Viewport, "width" | "height">,
   image: { width: number; height: number },
 ): Rect | null {
-  if (viewport.width <= 0 || viewport.height <= 0 || image.width <= 0 || image.height <= 0) return null;
-  const sx = image.width / viewport.width;
-  const sy = image.height / viewport.height;
-  const scaled = { x: css.x * sx, y: css.y * sy, width: css.width * sx, height: css.height * sy };
+  if (viewport.width <= 0 || image.width <= 0 || image.height <= 0) return null;
+  const k = image.width / viewport.width;
+  const scaled = { x: css.x * k, y: css.y * k, width: css.width * k, height: css.height * k };
   const clipped = clipRect(scaled, image.width, image.height);
   return clipped ? roundRect(clipped) : null;
 }

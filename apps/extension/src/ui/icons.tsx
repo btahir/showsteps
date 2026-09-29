@@ -12,6 +12,7 @@ const base = (props: P) => ({
   strokeLinejoin: "round" as const,
   "aria-hidden": true,
   focusable: false,
+  className: "i",
   ...props,
 });
 
@@ -165,11 +166,55 @@ export const IconPlus = (p: P) => (
   </svg>
 );
 
-/** Placeholder mark until packages/brand ships the logo: a numbered step marker on a frame. */
-export const BrandMark = (p: P) => (
-  <svg viewBox="0 0 24 24" aria-hidden focusable={false} className="brand-mark" {...p}>
-    <rect x="2.5" y="4.5" width="19" height="15" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <rect x="9" y="10" width="9" height="6" rx="1.5" fill="none" stroke="var(--ss-accent)" strokeWidth="1.8" />
-    <circle cx="9" cy="10" r="3.4" fill="var(--ss-accent)" />
+export const IconSettings = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="10" cy="10" r="2.6" />
+    <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
+  </svg>
+);
+export const IconChevron = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 5l5 5-5 5" />
+  </svg>
+);
+export const IconCheck = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4.5 10.5l3.5 3.5 7.5-8" />
+  </svg>
+);
+export const IconCode = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M7 6l-4 4 4 4M13 6l4 4-4 4M11 4.5l-2 11" />
+  </svg>
+);
+export const IconLink = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9" />
+  </svg>
+);
+
+/** The app icon (packages/brand/icon.svg), inline so it needs no request. */
+export const BrandIcon = ({ size = 22, ...p }: P & { size?: number }) => (
+  <svg viewBox="0 0 128 128" width={size} height={size} aria-hidden focusable={false} {...p}>
+    <rect width="128" height="128" rx="30" fill="#EB4E26" />
+    <path
+      d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 55.5H95A5.5 5.5 0 0 1 100.5 61V91A5.5 5.5 0 0 1 95 96.5H33A5.5 5.5 0 0 1 27.5 91V61A5.5 5.5 0 0 1 33 55.5Z"
+      fill="#FFFFFF"
+      fillRule="evenodd"
+    />
+    <path d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5Z" fill="#FFFFFF" />
+    <path d="M99.39 40L85.17 40L85.17 35.92L90.27 35.92L90.27 24.22L85.41 25.15L85.41 21.43L92.22 19L94.71 19L94.71 35.92L99.39 35.92L99.39 40Z" fill="#EB4E26" />
+  </svg>
+);
+
+/** packages/brand/mark.svg: ring and tab without the squircle, for empty states. */
+export const BrandMark = ({ size = 88, ...p }: P & { size?: number }) => (
+  <svg viewBox="12 12 104 104" width={size} height={size} aria-hidden focusable={false} {...p}>
+    <path
+      d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 55.5H95A5.5 5.5 0 0 1 100.5 61V91A5.5 5.5 0 0 1 95 96.5H33A5.5 5.5 0 0 1 27.5 91V61A5.5 5.5 0 0 1 33 55.5Z"
+      fill="var(--ss-accent)"
+      fillRule="evenodd"
+    />
+    <path d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5Z" fill="var(--ss-accent)" />
   </svg>
 );

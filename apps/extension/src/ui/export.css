@@ -1,0 +1,225 @@
+/* Export sheet and post-export support moment (SPEC §6, §8). */
+
+dialog.export {
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius-lg);
+  background: var(--ss-bg);
+  color: var(--ss-ink);
+  box-shadow: var(--ss-shadow-3);
+}
+dialog.export::backdrop {
+  background: rgba(20, 16, 12, 0.36);
+}
+dialog.export-sheet {
+  margin: auto 0 0;
+  width: 100vw;
+  max-width: 100vw;
+  border-radius: var(--ss-radius-lg) var(--ss-radius-lg) 0 0;
+  border-bottom: 0;
+}
+dialog.export-sheet[open] {
+  animation: sheet-up var(--ss-dur-slow) var(--ss-ease-out);
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+.export-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px 6px 16px;
+}
+.export-head h2 {
+  font-size: var(--ss-text-xl);
+  font-weight: var(--ss-weight-bold);
+}
+.export-body {
+  display: grid;
+  gap: 14px;
+  padding: 6px 16px 16px;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tile {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid var(--ss-line-2);
+  border-radius: var(--ss-radius-md);
+  background: var(--ss-surface);
+  text-align: left;
+}
+.tile:hover {
+  border-color: var(--ss-ink-3);
+}
+.tile[aria-checked="true"] {
+  border-color: var(--ss-accent);
+  box-shadow: inset 0 0 0 1px var(--ss-accent);
+}
+.tile-name {
+  font-size: var(--ss-text-md);
+  font-weight: 650;
+  padding-right: 24px;
+}
+.tile-line {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ss-ink-3);
+}
+.tile-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 4px solid var(--ss-accent);
+  background: var(--ss-surface);
+}
+.opts {
+  display: grid;
+  border-top: 1px solid var(--ss-line);
+}
+.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--ss-line);
+  font-size: var(--ss-text-md);
+}
+.swatches {
+  display: flex;
+  gap: 6px;
+}
+.swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ss-radius-flag);
+}
+.swatch[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--ss-bg), 0 0 0 4px var(--ss-ink);
+}
+.export-foot {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+.export-go {
+  position: relative;
+  overflow: hidden;
+}
+.progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: color-mix(in srgb, var(--ss-on-accent) 25%, transparent);
+}
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--ss-on-accent);
+  transition: width var(--ss-dur-base) var(--ss-ease-out);
+}
+
+.saved-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius-lg);
+  background: var(--ss-surface);
+}
+.file-glyph {
+  display: grid;
+  place-items: end center;
+  width: 36px;
+  height: 44px;
+  padding-bottom: 6px;
+  border-radius: 4px 10px 4px 4px;
+  background: var(--ss-accent-soft);
+  color: var(--ss-accent-ink);
+  font-size: 9px;
+  flex: none;
+}
+.saved-text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.saved-text .mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.support-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--ss-line);
+  border-radius: var(--ss-radius-lg);
+  background: var(--ss-surface);
+}
+.support-card h3 {
+  font-size: var(--ss-text-lg);
+  line-height: var(--ss-lh-lg);
+  font-weight: var(--ss-weight-bold);
+  text-wrap: balance;
+}
+.support-card p {
+  color: var(--ss-ink-2);
+  font-size: var(--ss-text-md);
+}
+.support-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.next-actions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ss-line);
+}
+.next-actions li {
+  border-bottom: 1px solid var(--ss-line);
+}
+.next-actions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ss-ink-2);
+  font-size: var(--ss-text-md);
+  text-align: left;
+}
+.next-actions button:hover {
+  color: var(--ss-ink);
+}
+.next-actions .i {
+  width: 16px;
+  height: 16px;
+}

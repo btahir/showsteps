@@ -7,7 +7,7 @@ import { CaptureQueue } from "../lib/capture-queue";
 import { buildStep, newGuide, titleFromPage } from "../lib/steps";
 import type { FrameInfo, StepDraft } from "../lib/steps";
 import { appendStep, newId } from "../lib/guide-ops";
-import { mutateGuide, putGuide, putImage } from "../lib/db";
+import { deleteGuide, getGuide, mutateGuide, putGuide, putImage } from "../lib/db";
 import { bakeRedactions } from "../lib/render";
 import { createNavTracker, forgetTab, isRecordableUrl, noteAction, shouldRecordNavigation } from "../lib/nav";
 import type { AnyMessage, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
@@ -25,7 +25,10 @@ export default defineBackground(() => {
   let state: SessionState = IDLE;
   // One capture at a time, at least 520 ms apart: inside Chrome's 2-per-second quota.
   const queue = new CaptureQueue({ maxCalls: 1, windowMs: 520, marginMs: 0 });
-  const frames = new Map<string, { at: number; frame: Promise<Frame | null> }>();
+  const frames = new Map<string, { at: number; frame: Promise<Frame | null>; settled: boolean }>();
+  // e2e builds log which capture rung each step used (PLAN §3.4), in storage.session["debug:capture"].
+  const DEBUG = import.meta.env.MODE === "e2e";
+  const debugLog: { title: string; rung: string }[] = [];
   const nav = createNavTracker();
   const newTabs = new Set<number>();
   const pendingNav = new Map<number, { url: string; timer: ReturnType<typeof setTimeout> }>();
@@ -127,25 +130,37 @@ export default defineBackground(() => {
       console.warn("Showsteps: capture failed", e);
       return null;
     });
-    frames.set(captureId, { at: Date.now(), frame });
+    frames.set(captureId, { at: Date.now(), frame, settled });
   }
 
   /** The frame a step asked for, or a live capture when that one never happened. */
-  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined): Promise<Frame | null> {
-    const f = captureId ? await frames.get(captureId)?.frame : null;
-    if (f) return f;
-    const fallback = `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    requestCapture(fallback, tabId, windowId);
-    return (await frames.get(fallback)?.frame) ?? null;
+  type Rung = "settled" | "live" | "earlier" | "late" | "nav" | "none";
+  interface Shot {
+    frame: Frame | null;
+    rung: Rung;
   }
 
-  // ---- steps --------------------------------------------------------------------------------
+  /** The frame a step asked for, or a live capture when that one never happened. */
+  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined, fallbackId?: string): Promise<Shot> {
+    const entry = captureId ? frames.get(captureId) : undefined;
+    const f = entry ? await entry.frame : null;
+    if (f) return { frame: f, rung: entry!.settled ? "settled" : "live" };
+    // An earlier frame of the same document (e.g. a click that opened a new tab before the
+    // live capture ran) beats a capture of whatever is in front now.
+    const older = fallbackId ? await frames.get(fallbackId)?.frame : null;
+    if (older) return { frame: older, rung: "earlier" };
+    const fallback = `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    requestCapture(fallback, tabId, windowId);
+    const late = (await frames.get(fallback)?.frame) ?? null;
+    return { frame: late, rung: late ? "late" : "none" };
+  }
 
-  function addStep(tabId: number, draft: StepDraft, frameP: Promise<Frame | null> | undefined): Promise<void> {
+  function addStep(tabId: number, draft: StepDraft, shotP: Promise<Shot> | undefined): Promise<void> {
     const guideId = state.guideId;
     const run = async () => {
       if (!guideId || !acceptsSteps(state) || state.guideId !== guideId) return;
-      const frame = frameP ? await frameP : null;
+      const shot = shotP ? await shotP : { frame: null, rung: "none" as Rung };
+      const frame = shot.frame;
       const id = newId("s");
       const step = buildStep(id, { ...draft, page: { ...draft.page, tabId } }, frame ?? undefined);
       if (frame && step.screenshot) {
@@ -161,6 +176,10 @@ export default defineBackground(() => {
           }
         }
         if (step.screenshot) await putImage(guideId, step.screenshot.image, blob, step.screenshot.highlight);
+      }
+      if (DEBUG) {
+        debugLog.push({ title: step.title, rung: shot.rung });
+        await chrome.storage.session.set({ "debug:capture": debugLog }).catch(() => {});
       }
       const saved = await mutateGuide(guideId, (g) => appendStep(g, step));
       if (!saved) return;
@@ -191,7 +210,7 @@ export default defineBackground(() => {
       metrics: scan?.metrics ?? fallback,
       sensitiveRects: scan?.sensitiveRects,
     };
-    await addStep(tabId, draft, frameP);
+    await addStep(tabId, draft, frameP.then((frame) => ({ frame, rung: frame ? "nav" : "none" })));
   }
 
   function scheduleNavigate(tabId: number, url: string): void {
@@ -219,7 +238,7 @@ export default defineBackground(() => {
     await sp.close?.({ windowId }).catch(() => {});
   }
 
-  async function start(windowId: number, tabId?: number): Promise<ControlReply> {
+  async function start(windowId: number, tabId?: number, appendTo?: string): Promise<ControlReply> {
     await ready;
     if (state.status !== "idle") return { ok: false, state, error: "Already recording" };
     const allSites = await chrome.permissions.contains(ALL_URLS);
@@ -229,9 +248,11 @@ export default defineBackground(() => {
     const scope = allSites ? "window" : "tab";
     const scoped = allSites ? tabs : tabs.filter((t) => t.id === active?.id);
     const now = new Date();
-    const guideId = newId("g");
-    const guide = newGuide(guideId, now.toISOString(), chrome.runtime.getManifest().version, titleFromPage(active && { url: active.url ?? "", title: active.title }, now));
-    await putGuide(guide);
+    const existing = appendTo ? await getGuide(appendTo) : undefined;
+    const guideId = existing?.id ?? newId("g");
+    if (!existing) {
+      await putGuide(newGuide(guideId, now.toISOString(), chrome.runtime.getManifest().version, titleFromPage(active && { url: active.url ?? "", title: active.title }, now)));
+    }
     const tabIds = scoped.map((t) => t.id).filter((id): id is number => id !== undefined);
     for (const t of scoped) if (t.id !== undefined) nav.lastUrl.set(t.id, t.url ?? "");
     await dispatch({ type: "start", guideId, windowId, tabIds, at: now.toISOString(), scope });
@@ -319,10 +340,13 @@ export default defineBackground(() => {
       case "rec:capture":
         if (tabId === undefined) return false;
         if (!msg.settled) noteAction(nav, tabId, Date.now());
-        void ready.then(() => {
-          if (acceptsSteps(state) && state.tabIds.includes(tabId)) requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled);
+        void ready.then(async () => {
+          if (!acceptsSteps(state) || !state.tabIds.includes(tabId)) return reply({ captured: false });
+          requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled);
+          // Settled frames report back, so the page only relies on frames that exist.
+          reply({ captured: !!(await frames.get(msg.captureId)?.frame) });
         });
-        return false;
+        return true;
       case "rec:step":
         if (tabId === undefined) return false;
         noteAction(nav, tabId, Date.now());
@@ -336,11 +360,20 @@ export default defineBackground(() => {
               draft.metrics = { devicePixelRatio: 1, viewport: { width: sender.tab.width, height: sender.tab.height, scrollX: 0, scrollY: 0 } };
             }
           }
-          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId));
+          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId, msg.fallbackCaptureId));
         });
         return false;
+      case "ctl:discard":
+        void (async () => {
+          const id = state.guideId;
+          const r = await stop({ openEditor: false });
+          if (id) await deleteGuide(id);
+          await chrome.storage.session.remove("lastGuideId").catch(() => {});
+          return r;
+        })().then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
+        return true;
       case "ctl:start":
-        void start(msg.windowId, msg.tabId).then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
+        void start(msg.windowId, msg.tabId, msg.guideId).then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
         return true;
       case "ctl:stop":
         void stop({ openEditor: msg.openEditor }).then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));

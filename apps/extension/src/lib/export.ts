@@ -47,12 +47,38 @@ function toU8(v: Uint8Array | string): Uint8Array {
   return typeof v === "string" ? strToU8(v) : v;
 }
 
+export interface ExportOptions {
+  /** Highlight colour (one of the brand swatches); default from the guide or the brand. */
+  color?: string;
+  /** Dim everything around the highlight (default true). */
+  dim?: boolean;
+  /** Show page addresses under steps (default: the guide setting, else true). */
+  includeUrls?: boolean;
+  /** Export skipped steps too (default false). */
+  includeHidden?: boolean;
+  /** Progress while screenshots are rendered. */
+  onProgress?: (done: number, total: number) => void;
+}
+
+/** Wait for the brand font so the flag numerals are drawn in Rethink Sans. */
+async function fontsReady(): Promise<void> {
+  try {
+    await (globalThis as { document?: Document }).document?.fonts?.load('750 16px "Rethink Sans"');
+  } catch {
+    /* system fallback is fine */
+  }
+}
+
 /** Annotated images + a guide describing them. Only visible steps with screenshots are drawn. */
-export async function prepareAnnotated(guide: Guide, blobs: Record<string, Blob>): Promise<{ guide: Guide; images: ImageSource }> {
+export async function prepareAnnotated(guide: Guide, blobs: Record<string, Blob>, opts: ExportOptions = {}): Promise<{ guide: Guide; images: ImageSource }> {
+  await fontsReady();
   const images: ImageSource = {};
-  const color = guide.settings?.highlightColor;
+  const color = opts.color ?? guide.settings?.highlightColor;
   let n = 0;
   const steps: Step[] = [];
+  const total = guide.steps.filter((s) => !s.skipped && s.screenshot).length;
+  let done = 0;
+  opts.onProgress?.(0, total);
   for (const s of guide.steps) {
     if (s.skipped) {
       steps.push(s);
@@ -65,7 +91,8 @@ export async function prepareAnnotated(guide: Guide, blobs: Record<string, Blob>
       steps.push(rest);
       continue;
     }
-    const r = await renderAnnotated(blob, s, { marker: n, color });
+    const r = await renderAnnotated(blob, s, { marker: n, color, dim: opts.dim });
+    opts.onProgress?.(++done, total);
     images[s.screenshot.image] = await bytesOf(r.blob);
     const { highlight: _h, redactions: _r, crop: _c, ...shot } = s.screenshot;
     steps.push({ ...s, screenshot: { ...shot, width: r.width, height: r.height } });
@@ -99,11 +126,14 @@ export async function markdownText(guide: Guide): Promise<string> {
   return typeof md === "string" ? md : new TextDecoder().decode(md);
 }
 
-export async function exportGuide(format: ExportFormat, guide: Guide, blobs: Record<string, Blob>): Promise<ExportFile> {
-  const base = slugify(guide.title);
+export async function exportGuide(format: ExportFormat, source: Guide, blobs: Record<string, Blob>, opts: ExportOptions = {}): Promise<ExportFile> {
+  const base = slugify(source.title);
+  const includeUrls = opts.includeUrls ?? source.settings?.includeUrls ?? true;
+  let guide: Guide = { ...source, settings: { ...source.settings, includeUrls, ...(opts.color ? { highlightColor: opts.color } : {}) } };
+  if (opts.includeHidden) guide = { ...guide, steps: guide.steps.map((s) => (s.skipped ? { ...s, skipped: false } : s)) };
   switch (format) {
     case "markdown": {
-      const { guide: g, images } = await prepareAnnotated(guide, blobs);
+      const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
       const { files } = exportMarkdown(g, { images });
       const all: Record<string, Uint8Array> = {};
       for (const [p, v] of Object.entries(files)) all[p] = toU8(v);
@@ -112,17 +142,17 @@ export async function exportGuide(format: ExportFormat, guide: Guide, blobs: Rec
       return { filename: `${base}-markdown.zip`, blob: new Blob([zipSync(all, { level: 6 }) as BlobPart], { type: "application/zip" }) };
     }
     case "html": {
-      const { guide: g, images } = await prepareAnnotated(guide, blobs);
-      const html = exportHtml(g, images, { includeUrls: guide.settings?.includeUrls !== false });
+      const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
+      const html = exportHtml(g, images, { includeUrls });
       return { filename: `${base}.html`, blob: new Blob([html], { type: "text/html" }) };
     }
     case "pdf": {
-      const { guide: g, images } = await prepareAnnotated(guide, blobs);
+      const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
       const bytes = await optionalExporter("exportPdf")(g, images, { redactionsBaked: true, highlight: false });
       return { filename: `${base}.pdf`, blob: new Blob([bytes as BlobPart], { type: "application/pdf" }) };
     }
     case "docx": {
-      const { guide: g, images } = await prepareAnnotated(guide, blobs);
+      const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
       const bytes = await optionalExporter("exportDocx")(g, images, { redactionsBaked: true, highlight: false });
       return {
         filename: `${base}.docx`,
@@ -136,8 +166,9 @@ export async function exportGuide(format: ExportFormat, guide: Guide, blobs: Rec
       return { filename: `${base}-skill.zip`, blob: new Blob([zipSync(all, { level: 6 }) as BlobPart], { type: "application/zip" }) };
     }
     case "project": {
-      const images = await prepareBaked(guide, blobs);
-      const bytes = packBundle(guide, images);
+      // The project keeps the author's own settings and hidden steps; only pixels are made safe.
+      const images = await prepareBaked(source, blobs);
+      const bytes = packBundle(source, images);
       return { filename: `${base}${PROJECT_EXT}`, blob: new Blob([bytes as BlobPart], { type: "application/zip" }) };
     }
   }

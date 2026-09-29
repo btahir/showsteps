@@ -1,66 +1,76 @@
+// Side panel (SPEC §2, §3, §7): library, the guide being recorded or reviewed, settings.
 import { useEffect, useRef, useState } from "react";
-import type { Step } from "@stepsnap/core";
-import { deleteGuide, mutateGuide } from "../../lib/db";
-import { deleteStep } from "../../lib/guide-ops";
+import { deleteGuide, getImage } from "../../lib/db";
+import type { GuideSummary } from "../../lib/db";
 import { APP_NAME, PROJECT_EXT, SITE_URL, SUPPORT_URL } from "../../config";
-import { openEditor, send, useGuide, useImageUrls, useLibrary, useSession, useToast } from "../../ui/hooks";
-import { ExportDialog, MdInline, plain, Toast } from "../../ui/components";
-import { StepImage } from "../../ui/StepImage";
+import { openEditor, send, useImageUrls, useLibrary, useSession, useToast } from "../../ui/hooks";
+import { useGuideEditor } from "../../ui/useGuideEditor";
+import { GuideHeader, GuideView, relTime } from "../../ui/GuideView";
+import { EditToastView, ExportSheet, SimpleToast } from "../../ui/components";
+import { useTheme } from "../../ui/theme";
+import type { ThemePref } from "../../ui/theme";
 import {
+  BrandIcon,
   BrandMark,
+  IconChevron,
+  IconClose,
+  IconCopy,
+  IconDownload,
   IconEdit,
   IconExternal,
   IconHeart,
   IconLock,
   IconPause,
   IconPlay,
-  IconRecord,
-  IconStop,
+  IconSettings,
   IconTrash,
   IconUpload,
 } from "../../ui/icons";
 
 const ALL_URLS = { origins: ["<all_urls>"] };
 
-function relTime(iso: string): string {
-  const d = new Date(iso);
-  const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
+type View = { kind: "library" } | { kind: "guide"; id: string } | { kind: "settings" };
 
 export function App() {
   const session = useSession();
-  const [lastGuideId, setLastGuideId] = useState<string>();
+  const { guides, reload } = useLibrary();
+  const [view, setView] = useState<View>();
   const [error, setError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
   const [toast, showToast] = useToast();
-  const recordingGuide = session.status !== "idle" ? session.guideId : undefined;
-  const activeId = recordingGuide ?? lastGuideId;
+  useTheme();
+  const recording = session.status === "recording" || session.status === "paused" || session.status === "stopping";
 
+  // Pick the first view: the recording, the guide just recorded, or the library.
   useEffect(() => {
-    chrome.storage.session
+    if (recording && session.guideId) {
+      setView({ kind: "guide", id: session.guideId });
+      return;
+    }
+    if (view) return;
+    void chrome.storage.session
       .get("lastGuideId")
-      .then((r) => typeof r.lastGuideId === "string" && setLastGuideId(r.lastGuideId))
-      .catch(() => {});
-  }, [session.status]);
+      .then((r) => setView(typeof r.lastGuideId === "string" ? { kind: "guide", id: r.lastGuideId } : { kind: "library" }))
+      .catch(() => setView({ kind: "library" }));
+  }, [recording, session.guideId, view]);
 
-  const record = async () => {
+  const record = async (appendTo?: string) => {
     setError(undefined);
+    setNotice(undefined);
     setBusy(true);
     try {
-      // Must run inside the click: Chrome only shows the permission prompt for a user gesture.
-      const granted = (await chrome.permissions.contains(ALL_URLS)) || (await chrome.permissions.request(ALL_URLS));
-      if (!granted) {
-        setError(`${APP_NAME} needs to see the pages you record to take screenshots. Nothing leaves this device.`);
-        return;
+      // First awaited call in the click handler, so Chrome still sees the user gesture.
+      let allSites = false;
+      try {
+        allSites = await chrome.permissions.request(ALL_URLS);
+      } catch {
+        allSites = false;
       }
       const win = await chrome.windows.getCurrent();
-      const r = await send({ type: "ctl:start", windowId: win.id! });
-      if (!r?.ok) setError(r?.error ?? "Could not start recording");
+      const r = await send({ type: "ctl:start", windowId: win.id!, guideId: appendTo });
+      if (!r?.ok) setError(r?.error ?? "Could not start recording.");
+      else if (!allSites) setNotice("Recording this tab only. Allow all sites to follow you across tabs and sites.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -68,276 +78,386 @@ export function App() {
     }
   };
 
-  const stop = async () => {
-    setBusy(true);
-    const id = session.guideId;
-    try {
-      await send({ type: "ctl:stop" });
-      if (id) setLastGuideId(id);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const status = session.status;
-  const isRec = status === "recording" || status === "paused" || status === "stopping";
-
-  return (
-    <div className="panel">
-      <header className="panel-head">
-        <span className="brand">
-          <BrandMark /> {APP_NAME}
-        </span>
-        {isRec && (
-          <span className={`rec-pill rec-${status}`} role="status">
-            <span className="rec-dot" aria-hidden /> {status === "paused" ? "Paused" : status === "stopping" ? "Finishing…" : "Recording"}
-          </span>
-        )}
-      </header>
-
-      {isRec ? (
-        <section className="controls" aria-label="Recording controls">
-          {status === "paused" ? (
-            <button type="button" className="btn btn-lg btn-record" onClick={() => void send({ type: "ctl:resume" })} disabled={busy}>
-              <IconPlay /> Resume
-            </button>
-          ) : (
-            <button type="button" className="btn btn-lg" onClick={() => void send({ type: "ctl:pause" })} disabled={busy || status === "stopping"}>
-              <IconPause /> Pause
-            </button>
-          )}
-          <button type="button" className="btn btn-lg btn-primary" onClick={() => void stop()} disabled={busy || status === "stopping"}>
-            <IconStop /> Stop
-          </button>
-        </section>
-      ) : (
-        <section className="controls controls-idle" aria-label="Start">
-          <button type="button" className="btn btn-lg btn-record record-main" onClick={() => void record()} disabled={busy}>
-            <IconRecord /> Record a guide
-          </button>
-          <p className="muted hint">
-            Click through your task in this window, across as many tabs as you need. Each click, entry and page becomes a step.
-          </p>
-        </section>
-      )}
-
-      {error && (
-        <p className="error panel-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      {activeId && (
-        <CurrentGuide
-          guideId={activeId}
-          recording={isRec}
-          paused={status === "paused"}
-          onExport={() => setExportOpen(true)}
-          onDismiss={() => {
-            setLastGuideId(undefined);
-            void chrome.storage.session.remove("lastGuideId");
-          }}
-        />
-      )}
-
-      {!isRec && <Library currentId={activeId} toast={showToast} onDeleted={(id) => id === lastGuideId && setLastGuideId(undefined)} />}
-
-      {!isRec && <Settings />}
-
-      <ExportGuideDialog guideId={activeId} open={exportOpen} onClose={() => setExportOpen(false)} toast={showToast} />
-      <Toast message={toast} />
-    </div>
-  );
-}
-
-function ExportGuideDialog({ guideId, open, onClose, toast }: { guideId?: string; open: boolean; onClose: () => void; toast: (m: string) => void }) {
-  const { guide } = useGuide(open ? guideId : undefined);
-  return <ExportDialog open={open && !!guide} guide={guide} onClose={onClose} toast={toast} />;
-}
-
-function CurrentGuide({
-  guideId,
-  recording,
-  paused,
-  onExport,
-  onDismiss,
-}: {
-  guideId: string;
-  recording: boolean;
-  paused: boolean;
-  onExport: () => void;
-  onDismiss: () => void;
-}) {
-  const { guide, reload } = useGuide(guideId);
-  const urls = useImageUrls(guideId, guide?.updatedAt);
-  const listRef = useRef<HTMLOListElement>(null);
-  const count = guide?.steps.length ?? 0;
-
-  useEffect(() => {
-    if (recording) listRef.current?.lastElementChild?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [count, recording]);
-
-  if (!guide) return null;
-  const steps = guide.steps;
-
-  const remove = async (s: Step) => {
-    await mutateGuide(guideId, (g) => deleteStep(g, s.id));
-    await reload();
-    chrome.runtime.sendMessage({ type: "bc:guide", guideId }).catch(() => {});
-  };
-
-  return (
-    <section className="current" aria-labelledby="current-title">
-      <div className="current-head">
-        <div>
-          <h2 id="current-title" className="current-title">
-            {guide.title}
-          </h2>
-          <p className="muted small" aria-live="polite">
-            {count} {count === 1 ? "step" : "steps"}
-            {recording ? (paused ? " · paused, actions are not recorded" : " · recording") : ""}
-          </p>
-        </div>
-        {!recording && (
-          <button type="button" className="icon-btn" aria-label="Close this guide" title="Close" onClick={onDismiss}>
-            <span aria-hidden>×</span>
-          </button>
-        )}
-      </div>
-      {!recording && count > 0 && (
-        <div className="current-actions">
-          <button type="button" className="btn btn-primary" onClick={() => void openEditor(guideId)}>
-            <IconEdit /> Edit guide
-          </button>
-          <button type="button" className="btn" onClick={onExport}>
-            Export…
-          </button>
-        </div>
-      )}
-      {count === 0 ? (
-        <p className="muted empty-steps">{recording ? "Waiting for your first click…" : "No steps were recorded."}</p>
-      ) : (
-        <ol className="live-steps" ref={listRef} aria-label="Recorded steps">
-          {steps.map((s, i) => (
-            <li key={s.id} className={`live-step${s.skipped ? " is-skipped" : ""}`}>
-              <div className="live-thumb">
-                <StepImage step={s} src={s.screenshot ? urls[s.screenshot.image] : undefined} compact alt={`Screenshot for step ${i + 1}`} />
-              </div>
-              <div className="live-text">
-                <span className="live-num">{i + 1}</span>
-                <span className="title-md">
-                  <MdInline text={s.title} />
-                </span>
-              </div>
-              <button
-                type="button"
-                className="icon-btn live-del"
-                aria-label={`Delete step ${i + 1}: ${plain(s.title)}`}
-                title="Delete step"
-                onClick={() => void remove(s)}
-              >
-                <IconTrash />
-              </button>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
-}
-
-function Library({ currentId, toast, onDeleted }: { currentId?: string; toast: (m: string) => void; onDeleted: (id: string) => void }) {
-  const { guides, reload } = useLibrary();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const others = guides.filter((g) => g.id !== currentId);
-
+  const openFile = useRef<HTMLInputElement>(null);
   const onImport = async (file: File | undefined) => {
     if (!file) return;
     try {
       const { importProject } = await import("../../lib/import");
       const id = await importProject(file);
       await reload();
-      toast("Project imported");
-      await openEditor(id);
+      showToast("Guide opened");
+      setView({ kind: "guide", id });
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Import failed");
+      showToast(e instanceof Error ? e.message : "That file could not be opened.");
     } finally {
-      if (fileRef.current) fileRef.current.value = "";
+      if (openFile.current) openFile.current.value = "";
     }
   };
 
-  const remove = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"? This removes it from this browser.`)) return;
-    await deleteGuide(id);
-    onDeleted(id);
-    await reload();
-    toast("Guide deleted");
+  const topBar = (
+    <nav className="topbar" aria-label="Panel">
+      <BrandIcon size={22} />
+      {view?.kind !== "library" && !recording ? (
+        <button type="button" className="crumb" onClick={() => setView({ kind: "library" })}>
+          Guides <IconChevron />
+        </button>
+      ) : (
+        <span className="crumb crumb-static">{recording ? APP_NAME : "Guides"}</span>
+      )}
+      <span className="spacer" />
+      {view?.kind === "guide" && !recording && (
+        <button type="button" className="icon-btn" aria-label="Open in the full editor" title="Open in the full editor" onClick={() => void openEditor(view.id)}>
+          <IconEdit />
+        </button>
+      )}
+      {!recording && (
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Settings"
+          aria-pressed={view?.kind === "settings"}
+          onClick={() => setView(view?.kind === "settings" ? { kind: "library" } : { kind: "settings" })}
+        >
+          <IconSettings />
+        </button>
+      )}
+    </nav>
+  );
+
+  const fileInput = (
+    <input
+      ref={openFile}
+      type="file"
+      accept={`${PROJECT_EXT},.stepsnap,.zip`}
+      className="sr-only"
+      tabIndex={-1}
+      aria-label={`Open a ${PROJECT_EXT} file`}
+      onChange={(e) => void onImport(e.target.files?.[0])}
+    />
+  );
+
+  let body: React.ReactNode = null;
+  if (!view) body = null;
+  else if (view.kind === "settings") body = <Settings />;
+  else if (view.kind === "guide")
+    body = (
+      <GuidePane
+        key={view.id}
+        guideId={view.id}
+        session={session}
+        busy={busy}
+        onRecordMore={() => void record(view.id)}
+        onMissing={() => setView({ kind: "library" })}
+        showToast={showToast}
+      />
+    );
+  else if (guides.length === 0)
+    body = (
+      <section className="empty" aria-labelledby="empty-title">
+        <BrandMark size={88} />
+        <h1 id="empty-title">Show it once</h1>
+        <p>Press Record and do the task the way you always do. Every click becomes a step with its own marked screenshot.</p>
+        <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => void record()} disabled={busy}>
+          <span className="rec-ring" aria-hidden /> Start recording
+        </button>
+        <p className="muted small">
+          While recording, <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">P</kbd> pauses and{" "}
+          <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">S</kbd> stops
+        </p>
+        <p className="small">
+          Have a {PROJECT_EXT} file?{" "}
+          <button type="button" className="link-btn" onClick={() => openFile.current?.click()}>
+            Open it
+          </button>
+        </p>
+        <p className="privacy-line">
+          <IconLock /> Screenshots never leave this computer.
+        </p>
+      </section>
+    );
+  else
+    body = (
+      <Library
+        guides={guides}
+        onOpen={(id) => setView({ kind: "guide", id })}
+        onDeleted={async () => {
+          await reload();
+          showToast("Guide deleted");
+        }}
+        onRecord={() => void record()}
+        onImport={() => openFile.current?.click()}
+        busy={busy}
+      />
+    );
+
+  return (
+    <div className="panel">
+      {topBar}
+      {error && (
+        <p className="panel-alert error" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="panel-alert notice-warn" role="status">
+          {notice}
+        </p>
+      )}
+      {body}
+      {fileInput}
+      <SimpleToast message={toast} />
+    </div>
+  );
+}
+
+function GuidePane({
+  guideId,
+  session,
+  busy,
+  onRecordMore,
+  onMissing,
+  showToast,
+}: {
+  guideId: string;
+  session: ReturnType<typeof useSession>;
+  busy: boolean;
+  onRecordMore: () => void;
+  onMissing: () => void;
+  showToast: (m: string) => void;
+}) {
+  const ed = useGuideEditor(guideId);
+  const urls = useImageUrls(guideId, ed.guide?.steps.length);
+  const [exportOpen, setExportOpen] = useState(false);
+  const isThis = session.guideId === guideId;
+  const recording = isThis && (session.status === "recording" || session.status === "paused" || session.status === "stopping");
+
+  useEffect(() => {
+    if (ed.missing) onMissing();
+  }, [ed.missing, onMissing]);
+  if (!ed.guide) return <div className="loading" aria-busy="true" />;
+
+  const copy = async () => {
+    const { markdownText } = await import("../../lib/export");
+    await ed.save();
+    await navigator.clipboard.writeText(await markdownText(ed.guide!));
+    showToast("Markdown copied");
   };
 
   return (
-    <section className="library" aria-labelledby="library-title">
-      <div className="section-head">
-        <h2 id="library-title">Your guides</h2>
-        <button type="button" className="btn btn-sm btn-ghost" onClick={() => fileRef.current?.click()}>
-          <IconUpload /> Import
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept={`${PROJECT_EXT},.stepsnap,.zip`}
-          className="sr-only"
-          aria-label={`Import a ${PROJECT_EXT} project`}
-          tabIndex={-1}
-          onChange={(e) => void onImport(e.target.files?.[0])}
-        />
-      </div>
-      {others.length === 0 ? (
-        <p className="muted small">Guides you record or import are kept here, in this browser only.</p>
-      ) : (
+    <>
+      <main className="guide-pane">
+        <GuideView ed={ed} urls={urls} layout="panel" recording={recording} header={<GuideHeader ed={ed} />} />
+      </main>
+      <footer className="panel-foot">
+        {recording ? (
+          <RecordingControls session={session} />
+        ) : (
+          <>
+            <button type="button" className="btn" onClick={onRecordMore} disabled={busy}>
+              <span className="rec-ring" aria-hidden /> Record more
+            </button>
+            <span className="spacer" />
+            <button type="button" className="btn btn-ghost" onClick={() => void copy()} disabled={!ed.guide.steps.length}>
+              <IconCopy /> Copy
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => setExportOpen(true)} disabled={!ed.guide.steps.length}>
+              Export <IconDownload />
+            </button>
+          </>
+        )}
+      </footer>
+      <ExportSheet open={exportOpen} guide={ed.guide} onClose={() => setExportOpen(false)} beforeExport={ed.save} variant="sheet" />
+      <EditToastView toast={ed.toast} onUndo={ed.undo} onDismiss={ed.dismissToast} />
+    </>
+  );
+}
+
+function RecordingControls({ session }: { session: ReturnType<typeof useSession> }) {
+  const paused = session.status === "paused";
+  const stopping = session.status === "stopping";
+  return (
+    <div className="rec-controls">
+      <span className={`rec-status${paused ? " is-paused" : ""}`} role="status">
+        <span className="rec-dot" aria-hidden />
+        {stopping ? "Finishing…" : paused ? "Paused" : "Recording"}
+        <span className="flag flag-mini num" aria-label={`${session.stepCount} steps`}>
+          {session.stepCount}
+        </span>
+      </span>
+      <span className="spacer" />
+      <button
+        type="button"
+        className="btn btn-ghost"
+        onClick={() => void send({ type: paused ? "ctl:resume" : "ctl:pause" })}
+        disabled={stopping}
+        aria-keyshortcuts="Alt+Shift+P"
+      >
+        {paused ? <IconPlay /> : <IconPause />} {paused ? "Resume" : "Pause"}
+      </button>
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label="Discard this recording"
+        title="Discard"
+        disabled={stopping}
+        onClick={() => {
+          if (confirm("Discard this recording? Its steps and screenshots will be deleted.")) void send({ type: "ctl:discard" });
+        }}
+      >
+        <IconClose />
+      </button>
+      <button type="button" className="btn btn-primary" onClick={() => void send({ type: "ctl:stop" })} disabled={stopping} aria-keyshortcuts="Alt+Shift+S">
+        Stop and review
+      </button>
+    </div>
+  );
+}
+
+function LibraryThumb({ g }: { g: GuideSummary }) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    let u: string | undefined;
+    if (g.firstImage)
+      void getImage(g.id, g.firstImage).then((r) => {
+        if (r) setUrl((u = URL.createObjectURL(r.blob)));
+      });
+    return () => {
+      if (u) URL.revokeObjectURL(u);
+    };
+  }, [g.id, g.firstImage]);
+  return (
+    <span className="lib-thumb" aria-hidden>
+      {url && <img src={url} alt="" />}
+      <span className="flag flag-mini">1</span>
+    </span>
+  );
+}
+
+function Library({
+  guides,
+  onOpen,
+  onDeleted,
+  onRecord,
+  onImport,
+  busy,
+}: {
+  guides: GuideSummary[];
+  onOpen: (id: string) => void;
+  onDeleted: () => Promise<void>;
+  onRecord: () => void;
+  onImport: () => void;
+  busy: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const shown = q ? guides.filter((g) => g.title.toLowerCase().includes(q.toLowerCase())) : guides;
+  return (
+    <>
+      <main className="library">
+        <div className="lib-head">
+          <h1>Guides</h1>
+          <button type="button" className="btn btn-ghost" onClick={onImport}>
+            <IconUpload /> Open file
+          </button>
+        </div>
+        {guides.length >= 6 && (
+          <>
+            <label className="sr-only" htmlFor="lib-search">
+              Search guides
+            </label>
+            <input id="lib-search" className="field" type="search" placeholder="Search guides" value={q} onChange={(e) => setQ(e.target.value)} />
+          </>
+        )}
         <ul className="lib-list">
-          {others.map((g) => (
+          {shown.map((g) => (
             <li key={g.id} className="lib-item">
-              <button type="button" className="lib-open" onClick={() => void openEditor(g.id)}>
-                <span className="lib-title">{g.title}</span>
-                <span className="muted small">
-                  {g.stepCount} {g.stepCount === 1 ? "step" : "steps"} · {relTime(g.updatedAt)}
+              <button type="button" className="lib-open" onClick={() => onOpen(g.id)}>
+                <LibraryThumb g={g} />
+                <span className="lib-text">
+                  <span className="lib-title">{g.title}</span>
+                  <span className="muted small num">
+                    {g.stepCount} {g.stepCount === 1 ? "step" : "steps"} · {relTime(g.updatedAt)}
+                  </span>
                 </span>
               </button>
-              <button type="button" className="icon-btn" aria-label={`Delete guide ${g.title}`} title="Delete guide" onClick={() => void remove(g.id, g.title)}>
+              <button
+                type="button"
+                className="icon-btn lib-del"
+                aria-label={`Delete ${g.title}`}
+                title="Delete"
+                onClick={async () => {
+                  if (!confirm(`Delete "${g.title}"? This removes it from this browser.`)) return;
+                  await deleteGuide(g.id);
+                  await onDeleted();
+                }}
+              >
                 <IconTrash />
               </button>
             </li>
           ))}
         </ul>
-      )}
-    </section>
+      </main>
+      <footer className="panel-foot">
+        <span className="spacer" />
+        <button type="button" className="btn btn-primary" onClick={onRecord} disabled={busy}>
+          <span className="rec-ring" aria-hidden /> Start recording
+        </button>
+      </footer>
+    </>
   );
 }
 
 function Settings() {
+  const [theme, setTheme] = useTheme();
+  const [allSites, setAllSites] = useState<boolean>();
+  useEffect(() => {
+    void chrome.permissions.contains(ALL_URLS).then(setAllSites);
+  }, []);
   const version = chrome.runtime.getManifest().version;
   return (
-    <details className="settings">
-      <summary>Settings and privacy</summary>
-      <div className="settings-body">
-        <p className="privacy">
-          <IconLock /> Screenshots and guides stay in this browser. {APP_NAME} makes no network requests and has no account.
-        </p>
-        <p className="muted small">
-          Password, card, one-time-code and similar fields are blurred automatically, including inside frames and shadow DOM. Mark
-          any element with <code>data-showsteps-sensitive</code> to blur it too.
-        </p>
-        <div className="settings-links">
-          <a className="btn btn-sm" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-            <IconHeart /> Support {APP_NAME}
-          </a>
-          <a className="btn btn-sm btn-ghost" href={SITE_URL} target="_blank" rel="noopener noreferrer">
-            Website <IconExternal />
-          </a>
+    <main className="settings">
+      <h1>Settings</h1>
+      <div className="set-row">
+        <span id="theme-label">Theme</span>
+        <div className="seg seg-inline" role="radiogroup" aria-labelledby="theme-label">
+          {(["system", "light", "dark"] as ThemePref[]).map((t) => (
+            <button key={t} type="button" role="radio" className="seg-btn" aria-checked={theme === t} onClick={() => setTheme(t)}>
+              <span>{t[0]!.toUpperCase() + t.slice(1)}</span>
+            </button>
+          ))}
         </div>
-        <p className="muted small">Version {version}</p>
       </div>
-    </details>
+      <div className="set-row">
+        <span>
+          Access to all sites
+          <span className="muted small block">{allSites ? "Allowed: recording follows you across tabs and sites." : "Not allowed: recording stays in one tab."}</span>
+        </span>
+        {allSites && (
+          <button
+            type="button"
+            className="btn"
+            onClick={async () => {
+              await chrome.permissions.remove(ALL_URLS).catch(() => false);
+              setAllSites(await chrome.permissions.contains(ALL_URLS));
+            }}
+          >
+            Revoke
+          </button>
+        )}
+      </div>
+      <p className="privacy-line">
+        <IconLock /> Screenshots and guides stay in this browser. {APP_NAME} makes no network requests and has no account.
+      </p>
+      <p className="muted small">
+        Password, card, one-time-code and similar fields are blurred automatically, including inside frames and shadow DOM. Mark any element with{" "}
+        <code>data-showsteps-sensitive</code> to blur it too.
+      </p>
+      <a className="set-link" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+        <IconHeart /> Support {APP_NAME}
+      </a>
+      <a className="set-link" href={SITE_URL} target="_blank" rel="noopener noreferrer">
+        <IconExternal /> Website and help
+      </a>
+      <p className="muted small mono">Version {version}</p>
+    </main>
   );
 }
-

@@ -5,14 +5,14 @@
 //    exports (Markdown, HTML, PDF, DOCX) and previews.
 
 import type { Rect, Redaction, Step } from "@stepsnap/core";
-import { clipRect, padRect, toCropSpace } from "./rect";
-import { HIGHLIGHT_COLOR, MARKER_TEXT } from "./theme";
+import { clipRect, toCropSpace } from "./rect";
+import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
 
 type Ctx = OffscreenCanvasRenderingContext2D;
 
 export interface AnnotateOptions {
   highlight?: boolean; // default true
-  marker?: number; // step number drawn next to the highlight
+  marker?: number; // step number drawn on the flag tab
   color?: string;
   dim?: boolean; // darken everything outside the highlight (default true)
 }
@@ -38,7 +38,7 @@ export function obscure(ctx: Ctx, r: Rect, style: Redaction["style"], scale = 1)
   const y = Math.round(r.y);
   if (style === "solid") {
     ctx.save();
-    ctx.fillStyle = "#1a1a1a";
+    ctx.fillStyle = flag.redactSolidColor;
     ctx.fillRect(x, y, w, h);
     ctx.restore();
     return;
@@ -61,55 +61,6 @@ export function obscure(ctx: Ctx, r: Rect, style: Redaction["style"], scale = 1)
     // A soft veil keeps it readable as "hidden on purpose" rather than a rendering glitch.
     ctx.fillStyle = "rgba(128,128,128,0.18)";
     ctx.fillRect(x, y, w, h);
-  }
-  ctx.restore();
-}
-
-function roundedRectPath(ctx: Ctx, r: Rect, radius: number): void {
-  ctx.beginPath();
-  ctx.roundRect(r.x, r.y, r.width, r.height, radius);
-}
-
-export function drawHighlight(ctx: Ctx, r: Rect, opts: { color: string; scale: number; dim: boolean; marker?: number }): void {
-  const { color, scale: k } = opts;
-  const W = ctx.canvas.width;
-  const H = ctx.canvas.height;
-  const box = padRect(r, Math.round(4 * k), W, H);
-  const radius = Math.round(6 * k);
-  ctx.save();
-  if (opts.dim) {
-    ctx.beginPath();
-    ctx.rect(0, 0, W, H);
-    ctx.roundRect(box.x, box.y, box.width, box.height, radius);
-    ctx.fillStyle = "rgba(20,16,12,0.22)";
-    ctx.fill("evenodd");
-  }
-  const lw = Math.max(2, Math.round(3 * k));
-  roundedRectPath(ctx, box, radius);
-  ctx.lineWidth = lw;
-  ctx.strokeStyle = color;
-  ctx.stroke();
-
-  if (opts.marker !== undefined) {
-    const d = Math.round(26 * k);
-    const label = String(opts.marker);
-    // Prefer the top-left corner outside the box; fall back inside when there is no room.
-    let cx = box.x - d * 0.35;
-    let cy = box.y - d * 0.35;
-    cx = Math.min(Math.max(cx, d / 2 + 2), W - d / 2 - 2);
-    cy = Math.min(Math.max(cy, d / 2 + 2), H - d / 2 - 2);
-    ctx.beginPath();
-    ctx.arc(cx, cy, d / 2, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.lineWidth = Math.max(1.5, 2 * k);
-    ctx.strokeStyle = "#fff";
-    ctx.stroke();
-    ctx.fillStyle = MARKER_TEXT;
-    ctx.font = `700 ${Math.round((label.length > 2 ? 11 : 14) * k)}px system-ui, -apple-system, "Segoe UI", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, cx, cy + 0.5 * k);
   }
   ctx.restore();
 }
@@ -167,7 +118,18 @@ export async function renderAnnotated(blob: Blob, step: Step, opts: AnnotateOpti
 
   if (opts.highlight !== false && sh?.highlight) {
     const hl = clipRect(toCropSpace(sh.highlight, crop), out.width, out.height);
-    if (hl) drawHighlight(octx, hl, { color: opts.color ?? HIGHLIGHT_COLOR, scale: k, dim: opts.dim !== false, marker: opts.marker });
+    if (hl) {
+      // The brand's signature mark (ring + numbered flag tab + soft dim), shared with core's exporters.
+      drawFlagHighlight(octx as unknown as Parameters<typeof drawFlagHighlight>[0], {
+        target: hl,
+        n: opts.marker ?? "",
+        imageWidth: out.width,
+        imageHeight: out.height,
+        scale: highlightScale(sh.viewport.width, k),
+        color: opts.color ?? flag.color,
+        dim: opts.dim === false ? "transparent" : undefined,
+      });
+    }
   }
   return { blob: await toPng(out), width: out.width, height: out.height };
 }
