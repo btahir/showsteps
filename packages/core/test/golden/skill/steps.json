@@ -1,0 +1,365 @@
+{
+  "format": "showsteps-steps",
+  "version": 1,
+  "generator": {
+    "name": "Showsteps",
+    "url": "https://showsteps.vercel.app"
+  },
+  "guide": {
+    "id": "g_fixture",
+    "title": "Update billing settings in Acme",
+    "description": "Sign in, switch to **monthly** billing, and pay the open invoice.",
+    "createdAt": "2026-09-28T10:00:00Z",
+    "stepCount": 10,
+    "tabCount": 2
+  },
+  "startUrl": "https://app.acme.test/login",
+  "viewport": {
+    "width": 80,
+    "height": 50
+  },
+  "secrets": [
+    {
+      "env": "SHOWSTEPS_SECRET_1",
+      "step": 3,
+      "field": "Password"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "id": "s_open",
+      "title": "Go to Sign in – Acme",
+      "titleMarkdown": "Go to **Sign in – Acme**",
+      "action": {
+        "type": "navigate",
+        "url": "https://app.acme.test/login"
+      },
+      "page": {
+        "url": "https://app.acme.test/login",
+        "title": "Sign in – Acme",
+        "tab": 1
+      },
+      "target": null,
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.goto(\"https://app.acme.test/login\");"
+      }
+    },
+    {
+      "n": 2,
+      "id": "s_email",
+      "title": "Type \"jane@example.com\" in Email",
+      "titleMarkdown": "Type \"jane@example.com\" in **Email**",
+      "action": {
+        "type": "type",
+        "value": "jane@example.com"
+      },
+      "page": {
+        "url": "https://app.acme.test/login",
+        "title": "Sign in – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "input",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Email"
+          },
+          {
+            "kind": "placeholder",
+            "value": "you@company.com"
+          },
+          {
+            "kind": "css",
+            "value": "form input[type=email]"
+          }
+        ],
+        "role": "textbox",
+        "label": "Email",
+        "placeholder": "you@company.com",
+        "inputType": "email"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByLabel(\"Email\", { exact: true }).fill(\"jane@example.com\");"
+      }
+    },
+    {
+      "n": 3,
+      "id": "s_pass",
+      "title": "Enter your password",
+      "titleMarkdown": "Enter your password",
+      "action": {
+        "type": "type",
+        "masked": true,
+        "secret": "SHOWSTEPS_SECRET_1"
+      },
+      "page": {
+        "url": "https://app.acme.test/login",
+        "title": "Sign in – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "input",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Password"
+          },
+          {
+            "kind": "css",
+            "value": "form input[type=password]"
+          }
+        ],
+        "role": "textbox",
+        "label": "Password",
+        "inputType": "password",
+        "sensitive": true
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByLabel(\"Password\", { exact: true }).fill(secret(\"SHOWSTEPS_SECRET_1\"));",
+        "secret": "SHOWSTEPS_SECRET_1"
+      }
+    },
+    {
+      "n": 4,
+      "id": "s_signin",
+      "title": "Click Sign in",
+      "titleMarkdown": "Click **Sign in**",
+      "action": {
+        "type": "click"
+      },
+      "page": {
+        "url": "https://app.acme.test/login",
+        "title": "Sign in – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "button",
+        "locators": [
+          {
+            "kind": "testid",
+            "value": "signin-button"
+          },
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Sign in"
+          }
+        ],
+        "role": "button",
+        "name": "Sign in",
+        "text": "Sign in"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByTestId(\"signin-button\").click();"
+      }
+    },
+    {
+      "n": 5,
+      "id": "s_gear",
+      "title": "Click Open settings",
+      "titleMarkdown": "Click **Open settings**",
+      "action": {
+        "type": "click"
+      },
+      "page": {
+        "url": "https://app.acme.test/dashboard",
+        "title": "Dashboard – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "button",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Open settings"
+          },
+          {
+            "kind": "css",
+            "value": "header button.icon-gear"
+          }
+        ],
+        "role": "button",
+        "name": "Open settings"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByRole(\"button\", { name: \"Open settings\", exact: true }).click();"
+      },
+      "description": "The gear icon in the top-right corner."
+    },
+    {
+      "n": 6,
+      "id": "s_period",
+      "title": "Select Monthly in Billing period",
+      "titleMarkdown": "Select **Monthly** in **Billing period**",
+      "action": {
+        "type": "select",
+        "value": "monthly",
+        "optionText": "Monthly"
+      },
+      "page": {
+        "url": "https://app.acme.test/settings/billing",
+        "title": "Billing – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "select",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Billing period"
+          },
+          {
+            "kind": "css",
+            "value": "select#period"
+          }
+        ],
+        "role": "combobox",
+        "name": "Billing period",
+        "label": "Billing period"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByLabel(\"Billing period\", { exact: true }).selectOption({ label: \"Monthly\" });"
+      },
+      "description": "Choose how often you want to be billed."
+    },
+    {
+      "n": 7,
+      "id": "s_invoices",
+      "title": "Check Email me invoices",
+      "titleMarkdown": "Check **Email me invoices**",
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "page": {
+        "url": "https://app.acme.test/settings/billing",
+        "title": "Billing – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "input",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Email me invoices"
+          },
+          {
+            "kind": "css",
+            "value": "input[name=invoices]"
+          }
+        ],
+        "role": "checkbox",
+        "label": "Email me invoices",
+        "inputType": "checkbox"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.getByLabel(\"Email me invoices\", { exact: true }).check();"
+      }
+    },
+    {
+      "n": 8,
+      "id": "s_pay",
+      "title": "Click Pay now",
+      "titleMarkdown": "Click **Pay now**",
+      "action": {
+        "type": "click"
+      },
+      "page": {
+        "url": "https://app.acme.test/settings/billing",
+        "title": "Billing – Acme",
+        "tab": 1
+      },
+      "target": {
+        "tag": "button",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Pay now"
+          },
+          {
+            "kind": "text",
+            "value": "Pay now",
+            "exact": true
+          }
+        ],
+        "role": "button",
+        "name": "Pay now",
+        "text": "Pay now",
+        "frame": [
+          "iframe[name=\"card-frame\"]"
+        ]
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page.frameLocator('iframe[name=\"card-frame\"]').getByRole(\"button\", { name: \"Pay now\", exact: true }).click();"
+      }
+    },
+    {
+      "n": 9,
+      "id": "s_help",
+      "title": "Go to Invoices – Acme Help",
+      "titleMarkdown": "Go to **Invoices – Acme Help**",
+      "action": {
+        "type": "navigate",
+        "url": "https://help.acme.test/invoices"
+      },
+      "page": {
+        "url": "https://help.acme.test/invoices",
+        "title": "Invoices – Acme Help",
+        "tab": 2
+      },
+      "target": null,
+      "replay": {
+        "replayable": true,
+        "playwright": "page2 = await context.newPage();\nawait page2.goto(\"https://help.acme.test/invoices\");"
+      }
+    },
+    {
+      "n": 10,
+      "id": "s_search",
+      "title": "Press Enter to search",
+      "titleMarkdown": "Press **Enter** to search",
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "page": {
+        "url": "https://help.acme.test/invoices",
+        "title": "Invoices – Acme Help",
+        "tab": 2
+      },
+      "target": {
+        "tag": "input",
+        "locators": [
+          {
+            "kind": "placeholder",
+            "value": "Search help"
+          },
+          {
+            "kind": "css",
+            "value": "input[type=search]"
+          }
+        ],
+        "role": "searchbox",
+        "label": "Search help",
+        "placeholder": "Search help",
+        "inputType": "search"
+      },
+      "replay": {
+        "replayable": true,
+        "playwright": "await page2.getByPlaceholder(\"Search help\", { exact: true }).press(\"Enter\");"
+      }
+    }
+  ]
+}

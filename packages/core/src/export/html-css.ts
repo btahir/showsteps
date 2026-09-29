@@ -1,0 +1,96 @@
+// Stylesheet of the exported HTML guide. Colours, type and radii are CSS variables named like
+// packages/brand/tokens.css (`--ss-*`), so brand values drop in unchanged: pass extra CSS via
+// `exportHtml(..., { css })` (for example the contents of tokens.css) and it wins over these defaults.
+
+export const HTML_TOKENS_LIGHT = `--ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
+  --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
+  --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
+  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-radius-md: 10px; --ss-radius-lg: 14px;
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-guide-measure: 820px;`;
+
+export const HTML_TOKENS_DARK = `--ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6);`;
+
+export const HTML_CSS = `
+:root { ${HTML_TOKENS_LIGHT} color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ${HTML_TOKENS_DARK} color-scheme: dark; } }
+:root[data-theme="dark"] { ${HTML_TOKENS_DARK} color-scheme: dark; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ss-bg); color: var(--ss-ink); font: 400 16px/1.55 var(--ss-font-ui); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+main { max-width: var(--ss-guide-measure); margin: 0 auto; padding: 72px 24px 96px; }
+b, strong { font-weight: 650; }
+a { color: var(--ss-accent-ink); text-underline-offset: 2px; }
+code { font-family: var(--ss-font-mono); font-size: .9em; background: var(--ss-surface-2); padding: .1em .35em; border-radius: 5px; }
+pre { font-family: var(--ss-font-mono); font-size: 13px; background: var(--ss-surface-2); padding: 12px 14px; border-radius: var(--ss-radius-md); overflow-x: auto; white-space: pre-wrap; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 12px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--ss-line-2); color: var(--ss-ink-2); }
+.mono { font-family: var(--ss-font-mono); font-size: 12px; letter-spacing: -.01em; }
+
+.flag { display: inline-grid; place-items: center; min-width: 36px; height: 32px; padding: 0 9px; background: var(--ss-accent); color: var(--ss-on-accent);
+  font: 700 17px/1 var(--ss-font-ui); font-variant-numeric: tabular-nums; border-radius: 9px 9px 9px 3px; }
+.flag.sm { min-width: 20px; height: 20px; padding: 0 5px; font-size: 11px; border-radius: 6px 6px 6px 2px; }
+
+.eyebrow { display: flex; gap: 10px; align-items: center; color: var(--ss-ink-3); text-transform: uppercase; }
+h1 { margin: 18px 0 0; font: 750 44px/1.08 var(--ss-font-ui); letter-spacing: -.03em; text-wrap: balance; max-width: 18ch; overflow-wrap: anywhere; }
+.lede { margin-top: 16px; font-size: 18px; line-height: 1.55; color: var(--ss-ink-2); max-width: 60ch; }
+.lede p { margin: 0 0 .6em; }
+.facts { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 0; border-top: 1px solid var(--ss-line); border-bottom: 1px solid var(--ss-line); font-size: 13.5px; color: var(--ss-ink-2); }
+.facts b { display: block; color: var(--ss-ink); font-weight: 650; font-size: 14px; }
+
+ol.steps { list-style: none; padding: 0; margin: 56px 0 0; display: flex; flex-direction: column; gap: 64px; }
+.step { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 8px; }
+.step .flag { margin-top: 2px; align-self: start; justify-self: start; }
+.step h2 { margin: 0; font: 600 22px/1.3 var(--ss-font-ui); letter-spacing: -.015em; overflow-wrap: anywhere; }
+.step h2 b { font-weight: 750; }
+.desc { margin-top: 6px; color: var(--ss-ink-2); font-size: 16px; }
+.desc p { margin: 6px 0 0; }
+.desc ul, .desc ol { margin: 6px 0 0; padding-left: 1.3em; }
+figure { grid-column: 1 / -1; margin: 18px 0 0; }
+.frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--ss-line); box-shadow: var(--ss-shadow-2); line-height: 0; background: #fff; }
+.frame img { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; display: flex; gap: 8px; align-items: center; color: var(--ss-ink-3); min-width: 0; }
+figcaption svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+figcaption .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+figcaption a { color: inherit; text-decoration: none; }
+figcaption a:hover { text-decoration: underline; }
+.step.note h2 { font-weight: 600; }
+.step.note .flag { background: var(--ss-surface-2); color: var(--ss-ink-2); }
+
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--ss-line); color: var(--ss-ink-3); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; }
+footer a { color: inherit; }
+
+@media (max-width: 600px) {
+  main { padding: 40px 16px 64px; }
+  h1 { font-size: 32px; }
+  .step { grid-template-columns: 1fr; row-gap: 8px; }
+  .step h2 { font-size: 19px; }
+}
+
+@media print {
+  :root { ${HTML_TOKENS_LIGHT} --ss-bg: #fff; --ss-shadow-2: none; color-scheme: light; }
+  @page { margin: 16mm 14mm; }
+  html, body { background: #fff; }
+  body { font-size: 11pt; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { max-width: none; padding: 0; }
+  h1 { font-size: 26pt; max-width: none; }
+  .lede { font-size: 12pt; }
+  ol.steps { margin-top: 22pt; gap: 22pt; }
+  .step { break-inside: avoid; page-break-inside: avoid; }
+  .step h2 { font-size: 14pt; break-after: avoid; page-break-after: avoid; }
+  figure { break-inside: avoid; page-break-inside: avoid; margin-top: 10pt; }
+  .frame { box-shadow: none; }
+  .frame img { max-height: 200mm; width: auto; max-width: 100%; margin: 0 auto; }
+  .facts, .eyebrow { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+  footer { margin-top: 28pt; break-inside: avoid; }
+}
+`;

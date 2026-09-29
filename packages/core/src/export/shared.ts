@@ -49,3 +49,34 @@ export function stepNumbers(guide: Guide): Map<string, number> {
   visibleSteps(guide).forEach((s, i) => m.set(s.id, i + 1));
   return m;
 }
+
+/**
+ * URL as shown in human-readable exports: origin and path only. Query strings and fragments are
+ * dropped because they often carry tokens, ids or email addresses. (Replay files keep the full URL.)
+ */
+export function displayUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return url.split(/[?#]/)[0] as string;
+    return u.origin + (u.pathname === "/" ? "/" : u.pathname.replace(/\/$/, ""));
+  } catch {
+    return url.split(/[?#]/)[0] as string;
+  }
+}
+
+export function sniffImageMime(bytes: Uint8Array): string {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49) return "image/gif";
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57) return "image/webp";
+  return "application/octet-stream";
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** `2026-09-28T10:00:00Z` -> `28 September 2026` (UTC date part; deterministic, locale-free). */
+export function formatDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1] ?? ""} ${m[1]}`;
+}

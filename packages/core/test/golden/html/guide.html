@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="Showsteps">
+<meta name="description" content="Sign in, switch to monthly billing, and pay the open invoice.">
+<title>Update billing settings in Acme</title>
+<style>
+:root { --ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
+  --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
+  --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
+  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-radius-md: 10px; --ss-radius-lg: 14px;
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-guide-measure: 820px; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; } }
+:root[data-theme="dark"] { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ss-bg); color: var(--ss-ink); font: 400 16px/1.55 var(--ss-font-ui); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+main { max-width: var(--ss-guide-measure); margin: 0 auto; padding: 72px 24px 96px; }
+b, strong { font-weight: 650; }
+a { color: var(--ss-accent-ink); text-underline-offset: 2px; }
+code { font-family: var(--ss-font-mono); font-size: .9em; background: var(--ss-surface-2); padding: .1em .35em; border-radius: 5px; }
+pre { font-family: var(--ss-font-mono); font-size: 13px; background: var(--ss-surface-2); padding: 12px 14px; border-radius: var(--ss-radius-md); overflow-x: auto; white-space: pre-wrap; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 12px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--ss-line-2); color: var(--ss-ink-2); }
+.mono { font-family: var(--ss-font-mono); font-size: 12px; letter-spacing: -.01em; }
+
+.flag { display: inline-grid; place-items: center; min-width: 36px; height: 32px; padding: 0 9px; background: var(--ss-accent); color: var(--ss-on-accent);
+  font: 700 17px/1 var(--ss-font-ui); font-variant-numeric: tabular-nums; border-radius: 9px 9px 9px 3px; }
+.flag.sm { min-width: 20px; height: 20px; padding: 0 5px; font-size: 11px; border-radius: 6px 6px 6px 2px; }
+
+.eyebrow { display: flex; gap: 10px; align-items: center; color: var(--ss-ink-3); text-transform: uppercase; }
+h1 { margin: 18px 0 0; font: 750 44px/1.08 var(--ss-font-ui); letter-spacing: -.03em; text-wrap: balance; max-width: 18ch; overflow-wrap: anywhere; }
+.lede { margin-top: 16px; font-size: 18px; line-height: 1.55; color: var(--ss-ink-2); max-width: 60ch; }
+.lede p { margin: 0 0 .6em; }
+.facts { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 0; border-top: 1px solid var(--ss-line); border-bottom: 1px solid var(--ss-line); font-size: 13.5px; color: var(--ss-ink-2); }
+.facts b { display: block; color: var(--ss-ink); font-weight: 650; font-size: 14px; }
+
+ol.steps { list-style: none; padding: 0; margin: 56px 0 0; display: flex; flex-direction: column; gap: 64px; }
+.step { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 8px; }
+.step .flag { margin-top: 2px; align-self: start; justify-self: start; }
+.step h2 { margin: 0; font: 600 22px/1.3 var(--ss-font-ui); letter-spacing: -.015em; overflow-wrap: anywhere; }
+.step h2 b { font-weight: 750; }
+.desc { margin-top: 6px; color: var(--ss-ink-2); font-size: 16px; }
+.desc p { margin: 6px 0 0; }
+.desc ul, .desc ol { margin: 6px 0 0; padding-left: 1.3em; }
+figure { grid-column: 1 / -1; margin: 18px 0 0; }
+.frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--ss-line); box-shadow: var(--ss-shadow-2); line-height: 0; background: #fff; }
+.frame img { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; display: flex; gap: 8px; align-items: center; color: var(--ss-ink-3); min-width: 0; }
+figcaption svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+figcaption .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+figcaption a { color: inherit; text-decoration: none; }
+figcaption a:hover { text-decoration: underline; }
+.step.note h2 { font-weight: 600; }
+.step.note .flag { background: var(--ss-surface-2); color: var(--ss-ink-2); }
+
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--ss-line); color: var(--ss-ink-3); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; }
+footer a { color: inherit; }
+
+@media (max-width: 600px) {
+  main { padding: 40px 16px 64px; }
+  h1 { font-size: 32px; }
+  .step { grid-template-columns: 1fr; row-gap: 8px; }
+  .step h2 { font-size: 19px; }
+}
+
+@media print {
+  :root { --ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
+  --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
+  --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
+  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-radius-md: 10px; --ss-radius-lg: 14px;
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-guide-measure: 820px; --ss-bg: #fff; --ss-shadow-2: none; color-scheme: light; }
+  @page { margin: 16mm 14mm; }
+  html, body { background: #fff; }
+  body { font-size: 11pt; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { max-width: none; padding: 0; }
+  h1 { font-size: 26pt; max-width: none; }
+  .lede { font-size: 12pt; }
+  ol.steps { margin-top: 22pt; gap: 22pt; }
+  .step { break-inside: avoid; page-break-inside: avoid; }
+  .step h2 { font-size: 14pt; break-after: avoid; page-break-after: avoid; }
+  figure { break-inside: avoid; page-break-inside: avoid; margin-top: 10pt; }
+  .frame { box-shadow: none; }
+  .frame img { max-height: 200mm; width: auto; max-width: 100%; margin: 0 auto; }
+  .facts, .eyebrow { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+  footer { margin-top: 28pt; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow"><span class="flag sm" aria-hidden="true">10</span><span class="mono">STEPS · ABOUT 4 MINUTES</span></div>
+<h1>Update billing settings in Acme</h1>
+<div class="lede"><p>Sign in, switch to <b>monthly</b> billing, and pay the open invoice.</p></div>
+<div class="facts"><div><b>Starts at</b>app.acme.test</div><div><b>Created</b>28 September 2026</div></div>
+</header>
+<ol class="steps">
+<li class="step" id="step-1"><span class="flag" aria-hidden="true">1</span><div><h2>Go to <b>Sign in – Acme</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAABGElEQVR42u3aIRJAUBSGUYphKbJi/0mRRUGzAA+FDdC8MY9zlnDnS3f+fJzmI4OXCBABIkAQIAIEASJAECACBAEiQIgT4BI2ASJABAgCRIAgQAR4qeuHXx2obWqVCFCAAhQgAhSgAAWIAAXoDQMCRIAgQAQIAuTzAVZl4WrcCusuQASIAAWIABGgABEgAhQgAkSAAiThAOFJAkSACBAEiADBHpB0+QMiQAQoQASIAAWIABGgABEgAhQg9oAgQAQIAkSACBDsAUmfPyACRIACRIAIUIAIEAEKEAEiQAFiDwgCRIAgQASIAMEekPT5AyJABChABIgABYgAEaAAESACFCD2gCBABAgCRIAIEASIAEGACBAEiAAhqhNDgg0/ymd1VgAAAABJRU5ErkJggg==" width="160" height="100" alt="Screenshot of step 1: Go to Sign in – Acme" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/login" rel="noopener noreferrer">https://app.acme.test/login</a></span></figcaption></figure></li>
+<li class="step" id="step-2"><span class="flag" aria-hidden="true">2</span><div><h2>Type &quot;jane@example.com&quot; in <b>Email</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADT0lEQVR4nO3bTUgUYRzH8f+upgVG2psRRUQeEjskveChU5dehfKeYBhF0UWoQ0RRRIcCL1EUSYLdLbDXS6cO0gt2SOxgSBiR9qKRZGvrbu4K4bYLyzoz+5vd+X5Owzww+xy+7M48+0xoaHg0boAIAUKKACFFgJAiQEgRIKQIEFIECCkChBQBQooAIUWAkAr9mowQIGQIEFIECCkChBQBQooAIZVzgL2vBzyaij81bKlVT6GoEWAWBOgtAsyCAL1FgFkQoLcIMAsC9BYBZkGA3nJ9GSY0MWYlvT0W7n9u4eEBC/34ahabdvMjkC/hEosvWW6xtbUWq9th0w2NFq+ocvUjXA1wQXe7lT6+TXDFaibI6J4j9qepzbVLuhJg6NOglXWctvCHty5MCX4XW7fJplqvWHx1jeNrOQ4wEV95e4uFxkYcTwaFI15VbZG2TscROg6w/GIT33wBlfgmjJzrdnQNRwEm7/ke3sw4Ft3datPb9lq8cuV8Lw8fCI2PWsnLR1b6pCPjeHTfMUf3hDkHuGhh2ezBzzGz41vTHjgilWts8OBlm6pYMe9JwX/KJr5Yzb0zVj7+MXVg5sHEbrwyWzz7dDz5eyqn684/wKedZl0X0sb7W7qIr0glIqzrbE4faD5vtqsleZi/AK8eNnvzLHVw/1HrW38gpwmgsNQP3Td7cCv15OadZqfuJA/zF+DJBrPvn1MHL/VY30hpThNAYamvjpqdbUw9uXSV2bXe5GH+Ajy0IX3B+foL63v3LacJoLDUb1xmdmJ76snEfeDd98lDAoSn/BMgP8GB5J+fYB5CAsk/DyEswwSOv5ZhWIgOFN8sRM/FX3HFz3d/xf2PzQjBJd+MwHas4PLNdiw2pAaPrzakzsWW/CLn1y35vJRUpPz4UtK/ZRggg/ytAwIZECCkCBBSBAgpAoQUAUKKACFFgJAiQEjldT8g4BQBQooAIUWAkCJASBEgpFiGgatYB4QUAUKKACFFgJAiQEgRIKQIEFIECCkChBT7AVFQCBBSBAgpAoQUAUKKACHFMgxcxTogpAgQUgQIKQKEFAFCigAhRYCQIkBIESCk2A+IgkKAkCJASBEgpAgQUgQIKQKEFAFCigAhRYCQIkBIESCk/gK1hvU/EkM3kAAAAABJRU5ErkJggg==" width="160" height="100" alt="Screenshot of step 2: Type &quot;jane@example.com&quot; in Email" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/login" rel="noopener noreferrer">https://app.acme.test/login</a></span></figcaption></figure></li>
+<li class="step" id="step-3"><span class="flag" aria-hidden="true">3</span><div><h2>Enter your password</h2></div><figure><div class="frame"><img src="data:image/png;base64,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" width="160" height="100" alt="Screenshot of step 3: Enter your password" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/login" rel="noopener noreferrer">https://app.acme.test/login</a></span></figcaption></figure></li>
+<li class="step" id="step-4"><span class="flag" aria-hidden="true">4</span><div><h2>Click <b>Sign in</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADU0lEQVR4nO3cS0hUYRiH8XdG0wIj7WZEEZGLxBZJF1y0atNVKPcJhlEUbYRaRBRFtChwE0WRJNjeArtuWrWQLtgisYUhYUTaRSPJxsaZnKDFNIPTzHzn/M+Mz285n+i7eJg55/M7ExoaHo0bIEKAkCJASBEgpAgQUgQIKQKEFAFCigAhRYCQIkBIESCkQj8mIwQIGQKEFAFCigAhRYCQIkBIZR1g78sBj0YJpoZNteoRihoBZkCA3iLADAjQWwSYAQF6iwAzIEBvEWAGBOgttmEgRYCQIkBIESCkCBBSBAiprANcML/Mo1FQDCZ/TmX18wQIpwgQUgQIKQKEFAFCigAhRYCQIkBIESCkPA8QcIkAIUWAkCJASBEgpAgQUmzDwCn2ASFFgJAiQEgRIKQIEFIECCkChBQBQooAISU/DxiaGLOS3h4L9z+18PCAhb59NotNu/wT7oVLLL5oqcVW11qsbptNNzRavKJKPdWc4DTAed3tVvrwZvCDy2QmyOiuQ/arqU09SdFzEmDow6CVdZy08LvXDkYKjtiaDTbVesniK2vUoxStvANMxFfe3mKhsRFHIwVLvKraIm2dROiRvAMsP99UdO98/0q8E0bOdKvHKEp5Bfjnmu/+9bRr0Z2tNr1lt8Url+f6630VGh+1kucPrPRRR9r16J4jXBN6IPdtmO9jZkc3p9xwRCpX2eD+izZVsczVjL4qm/hkNXdOWfn4++SFmRsTu/bCbCF3x7Pxbx/wcadZ17mU9f6WroKN769EhHWdzakLzWfNdrT4Pk8h8S/AywfNXj1JXtx72PrW7stqgKCqH7prdu9G8osbt5uduCWZp1D4F+DxBrOvH5MXL/RY30hpVgMEVX111Ox0Y/KLi1eYXemVzFMo/AvwwLrUDeerz6zvzZesBgiq+vVLzI5tTX4xcR14+61knkJBgI4QYG74CHaEj+DccBPiCDchuWEbxgG2YXLnX4BsRCMNX88D8q845IvDCP+Bwwje4ThWBhzH8hYHUmfBgVTvcSQ/HY7k+4aHkhJ4KEmGxzLhFM8FQ4oAIUWAkCJASBEgpAgQUgQIKQKEFAFCSv79gEA2CBBSBAgpAoQUAUKKACFFgJAiQEgRIKQIEFIECCkChNRvi7X1P9AD0b0AAAAASUVORK5CYII=" width="160" height="100" alt="Screenshot of step 4: Click Sign in" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/login" rel="noopener noreferrer">https://app.acme.test/login</a></span></figcaption></figure></li>
+<li class="step" id="step-5"><span class="flag" aria-hidden="true">5</span><div><h2>Click <b>Open settings</b></h2><div class="desc"><p>The gear icon in the top-right corner.</p></div></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADI0lEQVR4nO3aT0iTcRzH8e+20v6Iy7AEyYrwkBheOiQkRIciiYI8RVAwqEvQIYMgow5FBkF2CLoUDAyik0ERRh0iMLBDF0nsIP1bCP4hm5g2a1vbEwZz9myzPXxS3q/bfnt+z/Mc3jzPs98e3/vISNKAlIontyz4PDzvd9FdR+1bwx6Ll69zPgcmRm113zMLvrg7//a7Qza+72TOYxIgHP6pqG28vNcskcgYj63ZYIOH2m2m7Hd4c5VMjlrtgzYr/fp5zg799unCU0usCroelwDhKH9539Y+vJ413h/q/Gt8s9IR1oePZY1/OXjGJnYedp1LgHBUhU/byrc9GWPp2+67hiN5zd/Sdy/rdjy9tcmGQzdc5xEgHDXt+y0QHckYGzrVacPmfvWbVWWjVn0z8yoYD663SNtj13kECMfmczuynv8i57ttbCK/+ZXlqYivNGcOpp4DP1x95TqPAOEgQEhxC4YUP0IgxTIMpFiIhpzkr7ip6RgB4o/SSy3m//jmn/aR2LTNYhe78tqWAJHBNzRopR0h840PL2h+sqLKYq1hS1bXEiAWJh1hyZ2zBV8J01e+mePX8o6PAOFqeVeHLeu+nSor7r6hP2A/m0/Yj5bWgo9BgHDlmxy3QO8j8/f3mD8yYL7omDOeDFZaoqbOEvVNFm88YMmyioXtnwChVHCAva8HPDqV/1Pj9jr1KSxpBJgDAXqLAHMgQG8RYA4E6C0CzIEAvUWAORCgt1iGgRQBQooAIUWAkCJASBEgpAoOcOWKEo9OBUvB9PeZgrYnQBQVAUKKACFFgJAiQEgRIKQIEFIECCkChJTnAQLFRICQIkBIESCkCBBSBAgplmFQVKwDQooAIUWAkCJASBEgpAgQUgQIKQKEFAFCivcBsagQIKQIEFIECCkChBQBQoplGBQV64CQIkBIESCkCBBSBAgpAoQUAUKKACFFgJDifUAsKgQIKQKEFAFCigAhRYCQYhkGRcU6IKQIEFIECCkChBQBQooAIUWAkCJASBEgpHgfEIsKAUKKACFFgJAiQEgRIKQIEFIECCkChBQBQooAIUWAkPoFjx7WPyDEY8QAAAAASUVORK5CYII=" width="160" height="100" alt="Screenshot of step 5: Click Open settings" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/dashboard" rel="noopener noreferrer">https://app.acme.test/dashboard</a></span></figcaption></figure></li>
+<li class="step" id="step-6"><span class="flag" aria-hidden="true">6</span><div><h2>Select <b>Monthly</b> in <b>Billing period</b></h2><div class="desc"><p>Choose how often you want to be billed.</p></div></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADRUlEQVR4nO3cS0hUYRiH8XdG0wIj7WZEEZGLxBZJF1y0atNVKPcJhlEUbYRaRBRFtChwE0WRJNjeArtuWrWQLtgisYUhYUTaRSPJxsaZnHaHEU5n5nzn74zPbzmfjO/iYWbON9+Z2NDwaNoAEQKEFAFCigAhRYCQIkBIESCkCBBSBAgpAoQUAUKKACEV+zWZIEDIECCkCBBSBAgpAoQUAUIqcIC9rwccjTI3NWypVY9Q1AjQBwG6RYA+CNAtAvRBgG4RoA8CdIsAfRCgW2zDQIoAIUWAkCJASBEgpAgQUoEDXLSwzNEoKAaTv6cC/T0BIlQECCkChBQBQooAIUWAkCJASBEgpAgQUs4D9H3CiTEr6e2xeP9ziw8PWOzHV7PUdJj/onjESyy9ZLml1tZaqm6HTTc0WrqiSj1VpEINcEF3u5U+vk1wuZoJMrnniP1palNPEplQAox9GrSyjtMW//A2hJGQWrfJplqvWHp1jXoU5/IOMBNfeXuLxcZGQhoJGemqaku0dRZ9hHkHWH6xiVc+RzKvhIlz3eoxnMorwH+f+R7enHUtubvVprfttXTlylyffl6IjY9ayctHVvqkY9b15L5jRf2ZMPdtmJ9jZse3Zl1wJCrX2ODByzZVsSKsGeeFsokvVnPvjJWPf/QuzFyY2I1XZosL4+o4un3Ap51mXRey1vtbuogvR5kI6zqbsxeaz5vtaol8nlxEF+DVw2ZvnnkX9x+1vvUHAg0Ar/qh+2YPbnkf3LzT7NQdyTxBRRfgyQaz75+9i5d6rG+kNNAA8KqvTpqdbfQ+uHSV2bVeyTxBRRfgoQ3ZG87XX1jfu2+BBoBX/cZlZie2ex/MfA68+14yT1AEWOAI0AdvwW7xFuyDixC3uAjxwTaMO2zD/Ac2ot1gIzoHfBWXP76K4zDCnMVhBI5jyXAciwOpMhxIzRFH8vPEkXxuSooUNyVxWybCxX3BkCJASBEgpAgQUgQIKQKEFAFCigAhRYCQkv8+IBAEAUKKACFFgJAiQEgRIKTYhkGo2AeEFAFCigAhRYCQIkBIESCkCBBSBAgpAoQU5wFRUAgQUgQIKQKEFAFCigAhRYCQIkBIESCkCBBSBAgpAoTUX0bl9T8kF0fHAAAAAElFTkSuQmCC" width="160" height="100" alt="Screenshot of step 6: Select Monthly in Billing period" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/settings/billing" rel="noopener noreferrer">https://app.acme.test/settings/billing</a></span></figcaption></figure></li>
+<li class="step" id="step-7"><span class="flag" aria-hidden="true">7</span><div><h2>Check <b>Email me invoices</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADLUlEQVR4nO3dy0tUYRyH8d+MpgVG2s2IIgIXiS2SLriIFm26CuUfIAhKUjvBFhFFES1auJGiSBKMthbYbRUELaQLtkhsYUgYkXbRwLJRZybHaDHO5MyZOW/fcXw+y/ec43kXD+M575zDBIaGR6MGiBAgpAgQUgQIKQKEFAFCigAhRYCQIkBIESCkCBBSBAipwM/JEAFChgAhRYCQIkBIESCkCBBSngPsfTXgaCq5qWZnpXoKeY0AUyBAtwgwBQJ0iwBTIEC3CDAFAnSLAFMgQLdYhoEUAUKKACFFgJAiQEgRIKQ8B7hieZGjqSAfTP6a8rQ/AcJXBAgpAoQUAUKKACFFgJAiQEgRIKQIEFLOAwT8RICQIkBIESCkCBBSBAgplmHgK9YBIUWAkCJASBEgpAgQUgQIKQKEFAFCigAhJXseMDAxZgW9PRbsf2bB4QELfP8yNx5dtdYimystUrXXwjW1Fi0p8+N0yBO+BLisu80KH900i4QX3jFYYDOHmmy6riXbUyJPZBVg4OOgFXWctuD7N56Oi2zZblONVyy6sSLTUyNPZBxgLL7itgYLjI1kdOJoWbmFWjqJcInLOMDii3WeP/nmi30Shs51Z/U3sLhlFODcNd+D60m3zRxstPDuwxYtXf/nBOOjVvDioRU+7ki+/5FmrgmXMO/LMNM/zE7uSrjhCJVussHjl22qZF3S44omPlvF3TNWPP4hfsPsjYlde2m2krvjfOB+HfDpHbOuCwnj/Q1d/4zvr1iEVZ31iRvqz5sdaPAyDeQo9wG2N5u9fhI/ePSE9W09ltbx1UP3zO7fiB/csd+s9ZaXaSBHuQ+wdZ/Zt0/xg5d6rG+kMK3jq8tnzM7Wxg+u3mDW3utlGshR7gNsmv3pqvkLzlefW9/br2kdX71tjdmpPfGDsevA2++8TAM5igAhxb9gSHETAimWYSDlPkAWorGA//I8IF/FwS88jAApHseCFA+kQopH8iHFS0mQ4rVM+Ir3giFFgJAiQEgRIKQIEFIECCkChBQBQooAIcXvBWNRIUBIESCkCBBSBAgpAoQUAUKKACFFgJAiQEgRIKQIEFK/Ad6b8T/8HCpDAAAAAElFTkSuQmCC" width="160" height="100" alt="Screenshot of step 7: Check Email me invoices" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/settings/billing" rel="noopener noreferrer">https://app.acme.test/settings/billing</a></span></figcaption></figure></li>
+<li class="step" id="step-8"><span class="flag" aria-hidden="true">8</span><div><h2>Click <b>Pay now</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADS0lEQVR4nO3cS0hUYRiH8feMpgVG2s2IIiIXiS2SLrho1aarUO4TDKMo2gi1iCiKaFHgJooiSbC9BXbdtGohXbBFYgtDwoi0i0aSjY0zOVHQOMJwZr5z/o7z/JbnE30XDzPnfH4z3sDgcMIAEQKEFAFCigAhRYCQIkBIESCkCBBSBAgpAoQUAUKKACHl/RiPEiBkCBBSBAgpAoQUAUKKACHlO8Dul30BjTI71W2qVo8wpxFgBgQYLALMgACDRYAZEGCwCDADAgwWAWZAgMFiGwZSBAgpAoQUAUKKACFFgJDyHeCC+SUBjYK5YPznhK+fJ0A4RYCQIkBIESCkCBBSBAgpAoQUAUKKACEVeICASwQIKQKEFAFCigAhRYCQYhsGTrEPCCkChBQBQooAIUWAkCJASBEgpAgQUgQIKc4DIq8QIKQIEFIECCkChBQBQoptGDjFPiCkCBBSBAgpAoQUAUKKACFFgJAiQEgRIKTk5wG9sREr6u6ySO9Tiwz2mffts1l80uWfyF6kyBKLllp8dbXFa7bZZF29Jcoq1FMVNKcBzutsteKHN2dPcJlMBRnbdch+NbSoJylYTgL0PvRbSdtJi7x77WCk8MXXbLCJ5kuWWFmlHqXg5BxgMr7S1ibzRoYcjaSRqKi0aEs7EYYs5wBLzzfk7SvfdMlXwuiZTvUYBSWnAP/c892/PuNabGezTW7ZbYny5dn++kB4o8NW9PyBFT9qm3E9tucI94Qhyn4b5vuI2dHNaQ8c0fJV1r//ok2ULXM1YyBKxj5Z1Z1TVjr6PnVh6sHErr0wW8jTcTbC2wd83G7WcS5tvbepY9bH908ywpr2xvSFxrNmO5pCn2cuCC/AywfNXj1JXdx72HrW7vM1gFrtwF2zezdSL27cbnbilmSefBdegMfrzL5+TF280GU9Q8W+BlCrrYyZna5Pvbh4hdmVbsk8+S68AA+sS99wvvrMet588TWAWu36JWbHtqZeTN4H3n4rmSffEaBPBOgWb8E+8RbsFg8hPvEQ4hbbMD6wDeNeeAGyEY0ZhHoekH/FIVccRvgPhxHCx3GsvziOpcGB1CkcSNXhSD5H8qX4UBIfSpLiCyohRYCQIkBIESCkCBBSBAip37J89T+hEc89AAAAAElFTkSuQmCC" width="160" height="100" alt="Screenshot of step 8: Click Pay now" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://app.acme.test/settings/billing" rel="noopener noreferrer">https://app.acme.test/settings/billing</a></span></figcaption></figure></li>
+<li class="step" id="step-9"><span class="flag" aria-hidden="true">9</span><div><h2>Go to <b>Invoices – Acme Help</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAABGUlEQVR42u3asQ1AUBSGUToJY9hA7D+A6BQKpQ08oWMBOi/yOGeEm6+6+fNhHo8MXiJABIgAQYAIEASIAEGACBAEiAAhToDLFgSIABEgCBABggAR4KWun351oLapVSJAAQpQgAhQgAIUIAIUoDcMCBABggARIAiQzwdYFaWrcSvsqwARIAIUIAJEgAJEgAhQgAgQAQqQhAOEJwkQASJAECACBHtA0uUPiAARoAARIAIUIAJEgAJEgAhQgNgDggARIAgQASJAsAckff6ACBABChABIkABIkAEKEAEiAAFiD0gCBABggARIAIEe0DS5w+IABGgABEgAhQgAkSAAkSACFCA2AOCABEgCBABIkAQIAIEASJAECAChKhOA0QJLzgztrMAAAAASUVORK5CYII=" width="160" height="100" alt="Screenshot of step 9: Go to Invoices – Acme Help" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://help.acme.test/invoices" rel="noopener noreferrer">https://help.acme.test/invoices</a></span></figcaption></figure></li>
+<li class="step" id="step-10"><span class="flag" aria-hidden="true">10</span><div><h2>Press <b>Enter</b> to search</h2></div><figure><div class="frame"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAYAAAABtjuPAAADU0lEQVR4nO3bS0hUURzH8f+oTC8j7WVEEZELwU1ShrRsk5FBtWiXoL2giCBoUURRRC2CIKKgp2C7FhVkZJuWIVnYIsGFEpFE9tJwShvUyRkhGh0Yxntnfmfmfj+rO3Pgzll8mXvvmTOhd/09MQNECBBSBAgpAoQUAUKKACFFgJAiQEgRIKQIEFIECCkChFRoeCRCgJAhQEgRIKQIEFIECCkChFTGAXa+6c3SVNxUu6FSPYWCRoBpEGB2EWAaBJhdBJgGAWYXAaZBgNlFgGkQYHb5vgwTigxZSUebFXe/tOKPPRb6+c1sYtzPj0CuFBVbbNFSG19dZePVm22srsFipWW+foSvAYYfXrXws7sEV6gmg4xu22fR3cd8O6UvARZ96rO5d05a0YduH6YE102sqbbR/ZdsYuU6z+fyHGA8vnlXDlhocMDzZJA/YuUVNnL8tucIPQc4//wevvkCKv5N+PvMA0/n8BRg4p7v6a2UY9H6ZhurrbdY2fLZnh4OCA19sZLOdgu330s5Ht1+0NM9YcYBls5dMHUwPGh2eOOMB44/Zausd9dFi5Yum/Wk4J5w5KtVPjplc4b6kwcmH0zsxmuzheWJl5HRXxmdd/YBPm8xaz03Y7y7qZX4ClQ8wuqWxpkDjWfNtjYlDnMX4OVms7cvkgcbDlnX2p0ZTQD5peb9Y7O2m8lvrt9idmLqEp27AI/Wmf34nDx44Yl1DZRkNAHkl5qKMbPTO5LfXLzC7FpH4jB3Ae6dfPyevuB8/ZV19XzPaALILzVVS8yObEp+M34feL8vcUiAyCp3AuQSHEjuXIJ5CAkkdx5CWIYJHLeWYViIDhRnFqL5KS5YnPspbjo2IwSXfDNCHNuxgsmZ7VhxbEgNFqc2pP6PLfkFztUt+fwpqUC5+Kekf8swQAq5WwcEUiBASBEgpAgQUgQIKQKEFAFCigAhRYCQyul+QMArAoQUAUKKACFFgJAiQEixDANfsQ4IKQKEFAFCigAhRYCQIkBIESCkCBBSBAgp9gMirxAgpAgQUgQIKQKEFAFCimUY+Ip1QEgRIKQIEFIECCkChBQBQooAIUWAkCJASLEfEHmFACFFgJAiQEgRIKQIEFIECCkChBQBQooAIUWAkCJASP0FFmfxLzg2AdkAAAAASUVORK5CYII=" width="160" height="100" alt="Screenshot of step 10: Press Enter to search" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono"><a href="https://help.acme.test/invoices" rel="noopener noreferrer">https://help.acme.test/invoices</a></span></figcaption></figure></li>
+</ol>
+<footer><span>Made with <a href="https://showsteps.vercel.app" rel="noopener noreferrer">Showsteps</a></span><span class="mono">28 September 2026</span></footer>
+</main>
+</body>
+</html>

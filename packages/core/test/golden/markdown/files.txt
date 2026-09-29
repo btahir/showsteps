@@ -1,0 +1,11 @@
+guide.md text
+images/s_email.png bytes
+images/s_gear.png bytes
+images/s_help.png bytes
+images/s_invoices.png bytes
+images/s_open.png bytes
+images/s_pass.png bytes
+images/s_pay.png bytes
+images/s_period.png bytes
+images/s_search.png bytes
+images/s_signin.png bytes
