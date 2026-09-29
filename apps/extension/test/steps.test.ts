@@ -1,0 +1,94 @@
+import { describe, expect, it } from "vitest";
+import { buildStep, newGuide, titleFromPage } from "../src/lib/steps";
+import type { StepDraft } from "../src/lib/steps";
+
+const metrics = { devicePixelRatio: 2, viewport: { width: 1280, height: 800, scrollX: 0, scrollY: 120 } };
+const frame = { width: 2560, height: 1600 };
+
+describe("buildStep", () => {
+  it("builds a click step with highlight in image pixels and a generated title", () => {
+    const d: StepDraft = {
+      action: { type: "click" },
+      target: { tag: "button", role: "button", name: "Save", locators: [{ kind: "role", role: "button", name: "Save" }] },
+      page: { url: "http://localhost:4517/settings.html", title: "Settings – Acme Books" },
+      rect: { x: 600, y: 300, width: 80, height: 32 },
+      metrics,
+      at: "2026-09-28T10:00:00.000Z",
+    };
+    const s = buildStep("s_1", d, frame);
+    expect(s.title).toBe("Click **Save**");
+    expect(s.screenshot).toMatchObject({
+      image: "images/s_1.png",
+      width: 2560,
+      height: 1600,
+      devicePixelRatio: 2,
+      viewport: { width: 1280, height: 800, scrollX: 0, scrollY: 120 },
+      highlight: { x: 1200, y: 600, width: 160, height: 64 },
+    });
+    expect(s.screenshot!.redactions).toBeUndefined();
+  });
+
+  it("masks a sensitive target: no value, auto redaction over the field", () => {
+    const d: StepDraft = {
+      action: { type: "type", value: "", masked: true },
+      target: { tag: "input", role: "textbox", name: "Password", inputType: "password", sensitive: true, locators: [{ kind: "label", value: "Password" }] },
+      page: { url: "http://localhost:4517/" },
+      rect: { x: 100, y: 100, width: 200, height: 30 },
+      sensitiveRects: [{ x: 100, y: 100, width: 200, height: 30 }],
+      metrics,
+      at: "2026-09-28T10:00:00.000Z",
+    };
+    const s = buildStep("s_2", d, frame);
+    expect(s.title).not.toMatch(/hunter|•/);
+    const reds = s.screenshot!.redactions!;
+    expect(reds.length).toBeGreaterThanOrEqual(1);
+    expect(reds.every((r) => r.auto)).toBe(true);
+    // The redaction covers the whole field (in image px).
+    const covers = reds.some((r) => r.rect.x <= 200 && r.rect.y <= 200 && r.rect.x + r.rect.width >= 600 && r.rect.y + r.rect.height >= 260);
+    expect(covers).toBe(true);
+  });
+
+  it("blurs other sensitive fields on screen, padded, and skips off-screen ones", () => {
+    const d: StepDraft = {
+      action: { type: "click" },
+      target: { tag: "button", role: "button", name: "Pay", locators: [{ kind: "role", role: "button", name: "Pay" }] },
+      page: { url: "http://localhost:4517/" },
+      rect: { x: 10, y: 10, width: 50, height: 20 },
+      sensitiveRects: [
+        { x: 300, y: 400, width: 240, height: 36 },
+        { x: 300, y: 2000, width: 240, height: 36 },
+      ],
+      metrics,
+      at: "2026-09-28T10:00:00.000Z",
+    };
+    const s = buildStep("s_3", d, frame);
+    expect(s.screenshot!.redactions).toEqual([{ rect: { x: 592, y: 792, width: 496, height: 88 }, style: "blur", auto: true }]);
+  });
+
+  it("works without a frame (no screenshot) and for navigations", () => {
+    const s = buildStep("s_4", { action: { type: "navigate", url: "http://localhost:4517/help.html" }, page: { url: "http://localhost:4517/help.html", title: "Help" }, at: "x" });
+    expect(s.screenshot).toBeUndefined();
+    expect(s.title).toBe("Go to **Help**");
+  });
+});
+
+describe("guide helpers", () => {
+  it("creates an empty v1 guide", () => {
+    expect(newGuide("g1", "2026-09-28T10:00:00.000Z", "0.1.0", "T")).toEqual({
+      schemaVersion: 1,
+      id: "g1",
+      title: "T",
+      createdAt: "2026-09-28T10:00:00.000Z",
+      updatedAt: "2026-09-28T10:00:00.000Z",
+      app: { name: "showsteps", version: "0.1.0" },
+      steps: [],
+    });
+  });
+
+  it("titles a guide from the first page", () => {
+    const d = new Date("2026-09-28T10:00:00Z");
+    expect(titleFromPage({ url: "http://x", title: "Sign in – Acme Books" }, d)).toBe("Sign in – Acme Books — Sep 28");
+    expect(titleFromPage({ url: "https://books.acme.test/a" }, d)).toBe("books.acme.test — Sep 28");
+    expect(titleFromPage(undefined, d)).toBe("Guide — Sep 28");
+  });
+});
