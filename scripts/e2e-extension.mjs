@@ -99,8 +99,12 @@ function chunksOf(name, bytes) {
 }
 
 // ---- one recording run
-async function run(dpr) {
-  const tag = `dpr${dpr}`;
+const maskHashes = {};
+async function run(dpr, opts = {}) {
+  const chk = opts.quick ? () => {} : check;
+  const tag = opts.zoom ? `zoom${Math.round(opts.zoom * 100)}` : `dpr${dpr}${opts.suffix ?? ""}`;
+  const tol = opts.zoom ? 3 : 2;
+  const flowSteps = flow.steps.map((s) => (s.id === "s02" && opts.password ? { ...s, value: opts.password } : s));
   const dir = join(ART, tag); mkdirSync(dir, { recursive: true });
   const userData = mkdtempSync(join(tmpdir(), "showsteps-verify-"));
   const ctx = await chromium.launchPersistentContext(userData, {
@@ -119,6 +123,11 @@ async function run(dpr) {
   await main.goto(FIXTURES + flow.start);
   let panel = await ctx.newPage();
   await panel.goto(extUrl("sidepanel.html"));
+  if (opts.zoom) {
+    // Browser zoom is per origin: setting it on the flow's tab also zooms the help tab that the flow opens.
+    await panel.evaluate(async ([z, u]) => { const [t] = await chrome.tabs.query({ url: u + "*" }); await chrome.tabs.setZoom(t.id, z); }, [opts.zoom, FIXTURES + flow.start]);
+    await main.reload(); await sleep(500);
+  }
   await main.bringToFront();
   await panel.getByRole("button", { name: /start recording/i }).click();
   await panel.getByRole("status").filter({ hasText: /recording/i }).first().waitFor({ timeout: 15000 });
@@ -126,10 +135,10 @@ async function run(dpr) {
   await sleep(1200);
 
   const tabs = { main }; const boxes = {}; const refs = {}; const inner = {};
-  for (const s of flow.steps) {
+  for (const s of flowSteps) {
     const page = tabs[s.tab];
     await page.bringToFront(); await page.mouse.move(5, 5); await sleep(1400);
-    await page.locator(s.selector).scrollIntoViewIfNeeded(); await sleep(300);
+    await page.locator(s.selector).scrollIntoViewIfNeeded(); if (opts.zoom) { await page.locator(s.selector).hover(); } await sleep(opts.zoom ? 1500 : 300);
     boxes[s.id] = await page.locator(s.selector).boundingBox();
     inner[s.id] = await page.evaluate(() => ({ w: innerWidth, h: innerHeight, dpr: devicePixelRatio }));
     if (s.do === "click") refs[s.id] = (await page.screenshot()).toString("base64"); // pre-action frame
@@ -152,12 +161,12 @@ async function run(dpr) {
   const dbNames = await util.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
   const dbName = dbNames.includes("showsteps") ? "showsteps" : dbNames[0];
   await util.evaluate((n) => { window.__DB = n; }, dbName);
-  if (dbName !== "showsteps") check(`IDB-name-${tag}`, false, `IndexedDB database is named ${JSON.stringify(dbName)}, PLAN/ACCEPTANCE say "showsteps"`);
+  if (dbName !== "showsteps") chk(`IDB-name-${tag}`, false, `IndexedDB database is named ${JSON.stringify(dbName)}, PLAN/ACCEPTANCE say "showsteps"`);
   const panelOld = panel;
   panel = util;
   const guide = await idbGet(panel, "guides", guideId);
   writeFileSync(join(dir, "guide.json"), JSON.stringify(guide, null, 2));
-  if (!guide) { check(`E1-${tag}-guide`, false, "no guide in IndexedDB after Stop"); await ctx.close(); return; }
+  if (!guide) { chk(`E1-${tag}-guide`, false, "no guide in IndexedDB after Stop"); await ctx.close(); return; }
 
   // ---- E1a / E1b
   const actions = guide.steps.filter((s) => s.action.type !== "navigate");
@@ -184,7 +193,7 @@ async function run(dpr) {
   if (navs.length > allowedNav) problems.push(`${navs.length} navigate steps (max ${allowedNav})`);
   const seenNav = new Set(); for (const n of navs) { const k = `${n.page.tabId} ${n.action.url}`; if (seenNav.has(k)) problems.push(`duplicate navigate ${k}`); seenNav.add(k); if (!n.screenshot) problems.push(`navigate ${n.action.url} has no screenshot`); if (n.screenshot?.highlight) problems.push(`navigate ${n.action.url} has a highlight`); }
   if (guide.steps.length < 10 || guide.steps.length > 15) problems.push(`total steps ${guide.steps.length}`);
-  check(`E1${dpr === 1 ? "a" : "b"}-steps`, problems.length === 0, problems.length ? problems.slice(0, 6).join("; ") : `${actions.length} steps equal expected-steps.json (byte-equal titles), ${navs.length} navigate steps, ${tabIds.size} tabs, ${guide.steps.length} total`);
+  chk(`E1${opts.zoom ? "c" : dpr === 1 ? "a" : "b"}-steps`, problems.length === 0, problems.length ? problems.slice(0, 6).join("; ") : `${actions.length} steps equal expected-steps.json (byte-equal titles), ${navs.length} navigate steps, ${tabIds.size} tabs, ${guide.steps.length} total`);
 
   const hlProblems = []; let worst = 0;
   expected.steps.forEach((e, i) => {
@@ -193,12 +202,12 @@ async function run(dpr) {
     const sx = g.screenshot.width / inner[e.flowStep].w, sy = g.screenshot.height / inner[e.flowStep].h;
     const d = [Math.abs(hl.x - want.x * sx), Math.abs(hl.y - want.y * sy), Math.abs(hl.x + hl.width - (want.x + want.width) * sx), Math.abs(hl.y + hl.height - (want.y + want.height) * sy)];
     worst = Math.max(worst, ...d);
-    if (Math.max(...d) > 2) hlProblems.push(`${e.flowStep} off by ${Math.max(...d).toFixed(1)}px`);
+    if (Math.max(...d) > tol) hlProblems.push(`${e.flowStep} off by ${Math.max(...d).toFixed(1)}px (highlight ${hl.x},${hl.y} ${hl.width}x${hl.height}; expected ${(want.x * sx).toFixed(0)},${(want.y * sy).toFixed(0)} ${(want.width * sx).toFixed(0)}x${(want.height * sy).toFixed(0)}; scroll ${g.screenshot.viewport.scrollY})`);
     if (hl.width <= 0 || hl.height <= 0 || hl.x < 0 || hl.y < 0 || hl.x + hl.width > g.screenshot.width || hl.y + hl.height > g.screenshot.height) hlProblems.push(`${e.flowStep} highlight empty or outside image`);
-    const dimOk = Math.abs(g.screenshot.width - inner[e.flowStep].w * dpr) <= 1 && Math.abs(g.screenshot.height - inner[e.flowStep].h * dpr) <= 1 && g.screenshot.devicePixelRatio === dpr;
+    const pd = inner[e.flowStep].dpr; const dimOk = Math.abs(g.screenshot.width - inner[e.flowStep].w * pd) <= 1 && Math.abs(g.screenshot.height - inner[e.flowStep].h * pd) <= 1 && g.screenshot.devicePixelRatio === pd && (opts.zoom ? true : pd === dpr);
     if (!dimOk) hlProblems.push(`${e.flowStep} image ${g.screenshot.width}x${g.screenshot.height} dpr ${g.screenshot.devicePixelRatio} vs inner ${inner[e.flowStep].w}x${inner[e.flowStep].h}`);
   });
-  check(`E1${dpr === 1 ? "a" : "b"}-highlight`, hlProblems.length === 0, hlProblems.length ? hlProblems.join("; ") : `10 highlights within 2 px of the pre-action bounding box (worst ${worst.toFixed(2)} px), image = innerWidth*${dpr} within 1 px`);
+  chk(`E1${opts.zoom ? "c" : dpr === 1 ? "a" : "b"}-highlight`, hlProblems.length === 0, hlProblems.length ? hlProblems.join("; ") : `10 highlights within ${tol} px of the pre-action bounding box (worst ${worst.toFixed(2)} px), image = innerWidth*devicePixelRatio (${inner.s01.w}x${inner.s01.h} css px at dpr ${inner.s01.dpr}) within 1 px`);
   const rungs = await panel.evaluate(() => chrome.storage.session.get("debug:capture").then((r) => r["debug:capture"])).catch(() => null);
   if (rungs) writeFileSync(join(dir, "capture-rungs.json"), JSON.stringify(rungs, null, 2));
 
@@ -211,6 +220,7 @@ async function run(dpr) {
     const reds = (g.screenshot.redactions ?? []).filter((r) => r.auto);
     const cover = reds.find((r) => r.rect.x <= want.x + 4 && r.rect.y <= want.y + 4 && r.rect.x + r.rect.width >= want.x + want.width - 4 && r.rect.y + r.rect.height >= want.y + want.height - 4);
     if (!cover) { rProblems.push(`${id}: no auto redaction covering #password within 4 px`); continue; }
+    if (opts.zoom) { rNotes.push(`${id}: region test skipped at browser zoom (Playwright screenshots are in CSS px)`); continue; }
     const stored = await imageB64(panel, guideId, g.screenshot.image);
     writeFileSync(join(dir, `${id}-stored.png`), Buffer.from(stored, "base64")); writeFileSync(join(dir, `${id}-reference.png`), Buffer.from(refs[id], "base64"));
     // The in-page recording bar is visible in Playwright's reference but hidden in captures: keep its band out of the outside-diff.
@@ -223,7 +233,20 @@ async function run(dpr) {
     if (t.outsideMeanDiff > 2) rProblems.push(`${id}: outside mean diff ${t.outsideMeanDiff.toFixed(2)}/255 > 2`);
     rNotes.push(`${id}: texture ${reg.stored.toFixed(2)} vs ref ${reg.ref.toFixed(2)}, outside diff ${t.outsideMeanDiff.toFixed(2)}/255`);
   }
-  check(`R1R2-${tag}`, rProblems.length === 0, rProblems.length ? rProblems.join("; ") : `s01-s03 auto redaction covers #password within 4 px and passes the region test on the STORED image: ${rNotes.join(" | ")}`);
+  chk(`R1R2-${tag}`, rProblems.length === 0, rProblems.length ? rProblems.join("; ") : `s01-s03 auto redaction covers #password within 4 px and passes the region test on the STORED image: ${rNotes.join(" | ")}`);
+
+  // Region hash of the stored s02 image inside its password mask (mask style must not depend on what was typed).
+  {
+    const g2 = actions[expected.steps.findIndex((e) => e.flowStep === "s02")];
+    const r2 = (g2.screenshot.redactions ?? []).find((r) => r.auto)?.rect;
+    if (r2) maskHashes[tag] = await panel.evaluate(async ([guideId, path, r]) => {
+      const rec = await new Promise((res, rej) => { const q = indexedDB.open(window.__DB || "showsteps"); q.onerror = () => rej(q.error); q.onsuccess = () => { const g = q.result.transaction("images").objectStore("images").get(`${guideId}/${path}`); g.onsuccess = () => res(g.result); }; });
+      const bmp = await createImageBitmap(rec.blob); const c = new OffscreenCanvas(bmp.width, bmp.height); const x = c.getContext("2d"); x.drawImage(bmp, 0, 0);
+      const d = x.getImageData(Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)).data;
+      const h = new Uint8Array(await crypto.subtle.digest("SHA-256", d)); return [...h].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }, [guideId, g2.screenshot.image, r2]);
+  }
+  if (opts.quick || opts.zoom) { await ctx.close(); rmSync(userData, { recursive: true, force: true }); return; }
 
   // ---- capture-before-action: the stored image of every click step must show the page as it was BEFORE the click (E3b/E3d idea, on the canonical flow)
   const preProblems = []; const preNotes = [];
@@ -237,7 +260,7 @@ async function run(dpr) {
     preNotes.push(`${e.flowStep} ${t.outsideMeanDiff.toFixed(2)}`);
     if (t.outsideMeanDiff > 2) preProblems.push(`${e.flowStep} (${e.title.replace(/\*\*/g, "")}) stored image differs from the pre-click page by ${t.outsideMeanDiff.toFixed(1)}/255`);
   }
-  check(`PRE-ACTION-${tag}`, preProblems.length === 0, preProblems.length ? preProblems.join("; ") : `every click step's stored image equals the pre-click page (mean diff outside redactions and the recording bar, /255): ${preNotes.join(", ")}`);
+  chk(`PRE-ACTION-${tag}`, preProblems.length === 0, preProblems.length ? preProblems.join("; ") : `every click step's stored image equals the pre-click page (mean diff outside redactions and the recording bar, /255): ${preNotes.join(", ")}`);
 
   // ---- exports through the editor UI
   const saved = {};
@@ -260,11 +283,11 @@ async function run(dpr) {
   for (const [label, obj] of [["indexeddb", idb], ["storage.session", sessionKV], ["storage.local", localKV], ["console", consoleLog]]) hits.push(...canaryHits(Buffer.from(JSON.stringify(obj)), label));
   for (const [fmt, f] of Object.entries(saved)) for (const [n, buf] of chunksOf(fmt, f.bytes)) hits.push(...canaryHits(buf, n));
   const maskedOk = actions.filter((s) => s.action.masked).every((s) => s.action.value === "" || s.action.value === "•••");
-  check(`R7-${tag}`, hits.length === 0 && maskedOk && Object.keys(saved).length === 6, hits.length ? `canary found: ${hits.join(", ")}` : `0 canary hits in IndexedDB dump, storage.session, storage.local, ${consoleLog.length} console lines and ${Object.keys(saved).length} exports (UTF-8, UTF-16, URL-encoded, base64 forms, inflated PDF streams, zip entries); masked values ${maskedOk ? "ok" : "BAD"}`);
+  chk(`R7-${tag}`, hits.length === 0 && maskedOk && Object.keys(saved).length === 6, hits.length ? `canary found: ${hits.join(", ")}` : `0 canary hits in IndexedDB dump, storage.session, storage.local, ${consoleLog.length} console lines and ${Object.keys(saved).length} exports (UTF-8, UTF-16, URL-encoded, base64 forms, inflated PDF streams, zip entries); masked values ${maskedOk ? "ok" : "BAD"}`);
   if (dpr === 1) {
     writeFileSync(join(ART, "f10.showsteps"), saved.project.bytes);
     for (const [fmt, f] of Object.entries(saved)) copyFileSync(f.path, join(ART, `f10-${fmt}${f.path.slice(f.path.lastIndexOf("."))}`));
-    check("X7-times", true, `export wall times (ms): ${Object.entries(saved).map(([k, v]) => `${k} ${v.ms}`).join(", ")} (thresholds md/html/skill/project 3000, docx 6000, pdf 8000)`);
+    chk("X7-times", true, `export wall times (ms): ${Object.entries(saved).map(([k, v]) => `${k} ${v.ms}`).join(", ")} (thresholds md/html/skill/project 3000, docx 6000, pdf 8000)`);
     await verifyExports(guide, saved, panel, ctx, dir);
   }
   await ctx.close();
@@ -341,12 +364,13 @@ async function verifyExports(guide, saved, panel, ctx, dir) {
   const skillDir = join(ART, "skill", "skill");
   check("G1-skill", g1.status === 0 && ["SKILL.md", "steps.json", "replay.spec.ts"].every((f) => existsSync(join(skillDir, f))), `showsteps export --format skill exit ${g1.status}; files: ${existsSync(skillDir) ? readdirSync(skillDir).join(", ") : "none"}`);
   const spec = readFileSync(join(skillDir, "replay.spec.ts"), "utf8");
-  check("G2-secrets", !spec.includes(CANARY) && !JSON.stringify(stepsJson).includes(CANARY), "replay.spec.ts and steps.json do not contain the typed password");
   // G3 / G5 / G6: run the spec from a temp folder with its own minimal config
   const tmp = mkdtempSync(join(tmpdir(), "showsteps-replay-"));
   for (const f of readdirSync(skillDir)) if (f !== "images") copyFileSync(join(skillDir, f), join(tmp, f));
   symlinkSync(join(EXT, "node_modules"), join(tmp, "node_modules"));
   writeFileSync(join(tmp, "playwright.config.ts"), `import { defineConfig } from "@playwright/test";\nexport default defineConfig({ timeout: 60000, reporter: "list", use: { channel: "chromium", headless: true } });\n`);
+  const tscR = spawnSync(process.execPath, [join(ROOT, "node_modules/typescript/bin/tsc"), "--noEmit", "--strict", "--skipLibCheck", "--target", "es2022", "--module", "esnext", "--moduleResolution", "bundler", "--types", "node", "--typeRoots", join(ROOT, "node_modules/@types"), "replay.spec.ts"], { cwd: tmp, encoding: "utf8" });
+  check("G2-secrets", tscR.status === 0 && !spec.includes(CANARY) && !JSON.stringify(stepsJson).includes(CANARY), `replay.spec.ts type-checks with tsc --strict against @playwright/test (exit ${tscR.status}${tscR.status ? ": " + tscR.stdout.split("\n")[0].slice(0, 120) : ""}) and neither it nor steps.json contains the typed password`);
   const pwBin = join(EXT, "node_modules/.bin/playwright");
   const runSpec = (env, reporter = "list") => { const t0 = Date.now(); const r = spawnSync(pwBin, ["test", "replay.spec.ts", "--workers=1", `--reporter=${reporter}`], { cwd: tmp, env: { ...process.env, ...env }, encoding: "utf8" }); return { out: r.stdout + r.stderr, code: r.status, secs: (Date.now() - t0) / 1000 }; };
   const g3 = runSpec({ SHOWSTEPS_SECRET_1: CANARY });
@@ -362,6 +386,12 @@ async function verifyExports(guide, saved, panel, ctx, dir) {
 // ---- main
 try {
   for (const d of dprs) await run(d);
+  for (const z of (args.includes("--zoom") ? args[args.indexOf("--zoom") + 1] : "1.25,1.5").split(",").filter(Boolean).map(Number)) await run(1, { zoom: z });
+  if (dprs.includes(1) && maskHashes.dpr1) {
+    await run(1, { password: "x1", suffix: "-alt", quick: true });
+    const a = maskHashes.dpr1, b = maskHashes["dpr1-alt"];
+    check("R1-mask-indep", !!a && a === b, `stored password mask (s02, rect region) is byte-identical (sha256 ${String(a).slice(0, 12)}...) whether the password had 15 or 2 characters: ${a === b}; nothing of the typed text is in the region`);
+  }
 } catch (e) {
   check("harness", false, String(e?.stack ?? e).split("\n").filter((l) => /^\s+at .*e2e-extension|^[A-Za-z]*Error/.test(l)).slice(0, 6).join(" | ").slice(0, 700));
 } finally {

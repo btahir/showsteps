@@ -244,6 +244,7 @@ async function siteMode() {
     { scheme: "light", width: 375, height: 812 },
     { scheme: "light", width: 768, height: 1024 },
   ];
+  const homeBytes = { total: 0, images: 0, files: [] }; // K16: what "/" transfers in a light desktop load (gzip estimate for text)
   const overflow = []; // K17
   const smallTargets = new Map();
   try {
@@ -259,9 +260,22 @@ async function siteMode() {
       });
       ctx.on("requestfailed", (r) => { if (!nonLocalRequest(r.url())) failedLocal.push(`${r.url()} ${r.failure()?.errorText}`); });
       const page = await ctx.newPage();
+      page.on("response", (r) => { if (r.status() >= 400 && !/\/404\.html$/.test(page.url())) failedLocal.push(`HTTP ${r.status()} ${r.url()} (on ${page.url()})`); });
       page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(`${page.url()} ${m.text()}`); });
       page.on("websocket", (w) => { if (nonLocalRequest(w.url())) external.set(`WebSocket ${w.url()}`, 1); });
+      let measuring = false;
+      if (c.scheme === "light" && c.width === 1280) {
+        page.on("response", async (r) => {
+          if (!measuring) return;
+          try {
+            const body = await r.body(); const u = new URL(r.url()); const ct = r.headers()["content-type"] || "";
+            const size = /text|javascript|json|svg|xml/.test(ct) ? require("node:zlib").gzipSync(body).length : body.length;
+            homeBytes.total += size; if (/^image\//.test(ct) && !/svg/.test(ct)) homeBytes.images += size; homeBytes.files.push(`${u.pathname.split("/").pop() || "/"}=${size}`);
+          } catch { /* redirects have no body */ }
+        });
+      }
       for (const p of pages) {
+        measuring = p === "/" && c.scheme === "light" && c.width === 1280;
         const resp = await page.goto(`http://127.0.0.1:${port}${p}`, { waitUntil: "networkidle" });
         if (!resp || resp.status() >= 400) failedLocal.push(`${p} HTTP ${resp?.status()}`);
         // Trigger lazy content, then give late requests (analytics, prefetch) a window to appear.
@@ -270,6 +284,7 @@ async function siteMode() {
           await document.fonts.ready;
         });
         await page.waitForTimeout(400);
+        measuring = false;
         loadedFaces += await page.evaluate(() => [...document.fonts].filter((f) => f.status === "loaded").length);
         const m = await page.evaluate(() => ({
           over: document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -290,9 +305,10 @@ async function siteMode() {
   for (const [k, n] of external) lines.push(`  EXTERNAL x${n} ${k}`);
   if (failedLocal.length) { lines.push(`local failures: ${failedLocal.length}`); for (const f of failedLocal.slice(0, 10)) lines.push(`  ${f}`); }
   if (consoleErrors.length) { lines.push(`console errors: ${consoleErrors.length}`); for (const f of consoleErrors.slice(0, 5)) lines.push(`  ${f}`); }
+  lines.push(`home page transfer (K16, light 1280): ${(homeBytes.total / 1024).toFixed(0)} KB, of which raster images ${(homeBytes.images / 1024).toFixed(0)} KB, excluding those ${((homeBytes.total - homeBytes.images) / 1024).toFixed(0)} KB (limit 300)`);
   lines.push(`horizontal overflow (K17): ${overflow.length} page/width combos${overflow.length ? " " + overflow.slice(0, 6).join(", ") : ""}`);
   lines.push(`nav tap targets under 44 px at 375 wide (K17): ${smallTargets.size}${smallTargets.size ? " e.g. " + [...smallTargets.keys()].slice(0, 4).join("; ") : ""}`);
-  const ok = external.size === 0 && overflow.length === 0 && fonts > 0 && fontsLocal === fonts && failedLocal.length === 0 && consoleErrors.length === 0;
+  const ok = external.size === 0 && overflow.length === 0 && homeBytes.total <= 300 * 1024 && fonts > 0 && fontsLocal === fonts && failedLocal.length === 0 && consoleErrors.length === 0;
   if (fonts === 0) lines.push("no font request seen: fonts did not load, the font check is void");
   finish({ mode: "site", status: ok ? "pass" : "fail", pages, requests: total, external: [...external.keys()], fontRequests: fonts, lines });
 }
@@ -447,6 +463,34 @@ async function extensionMode() {
       recorded = stopped && stopped.ok;
       lines.push(`flow of ${flow.steps.length} steps driven, ctl:stop -> ${recorded ? "ok" : JSON.stringify(stopped)}`);
       await page.waitForTimeout(1500);
+      // NN1: every export format from the editor UI, then import the project file back, all while the net-log runs.
+      try {
+        const editor = ctx.pages().find((p) => /editor\.html\?guide=/.test(p.url())) || (await ctx.waitForEvent("page", { predicate: (p) => /editor\.html\?guide=/.test(p.url()), timeout: 8000 }).catch(() => null));
+        const done = []; let projectFile = null;
+        if (editor) {
+          await editor.bringToFront();
+          lines.push(`editor page ${editor.url().replace(/^chrome-extension:\/\/[a-z]+/, "chrome-extension://<id>")}: ${(await editor.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)}`);
+          await editor.getByRole("button", { name: /^export/i }).first().click({ timeout: 10000 });
+          const dialog = editor.locator("dialog.export");
+          for (const fmt of ["markdown", "html", "pdf", "docx", "skill", "project"]) {
+            await dialog.locator(`[data-format="${fmt}"]`).click();
+            const [dl] = await Promise.all([editor.waitForEvent("download", { timeout: 60000 }), dialog.getByTestId("export-go").click()]);
+            const target = path.join(userData, dl.suggestedFilename()); await dl.saveAs(target); done.push(fmt);
+            if (fmt === "project") projectFile = target;
+            await dialog.getByRole("button", { name: "Export another" }).click().catch(() => {});
+          }
+        }
+        let imported = "not attempted";
+        if (projectFile) {
+          const imp = await ctx.newPage();
+          await imp.goto(`chrome-extension://${extId}/sidepanel.html`);
+          await imp.getByRole("button", { name: /^guides/i }).click().catch(() => {});
+          await imp.locator('input[type="file"]').setInputFiles(projectFile);
+          await imp.waitForTimeout(2500);
+          imported = "project file imported through the panel";
+        }
+        lines.push(`UI exports driven: ${done.join(", ") || "none"}; import: ${imported}`);
+      } catch (e) { lines.push(`UI exports/import step failed: ${String(e.message).split("\n").filter(Boolean).slice(0, 3).join(" ").slice(0, 300)}`); }
     } else {
       lines.push("recording not exercised (store build): only extension pages and fixture pages loaded");
     }

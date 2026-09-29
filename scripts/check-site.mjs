@@ -23,11 +23,14 @@ function walk(dir, out = []) {
   return out;
 }
 if (!existsSync(join(DIST, "index.html"))) { console.error("apps/site/dist missing: build the site first"); process.exit(2); }
-const pages = walk(DIST).filter((f) => f.endsWith(".html")).map((f) => {
+const allPages = walk(DIST).filter((f) => f.endsWith(".html")).map((f) => {
   const rel = f.slice(DIST.length).replace(/index\.html$/, "");
   return { path: rel || "/", html: readFileSync(f, "utf8") };
 });
-const byPath = Object.fromEntries(pages.map((p) => [p.path, p]));
+// /404.html is not a normal page; /sample/ is a self-contained exportHtml document (no site chrome, no canonical or OG tags by design).
+const pages = allPages.filter((p) => p.path !== "/404.html" && p.path !== "/sample/");
+const samplePage = allPages.find((p) => p.path === "/sample/");
+const byPath = Object.fromEntries(allPages.map((p) => [p.path, p]));
 const text = (html) => html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&#39;|&apos;|&rsquo;/g, "'").replace(/&quot;|&ldquo;|&rdquo;/g, '"').replace(/&amp;/g, "&").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
 const meta = (html, re) => (html.match(re) || [])[1];
 const KEYWORD = /^\/(open-source-scribe-alternative|scribe-alternative|tango-alternative|free-step|how-to-create|steps-recorder|work-instructions|record-|convert-clicks)/;
@@ -42,7 +45,7 @@ rec("K2", missing.length === 0 && extras.length === 0, `${K2.length - missing.le
 // K3 sitemap
 const sm = readFileSync(join(DIST, "sitemap.xml"), "utf8");
 const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-const notInSm = pages.map((p) => SITE_URL + p.path).filter((u) => !locs.includes(u) && !u.endsWith("/404/"));
+const notInSm = [...pages, ...(samplePage ? [samplePage] : [])].map((p) => SITE_URL + p.path).filter((u) => !locs.includes(u) && !u.endsWith("/404/"));
 rec("K3", notInSm.length === 0 && locs.every((l) => l.startsWith(SITE_URL)), `${locs.length} sitemap URLs, all under ${SITE_URL}; built pages absent from sitemap: ${notInSm.join(", ") || "none"}`);
 
 // K4 titles/descriptions
@@ -158,23 +161,20 @@ const winText = win ? text(win.html) : "";
 const sentences = winText.split(/(?<=[.!?])\s+/);
 rec("K15", alt.includes("github.com/westpoint-io/mimik") && asof.length > 0 && asof.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)) && sentences.some((s) => /\bweb\b/i.test(s) && /\bdesktop\b/i.test(s)), `Mimik link ${alt.includes("github.com/westpoint-io/mimik")}; ${asof.length} [data-asof] with ISO dates; windows page has a web+desktop sentence: ${sentences.some((s) => /\bweb\b/i.test(s) && /\bdesktop\b/i.test(s))} (5-figure spot check against market-check.md is manual)`);
 
-// K16 (static half): upper bound of bytes for "/" (html, css and js gzipped; every font and image the CSS or HTML names, raw, whether or not the browser fetches it)
-const homeAssets = new Set(["/"]);
-const addRefs = (text) => { for (const m of text.matchAll(/(?:href="|src="|url\()(\/[^"')?#]+\.(?:css|js|woff2|svg|png|webp|ico))/g)) homeAssets.add(m[1]); };
-addRefs(byPath["/"].html);
-for (const a of [...homeAssets]) if (a.endsWith(".css") && existsSync(join(DIST, a))) addRefs(readFileSync(join(DIST, a), "utf8").replace(/url\(\.\.?\//g, "url(/"));
-// css refers to fonts relatively: resolve against /_astro/
-for (const a of [...homeAssets].filter((x) => x.endsWith(".css"))) for (const m of readFileSync(join(DIST, a), "utf8").matchAll(/url\(([^)]+\.woff2)\)/g)) homeAssets.add(join("/_astro", m[1].replace(/["']/g, "").replace(/^\.\//, "").split("/").pop()));
-let bytes = 0; const parts = [];
-for (const a of homeAssets) { const f = a === "/" ? join(DIST, "index.html") : join(DIST, a); if (!existsSync(f)) continue; const b = readFileSync(f); const z = /\.(woff2|png|webp)$/.test(a) ? b.length : gzipSync(b).length; bytes += z; parts.push(`${a.split("/").pop() || "/"}=${z}`); }
-rec("K16-size", bytes <= 300 * 1024, `/ upper bound ~${(bytes / 1024).toFixed(0)} KB of the 300 KB budget (html+css gzip, fonts raw, ${homeAssets.size} files): ${parts.join(" ")}`);
+// K16: zero third-party requests and the home page byte budget are measured in a browser by scripts/no-network.cjs site.
 
 // K17 (static half): images have alt
 const noAlt = pages.filter((p) => [...p.html.matchAll(/<img\b[^>]*>/g)].some((m) => !/\balt=/.test(m[0]))).map((p) => p.path);
 rec("K17-alt", noAlt.length === 0, noAlt.length ? `img without alt on ${noAlt.join(", ")}` : "every <img> has an alt attribute");
 
-// K19 sample page
-rec("K19", Boolean(byPath["/sample/"]), byPath["/sample/"] ? `sample page ${(text(byPath["/sample/"].html).match(/\bStep\b/g) || []).length} step words` : "/sample/ does not exist");
+// K19 sample page: a guide rendered by core exportHtml at build time
+if (samplePage) {
+  const steps = (samplePage.html.match(/<li[^>]*class="[^"]*\bstep\b[^"]*"/g) || []).length;
+  const imgs = (samplePage.html.match(/<img[^>]+src="data:image\/png;base64,/g) || []).length;
+  const external = [...samplePage.html.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"|@import|url\((https?:)/g)].length;
+  const icon = /<link[^>]+rel="(?:shortcut )?icon"/.test(samplePage.html);
+  rec("K19", steps === 11 && external === 0 && /ld|@media print/.test(samplePage.html), `/sample/ has ${steps} steps (want 11: sample-11), ${imgs} inlined PNG images, ${external} external refs; no favicon link: ${!icon} (the browser then asks the server for /favicon.ico)`);
+} else rec("K19", false, "/sample/ does not exist");
 
 // K20 privacy
 const priv = text(byPath["/privacy/"]?.html || "");
