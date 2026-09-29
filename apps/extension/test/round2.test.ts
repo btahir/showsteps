@@ -160,25 +160,21 @@ describe("local-offset timestamps (review #9)", () => {
   });
 });
 
-describe("focus frame thumbnails (review #4)", async () => {
+describe("focus frame thumbnails (review #4, R2-3)", async () => {
   const { focusFrame } = await import("../src/lib/rect");
   const img = { width: 2560, height: 1600 };
-  it("is 16:10, centred on the target, at least 480 px and 40% wide", () => {
-    const f = focusFrame(img, { x: 1200, y: 700, width: 80, height: 40 });
-    expect(f.width).toBe(1024);
-    expect(f.height).toBe(640);
-    expect(f.x + f.width / 2).toBeCloseTo(1240, 0);
-    expect(f.y + f.height / 2).toBeCloseTo(720, 0);
+  it("is 16:10 around the target, max(1.6 x ring, 30% of the image, 360 CSS px)", () => {
+    const f = focusFrame(img, { x: 1200, y: 700, width: 80, height: 40 }, undefined, 2, 2);
+    expect(f.width).toBe(768); // 0.3 x 2560 beats 360 x 2 = 720 and 1.6 x 96
+    expect(f.width / f.height).toBeCloseTo(1.6, 1);
+    expect(Math.abs(f.x + f.width / 2 - 1240)).toBeLessThanOrEqual(1);
+    const wide = focusFrame(img, { x: 100, y: 100, width: 700, height: 60 }, undefined, 2, 2);
+    expect(wide.width).toBe(Math.round(1.6 * (700 + 16)));
   });
   it("stays inside the image near an edge", () => {
     const f = focusFrame(img, { x: 2500, y: 10, width: 50, height: 20 });
     expect(f.x + f.width).toBe(2560);
     expect(f.y).toBe(0);
-  });
-  it("widens for big targets and fits tall ones", () => {
-    expect(focusFrame(img, { x: 100, y: 100, width: 600, height: 60 }).width).toBe(1824);
-    const tall = focusFrame(img, { x: 100, y: 100, width: 100, height: 900 });
-    expect(tall.height).toBeGreaterThanOrEqual(900);
   });
   it("shows the top of the page without a highlight, and respects the crop", () => {
     expect(focusFrame({ width: 1280, height: 3000 })).toEqual({ x: 0, y: 0, width: 1280, height: 800 });

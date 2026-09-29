@@ -145,6 +145,7 @@ export async function renderAnnotated(blob: Blob, step: Step, opts: AnnotateOpti
         color: opts.color ?? flag.color,
         dim: opts.dim === false ? "transparent" : undefined,
         corner: sh.highlight.corner,
+        labelRect: sh.highlight.labelRect ? toCropSpace(sh.highlight.labelRect, crop) : undefined,
         rtl: step.page.dir === "rtl",
       });
     }

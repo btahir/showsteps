@@ -22,6 +22,8 @@ export interface StepDraft {
   sensitiveRects?: Rect[];
   /** Parallel to `sensitiveRects`: the field's or pattern's name ("Password", "Card number"). */
   sensitiveLabels?: (string | null)[];
+  /** Box of a checkbox/radio/switch's label (CSS px), so a tiny control is ringed with its label. */
+  labelRect?: Rect;
   /** Which way the numbered tab should point (least text under it), measured at capture. */
   corner?: TabCorner;
   /** What the text scan found among those rects ("card", "token", ...), for the editor's chip. */
@@ -105,7 +107,10 @@ export function buildStep(id: string, d: StepDraft, frame?: FrameInfo): Step {
       viewport: { ...viewport },
     };
     const highlight = d.rect ? cssRectToImage(d.rect, viewport, frame) : null;
-    if (highlight) shot.highlight = d.corner ? { ...highlight, corner: d.corner } : highlight;
+    if (highlight) {
+      const labelRect = d.labelRect ? cssRectToImage(d.labelRect, viewport, frame) : null;
+      shot.highlight = { ...highlight, ...(d.corner ? { corner: d.corner } : {}), ...(labelRect ? { labelRect } : {}) };
+    }
     step.screenshot = shot;
 
     const scale = frame.width / Math.max(1, viewport.width);

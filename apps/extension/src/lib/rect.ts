@@ -3,6 +3,7 @@
 // imageWidth / viewportWidth (normally the devicePixelRatio, but zoom and scrollbars
 // make the real ratio differ slightly, so measure it from the image instead of trusting dpr).
 
+import { focusFrame as coreFocusFrame } from "@stepsnap/core";
 import type { Rect } from "@stepsnap/core";
 
 export interface Viewport {
@@ -108,40 +109,18 @@ export function resizeRect(r: Rect, corner: Corner, dx: number, dy: number, boun
 }
 
 /**
- * The "focus frame" for list thumbnails (design review #4): a 16:10 window centred on the
- * highlight, wide enough to show context (3 × the target, at least 40% of the image and 480 image
- * px), kept inside `bounds` (the crop, or the whole image). Steps without a highlight show the
- * top of the page at 16:10. Exports and the large view keep the full frame.
+ * The "focus frame" for list thumbnails (design review #4, R2-3): core's focusFrame (16:10 around
+ * the ring, width max(1.6 × ring, 0.3 × image, 360 CSS px), taller only when the ring and its tab
+ * need it), applied inside `bounds` (the crop, or the whole image). Steps without a highlight show
+ * the top of the page at 16:10. Exports and the large view keep the full frame.
  */
-export function focusFrame(image: { width: number; height: number }, highlight?: Rect, bounds?: Rect, scale = 1): Rect {
+export function focusFrame(image: { width: number; height: number }, highlight?: Rect, bounds?: Rect, scale = 1, dpr = 1): Rect {
   const B = bounds ?? { x: 0, y: 0, width: image.width, height: image.height };
-  const ASPECT = 16 / 10;
   if (!highlight) {
-    const h = Math.min(B.height, B.width / ASPECT);
+    const h = Math.min(B.height, B.width / 1.6);
     return roundRect({ x: B.x, y: B.y, width: B.width, height: h });
   }
-  // Same rule as core's focusFrame (used for the HTML phone detail images): 3 × the ring, whose box is
-  // the target plus the 4 CSS px pad on each side.
-  const ringW = highlight.width + 2 * 4 * scale;
-  let w = Math.min(B.width, Math.max(3 * ringW, 0.4 * image.width, 480));
-  let h = w / ASPECT;
-  // Tall targets: grow until the whole ring (plus room for its tab) is inside.
-  const needH = highlight.height * 1.5;
-  if (h < needH) {
-    h = needH;
-    w = h * ASPECT;
-  }
-  if (w > B.width) {
-    w = B.width;
-    h = Math.min(h, w / ASPECT);
-  }
-  if (h > B.height) {
-    h = B.height;
-    w = Math.min(B.width, h * ASPECT);
-  }
-  const cx = highlight.x + highlight.width / 2;
-  const cy = highlight.y + highlight.height / 2;
-  const x = Math.max(B.x, Math.min(B.x + B.width - w, cx - w / 2));
-  const y = Math.max(B.y, Math.min(B.y + B.height - h, cy - h / 2));
-  return roundRect({ x, y, width: w, height: h });
+  const local = { x: highlight.x - B.x, y: highlight.y - B.y, width: highlight.width, height: highlight.height };
+  const f = coreFocusFrame(local, { width: B.width, height: B.height }, scale, dpr);
+  return { x: f.x + B.x, y: f.y + B.y, width: f.width, height: f.height };
 }

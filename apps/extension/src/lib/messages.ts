@@ -13,6 +13,8 @@ export type RecorderMessage =
       captureId?: string;
       /** An earlier frame of the same document, used if `captureId` produced nothing. */
       fallbackCaptureId?: string;
+      /** Earlier frames of the same document, newest first (the worker takes the first that still shows it). */
+      fallbackCaptureIds?: string[];
     };
 
 /** Extension pages → worker */

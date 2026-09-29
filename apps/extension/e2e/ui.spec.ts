@@ -10,12 +10,10 @@ import type { Harness } from "./harness";
 
 const SHOTS = join(ARTIFACTS, "screens");
 let h: Harness;
+/** "" for 1x screens (the site's make-assets reads those names), "-2x" for the real DPR 2 run. */
+let suffix = "";
 
-test.beforeAll(async () => {
-  mkdirSync(SHOTS, { recursive: true });
-  h = await launch();
-});
-test.afterAll(async () => {
+test.afterEach(async () => {
   await h?.close();
 });
 
@@ -24,11 +22,26 @@ async function both(page: Page, name: string, fn?: () => Promise<void>) {
     await page.emulateMedia({ colorScheme: scheme });
     await fn?.();
     await page.waitForTimeout(250);
-    await page.screenshot({ path: join(SHOTS, `${name}-${scheme}.png`), fullPage: false });
+    await page.screenshot({ path: join(SHOTS, `${name}${suffix}-${scheme}.png`), fullPage: false });
   }
 }
 
 test("side panel and editor, light and dark", async () => {
+  mkdirSync(SHOTS, { recursive: true });
+  suffix = "";
+  h = await launch();
+  await shoot();
+});
+
+// A real 2x screen (--force-device-scale-factor=2): captures, thumbnails and flags at Retina density.
+test("side panel and editor at DPR 2, light and dark", async () => {
+  mkdirSync(SHOTS, { recursive: true });
+  suffix = "-2x";
+  h = await launch({ deviceScaleFactor: 2 });
+  await shoot();
+});
+
+async function shoot() {
   const { context } = h;
   const main = await context.newPage();
   await main.goto(`${FIXTURES}/index.html`);
@@ -99,4 +112,4 @@ test("side panel and editor, light and dark", async () => {
   await both(panel, "panel-settings");
   await panel.getByRole("button", { name: "Settings", exact: true }).click();
   await both(panel, "panel-library");
-});
+}

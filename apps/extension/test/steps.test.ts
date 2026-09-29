@@ -67,6 +67,9 @@ describe("buildStep", () => {
     const labeled = buildStep("s_4", { ...d, sensitiveLabels: ["Card number", null], corner: "bottom-right" }, frame);
     expect(labeled.screenshot!.redactions![0]!.label).toBe("Card number");
     expect(labeled.screenshot!.highlight!.corner).toBe("bottom-right");
+    // A checkbox's label box travels with the highlight (review R2-4), in image px.
+    const withLabel = buildStep("s_5", { ...d, labelRect: { x: 70, y: 10, width: 100, height: 20 } }, frame);
+    expect(withLabel.screenshot!.highlight!.labelRect).toEqual({ x: 140, y: 20, width: 200, height: 40 });
   });
 
   it("merges two reports of the same field into one redaction", () => {

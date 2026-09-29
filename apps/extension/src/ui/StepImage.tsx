@@ -59,12 +59,28 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
   const viewOf = () => {
     const full = { x: 0, y: 0, width: sh!.width, height: sh!.height };
     if (mode === "crop") return full;
-    if (frame === "focus" && mode === "none") return focusFrame(sh!, sh!.highlight, sh!.crop, highlightScale(sh!.viewport.width, sh!.width / Math.max(1, sh!.viewport.width)));
+    if (frame === "focus" && mode === "none") {
+      const dpr = sh!.width / Math.max(1, sh!.viewport.width);
+      return focusFrame(sh!, sh!.highlight, sh!.crop, highlightScale(sh!.viewport.width, dpr), dpr);
+    }
     return sh!.crop ?? full;
   };
 
   useEffect(() => {
     void document.fonts?.load('750 16px "Rethink Sans"').finally(() => setFontsReady(true));
+  }, []);
+  // Thumbnail dim follows the theme token (--ss-spotlight-dim-thumb: 0.16 light, 0.20 dark).
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const bump = () => setThemeTick((t) => t + 1);
+    mq.addEventListener("change", bump);
+    const mo = new MutationObserver(bump);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => {
+      mq.removeEventListener("change", bump);
+      mo.disconnect();
+    };
   }, []);
 
   // Draw the flag at display resolution.
@@ -91,12 +107,13 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
       imageHeight: c.height,
       scale: size === "large" ? Math.max(thumbScale, exportScale) : thumbScale,
       color: color ?? flag.color,
-      dim: size === "large" ? flag.spotlightDim : flag.spotlightDimThumb,
+      dim: size === "large" ? flag.spotlightDim : getComputedStyle(document.documentElement).getPropertyValue("--ss-spotlight-dim-thumb").trim() || flag.spotlightDimThumb,
       corner: hlDrag ? undefined : sh.highlight?.corner,
+      labelRect: hlDrag || !sh.highlight?.labelRect ? undefined : { x: (sh.highlight.labelRect.x - view.x) * s, y: (sh.highlight.labelRect.y - view.y) * s, width: sh.highlight.labelRect.width * s, height: sh.highlight.labelRect.height * s },
       rtl: step.page.dir === "rtl",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sh, liveHl, width, number, size, color, fontsReady, frame, mode]);
+  }, [sh, liveHl, width, number, size, color, fontsReady, frame, mode, themeTick]);
 
   useEffect(() => {
     if (mode !== "highlight") setHlDrag(null);

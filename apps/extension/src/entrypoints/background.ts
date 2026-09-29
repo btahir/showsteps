@@ -24,6 +24,9 @@ const ORIGINALS_GRACE_MS = 2000;
 interface Frame extends FrameInfo {
   blob: Blob;
   at: number;
+  /** Tab URL right after the capture, and whether a navigation was already under way. */
+  url?: string;
+  leaving?: boolean;
 }
 
 export default defineBackground(() => {
@@ -162,12 +165,17 @@ export default defineBackground(() => {
     } finally {
       showBar(tabId);
     }
+    // A link click may already be loading the next page: note it, so the step can prefer the
+    // frame taken before the click (design review R2-1: a ring around nothing on the new page).
+    const after = await chrome.tabs.get(tabId).catch(() => undefined);
     const blob = await (await fetch(dataUrl)).blob();
     const bmp = await createImageBitmap(blob);
-    const frame = { blob, width: bmp.width, height: bmp.height, at: Date.now() };
+    const frame: Frame = { blob, width: bmp.width, height: bmp.height, at: Date.now(), url: after?.url, leaving: !!after?.pendingUrl || (!!after?.url && after.url !== tab.url) };
     bmp.close();
     return frame;
   }
+
+  const sameDoc = (a: string | undefined, b: string | undefined) => !a || !b || a === b;
 
   /**
    * Live capture (for a step) or, with `settled`, a low-priority refresh of the page's
@@ -192,18 +200,26 @@ export default defineBackground(() => {
   }
 
   /** The frame a step asked for, or a live capture when that one never happened. */
-  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined, fallbackId?: string): Promise<Shot> {
+  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined, fallbackIds: string[] = [], pageUrl?: string): Promise<Shot> {
+    // A frame taken while the page was already leaving (or after its URL changed) shows the
+    // destination, not what was clicked (design review R2-1): never use it for this step.
+    const stale = (f: Frame) => !!f.leaving || !sameDoc(f.url, pageUrl);
     const entry = captureId ? frames.get(captureId) : undefined;
     const f = entry ? await entry.frame : null;
-    if (f) return { frame: f, rung: entry!.settled ? "settled" : "live" };
-    // An earlier frame of the same document (e.g. a click that opened a new tab before the
-    // live capture ran) beats a capture of whatever is in front now.
-    const older = fallbackId ? await frames.get(fallbackId)?.frame : null;
-    if (older) return { frame: older, rung: "earlier" };
+    if (f && !stale(f)) return { frame: f, rung: entry!.settled ? "settled" : "live" };
+    // The newest earlier frame of the same document that still shows it (e.g. the frame taken
+    // right after the last keystroke, or a click that opened a new tab before the live capture ran).
+    for (const id of fallbackIds) {
+      const older = await frames.get(id)?.frame;
+      if (older && !stale(older)) return { frame: older, rung: "earlier" };
+    }
+    // Only the destination is on screen, and it was never scanned for secrets: no screenshot
+    // rather than a wrong one (the step keeps its title; the editor can re-capture).
+    if (f) return { frame: null, rung: "none" };
     const fallback = `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     requestCapture(fallback, tabId, windowId);
     const late = (await frames.get(fallback)?.frame) ?? null;
-    return { frame: late, rung: late ? "late" : "none" };
+    return late && !stale(late) ? { frame: late, rung: "late" } : { frame: null, rung: "none" };
   }
 
   function addStep(tabId: number, draft: StepDraft, shotP: Promise<Shot> | undefined): Promise<void> {
@@ -477,6 +493,8 @@ export default defineBackground(() => {
         if (!msg.settled) noteAction(nav, tabId, Date.now());
         void ready.then(async () => {
           if (!acceptsSteps(state) || !state.tabIds.includes(tabId)) return reply({ captured: false });
+          // Settled refreshes only for the tab in front (a background tab would use up the idle slot).
+          if (msg.settled && !(await chrome.tabs.get(tabId).then((t) => t.active, () => false))) return reply({ captured: false });
           requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled);
           // Settled frames report back, so the page only relies on frames that exist.
           reply({ captured: !!(await frames.get(msg.captureId)?.frame) });
@@ -495,7 +513,7 @@ export default defineBackground(() => {
               draft.metrics = { devicePixelRatio: 1, viewport: { width: sender.tab.width, height: sender.tab.height, scrollX: 0, scrollY: 0 } };
             }
           }
-          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId, msg.fallbackCaptureId));
+          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId, msg.fallbackCaptureIds ?? (msg.fallbackCaptureId ? [msg.fallbackCaptureId] : []), draft.page.url));
         });
         return false;
       case "ctl:discard":

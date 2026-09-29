@@ -137,6 +137,10 @@ export default defineUnlistedScript(() => {
   // for (exact pre-action state, zero latency); otherwise it captures live.
 
   let lastDirtyAt = 0;
+  /** Last change to content, layout or scroll (not just a CSS transition or animation ending). */
+  let lastStructuralAt = 0;
+  /** The newest settled frame that exists (a newer request may still be pending). */
+  let goodSettled: { captureId: string; sentAt: number; sig: string } | undefined;
   let armedUntil = 0;
   let settled: { captureId: string; sentAt: number; sig: string; ok: boolean; done: boolean } | undefined;
   let settleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -154,6 +158,7 @@ export default defineUnlistedScript(() => {
   function markDirty(why?: string): void {
     if (DEBUG && why) console.debug(`[showsteps] dirty ${why}`);
     lastDirtyAt = Date.now();
+    if (why !== "transitionend" && why !== "animationend") lastStructuralAt = lastDirtyAt;
     if (recording && isTop) scheduleSettle();
   }
 
@@ -179,7 +184,10 @@ export default defineUnlistedScript(() => {
       .then((r: { captured?: boolean } | undefined) => {
         entry.ok = !!r?.captured;
         entry.done = true;
-        if (entry.ok) remember(entry.captureId);
+        if (entry.ok) {
+          remember(entry.captureId);
+          goodSettled = { captureId: entry.captureId, sentAt: entry.sentAt, sig: entry.sig };
+        }
         if (DEBUG) console.debug(`[showsteps] settled ok=${entry.ok}`);
         // Skipped (a real capture was busy): try again shortly while the user is still active.
         if (!entry.ok && settled === entry) setTimeout(scheduleSettle, 1100);
@@ -190,6 +198,10 @@ export default defineUnlistedScript(() => {
   /** The settled frame if the page has not changed since it was requested, else a live capture. */
   function preActionCapture(): string {
     if (isTop && settled?.ok && lastDirtyAt + 80 <= settled.sentAt && settled.sig === viewportSig()) return settled.captureId;
+    // A hover transition finishing does not make the frame from just before it wrong for a click:
+    // keep that frame (the page before the action) rather than racing the click with a live capture.
+    const g = goodSettled;
+    if (isTop && g && lastStructuralAt + 80 <= g.sentAt && g.sig === viewportSig()) return g.captureId;
     return requestCapture();
   }
 
@@ -201,6 +213,18 @@ export default defineUnlistedScript(() => {
     }
   };
   const page = (): StepDraft["page"] => ({ url: location.href, title: document.title || undefined, ...(isRtl() ? { dir: "rtl" as const } : {}) });
+
+  /** The visible label of a checkbox, radio or switch (review R2-4: ring the control with its label). */
+  function labelOf(el: Element): Element | undefined {
+    const type = (el.getAttribute("type") ?? "").toLowerCase();
+    const role = el.getAttribute("role");
+    if (!(tagIs(el, "input") && (type === "checkbox" || type === "radio")) && role !== "switch" && role !== "checkbox" && role !== "radio") return undefined;
+    const ids = el.getAttribute("aria-labelledby");
+    const byId = ids ? el.ownerDocument.getElementById(ids.split(/\s+/)[0]!) : null;
+    const label = byId ?? (el as HTMLInputElement).labels?.[0] ?? null;
+    const r = label?.getBoundingClientRect();
+    return label && r && r.width > 0 && r.height > 0 ? label : undefined;
+  }
 
   /** The highlight tab's corner with the least page text under it (undefined = the default is fine). */
   function cornerFor(el: Element, rect: Rect): TabCorner | undefined {
@@ -388,9 +412,12 @@ export default defineUnlistedScript(() => {
       draft.rect = snap?.rect ?? rectOf(el);
       const corner = snap ? snap.corner : cornerFor(el, draft.rect);
       if (corner) draft.corner = corner;
+      const label = labelOf(el);
+      if (label) draft.labelRect = rectOf(label);
     }
     const scan = snap?.sensitive ?? collectSensitive();
-    const fallbackCaptureId = knownFrames.filter((id) => id !== captureId).at(-1);
+    const fallbackCaptureIds = knownFrames.filter((id) => id !== captureId).reverse();
+    const fallbackCaptureId = fallbackCaptureIds[0];
     // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.
     const withScan = (r: ScanResult) => {
       draft.sensitiveRects = r.rects;
@@ -400,7 +427,7 @@ export default defineUnlistedScript(() => {
     };
     if (isTop && !scan.remote && chainDepth === 0) {
       withScan(scan.local);
-      send({ type: "rec:step", captureId, fallbackCaptureId, draft });
+      send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft });
       return;
     }
     chainDepth++;
@@ -411,11 +438,12 @@ export default defineUnlistedScript(() => {
           const off = await offsetInTop();
           const shift = (r: Rect): Rect => ({ ...r, x: r.x + off.x, y: r.y + off.y });
           if (draft.rect) draft.rect = shift(draft.rect);
+          if (draft.labelRect) draft.labelRect = shift(draft.labelRect);
           draft.sensitiveRects = (draft.sensitiveRects ?? []).map(shift);
           // Unknown metrics are filled in by the worker from the tab.
           draft.metrics = off.metrics;
         }
-        send({ type: "rec:step", captureId, fallbackCaptureId, draft });
+        send({ type: "rec:step", captureId, fallbackCaptureId, fallbackCaptureIds, draft });
       })
       .catch(() => {})
       .finally(() => {

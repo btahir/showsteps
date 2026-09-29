@@ -111,6 +111,17 @@ export interface RegionStats {
   ink: number;
   /** Share of pixels close to the recording dot (#FF5A3F). */
   dot: number;
+  /** Standard deviation of luma (0 = a flat, empty area). */
+  lumaStd: number;
+  /** The region scaled to 16 x 8 luma values, to compare two captures of the same element. */
+  thumb: number[];
+}
+
+/** Mean absolute difference (0..255) between two region thumbnails. */
+export function thumbDiff(a: number[], b: number[]): number {
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d += Math.abs(a[i]! - (b[i] ?? 0));
+  return d / a.length;
 }
 
 /**
@@ -163,7 +174,22 @@ export async function regionStats(extPage: Page, src: { guideId: string; path: s
             }
           }
         }
-        return { texture: n ? tex / n : 0, ink: ink / (w * h), dot: dot / (w * h) };
+        let sum = 0;
+        let sq = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const l = 0.299 * d[i]! + 0.587 * d[i + 1]! + 0.114 * d[i + 2]!;
+          sum += l;
+          sq += l * l;
+        }
+        const count = w * h;
+        const lumaStd = Math.sqrt(Math.max(0, sq / count - (sum / count) ** 2));
+        const t = new OffscreenCanvas(16, 8);
+        const tc = t.getContext("2d")!;
+        tc.drawImage(c, x, y, w, h, 0, 0, 16, 8);
+        const td = tc.getImageData(0, 0, 16, 8).data;
+        const thumb: number[] = [];
+        for (let i = 0; i < td.length; i += 4) thumb.push(0.299 * td[i]! + 0.587 * td[i + 1]! + 0.114 * td[i + 2]!);
+        return { texture: n ? tex / n : 0, ink: ink / (w * h), dot: dot / (w * h), lumaStd, thumb };
       });
     },
     { src, rects },

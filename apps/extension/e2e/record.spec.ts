@@ -7,7 +7,10 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync, strFromU8 } from "fflate";
-import { ARTIFACTS, extUrl, FIXTURES, launch, readGuide, readImage } from "./harness";
+// Direct module imports: the package index also loads a JSON schema Playwright's loader cannot import.
+import { exportHtml } from "../../../packages/core/src/export/html";
+import { unpackBundle } from "../../../packages/core/src/bundle";
+import { ARTIFACTS, extUrl, FIXTURES, launch, readGuide, readImage, regionStats, thumbDiff } from "./harness";
 import type { Harness } from "./harness";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +61,8 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
   await beat(main, 1200);
 
   const boxes: Record<string, Box> = {};
+  /** What each clicked element looked like just before the click (base64 PNG of the viewport). */
+  const before: Record<string, string> = {};
   const tabs: Record<string, Page> = { main };
 
   for (const s of flow.steps) {
@@ -67,6 +72,7 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
     // Long enough for a settled pre-action frame (idle refreshes wait 1 s after any capture).
     await beat(page, 1400);
     boxes[s.id] = await boxOf(page, s.selector);
+    if (s.do === "click") before[s.id] = (await page.screenshot()).toString("base64");
     switch (s.do) {
       case "type":
         await page.click(s.selector);
@@ -142,6 +148,21 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
     }
   }
 
+  // Click steps show the page before the click (design review R2-1): inside the ring there is the
+  // element, not an empty area of the next page.
+  for (let i = 0; i < expected.steps.length; i++) {
+    const e = expected.steps[i];
+    const got = actions[i];
+    if (!before[e.flowStep] || !got.screenshot?.highlight) continue;
+    const hl = got.screenshot.highlight;
+    const k = got.screenshot.width / got.screenshot.viewport.width;
+    const b = boxes[e.flowStep]!;
+    const [stored] = await regionStats(panel, { guideId, path: got.screenshot.image }, [hl]);
+    const [ref] = await regionStats(panel, { png: before[e.flowStep]! }, [{ x: b.x * k, y: b.y * k, width: b.width * k, height: b.height * k }]);
+    expect.soft(stored!.lumaStd, `${e.flowStep} ring is not empty`).toBeGreaterThan(6);
+    expect.soft(thumbDiff(stored!.thumb, ref!.thumb), `${e.flowStep} ring shows the clicked element`).toBeLessThan(30);
+  }
+
   // Navigate steps: the page the recording started on, and the help tab; no others required.
   const navUrls = navs.map((s: any) => s.action.url);
   expect(navUrls).toContain(`${FIXTURES}/help.html`);
@@ -199,7 +220,15 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
     for (const t of texts(bytes)) expect(t.includes(SECRET), `${fmt} leaks the password`).toBe(false);
   }
   // Titles are shown with typographic quotes in the HTML guide (design review #3).
-  expect(Buffer.from(saved.html!).toString("utf8")).toContain("\u201c");
+  const htmlText = Buffer.from(saved.html!).toString("utf8");
+  expect(htmlText).toContain("\u201c");
+  // Phone detail images (review R2-2): the extension's HTML has as many <source> crops as the CLI's
+  // export of the same project file (the CLI runs core's exportHtml on the unpacked bundle).
+  const bundle = unpackBundle(saved.project!);
+  const cliHtml = exportHtml(bundle.guide, bundle.images, {});
+  const sources = (h: string) => (h.match(/<source media="\(max-width: 600px\)"/g) ?? []).length;
+  expect(sources(cliHtml)).toBeGreaterThan(0);
+  expect(sources(htmlText), "extension HTML detail images vs CLI").toBe(sources(cliHtml));
   const md = Object.entries(unzipSync(saved.markdown!)).find(([p]) => p.endsWith(".md"));
   expect(md && strFromU8(md[1])).toContain("Click **Save**");
   const skill = Object.keys(unzipSync(saved.skill!));

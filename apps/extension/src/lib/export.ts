@@ -150,18 +150,35 @@ export async function exportGuide(format: ExportFormat, source: Guide, blobs: Re
       return { filename: `${base}-markdown.zip`, blob: new Blob([zipSync(all, { level: 6 }) as BlobPart], { type: "application/zip" }) };
     }
     case "html": {
-      const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const html = exportHtml(g, images, { includeUrls, imagesPrerendered: true, branding } as Parameters<typeof exportHtml>[2]);
+      if (opts.dim === false) {
+        // Canvas path: honours "Dim around the highlight" off, but has no phone detail images.
+        const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
+        const html = exportHtml(g, images, { includeUrls, imagesPrerendered: true, branding } as Parameters<typeof exportHtml>[2]);
+        return { filename: `${base}.html`, blob: new Blob([html], { type: "text/html" }) };
+      }
+      // Same path as the CLI (design review R2-2): core bakes the manual redactions, crop and flag from
+      // the stored pixels (auto redactions are already burnt in) and adds the zoomed <picture> detail
+      // image per step for phones.
+      await fontsReady();
+      const raw: ImageSource = {};
+      const visible = visibleSteps(guide);
+      opts.onProgress?.(0, visible.length);
+      for (const s of visible) {
+        const b = s.screenshot && blobs[s.screenshot.image];
+        if (b) raw[s.screenshot!.image] = await bytesOf(b);
+      }
+      const html = exportHtml(guide, raw, { includeUrls, branding, ...(opts.color ? { highlightColor: opts.color } : {}) } as Parameters<typeof exportHtml>[2]);
+      opts.onProgress?.(visible.length, visible.length);
       return { filename: `${base}.html`, blob: new Blob([html], { type: "text/html" }) };
     }
     case "pdf": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const bytes = await optionalExporter("exportPdf")(g, images, { redactionsBaked: true, highlight: false, branding, pageSize: opts.pageSize ?? "A4" });
+      const bytes = await optionalExporter("exportPdf")(g, images, { redactionsBaked: true, highlight: false, imagesPrerendered: true, branding, pageSize: opts.pageSize ?? "A4" });
       return { filename: `${base}.pdf`, blob: new Blob([bytes as BlobPart], { type: "application/pdf" }) };
     }
     case "docx": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const bytes = await optionalExporter("exportDocx")(g, images, { redactionsBaked: true, highlight: false, branding });
+      const bytes = await optionalExporter("exportDocx")(g, images, { redactionsBaked: true, highlight: false, imagesPrerendered: true, branding });
       return {
         filename: `${base}.docx`,
         blob: new Blob([bytes as BlobPart], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
