@@ -395,3 +395,10 @@
   gap: 4px;
   flex: none;
 }
+
+.steps > .list-end {
+  height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}

@@ -23,7 +23,7 @@ let h: Harness;
 let panel: Page;
 let guideId: string;
 
-test.describe.configure({ mode: "serial" });
+// One worker in file order; after a failure the next test gets a fresh browser and recording.
 
 async function record(): Promise<string> {
   const main = await h.context.newPage();
@@ -99,8 +99,11 @@ async function exportFrom(ed: Page, format: string): Promise<{ download: Downloa
   return { download, ms, bytes };
 }
 
+test.setTimeout(100_000);
+
 test.beforeAll(async () => {
   h = await launch();
+  h.context.setDefaultTimeout(12_000);
   await h.context.grantPermissions(["clipboard-read", "clipboard-write"]);
   // Nothing may leave the machine: every request to the web is refused (the support link included).
   await h.context.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (r) => r.abort());
@@ -127,7 +130,7 @@ test("X1 the editor lists every step with its number, title and screenshot, with
   await ed.setViewportSize({ width: 1280, height: 860 });
   await ed.goto(extUrl(h, `editor.html?guide=${encodeURIComponent(guideId)}`));
   const guide = await readGuide(panel, guideId);
-  const items = ed.getByRole("list", { name: "Steps" }).locator(":scope > li");
+  const items = ed.getByRole("list", { name: "Steps" }).locator(":scope > li.step");
   await expect(items).toHaveCount(guide.steps.length);
   for (let i = 0; i < guide.steps.length; i++) await expect(ed.getByRole("button", { name: new RegExp(`^Step ${i + 1}:`) }).first()).toBeVisible();
   await ed.waitForTimeout(800);
@@ -141,6 +144,8 @@ test("X1 Record, Pause and Stop in the side panel drive the same state as the co
   const p = await h.context.newPage();
   await p.goto(extUrl(h, "sidepanel.html"));
   await main.bringToFront();
+  // The panel reopens the last guide; Record lives in the library view.
+  if (!(await p.getByRole("button", { name: /start recording/i }).count())) await p.getByRole("button", { name: "Guides", exact: true }).click();
   await p.getByRole("button", { name: /start recording/i }).click();
   const status = () => panel.evaluate(() => chrome.storage.session.get("session").then((x) => (x.session as { status: string }).status));
   await expect.poll(status).toBe("recording");
@@ -164,19 +169,22 @@ test("X2 an edited title survives Regenerate titles, the others are rewritten; d
   const id = await duplicate(guideId);
   // Scramble the generated titles so regeneration has something to fix.
   await panel.evaluate(async (gid) => {
-    const r = indexedDB.open("showsteps");
-    await new Promise((res) => (r.onsuccess = res));
-    const tx = r.result.transaction("guides", "readwrite");
+    const db = await new Promise<IDBDatabase>((res) => {
+      const r = indexedDB.open("showsteps");
+      r.onsuccess = () => res(r.result);
+    });
+    const tx = db.transaction("guides", "readwrite");
     const q = tx.objectStore("guides").get(gid);
-    await new Promise((res) => (q.onsuccess = res));
-    const g = q.result;
-    for (const s of g.steps) s.title = `stale ${s.id}`;
-    tx.objectStore("guides").put(g);
+    q.onsuccess = () => {
+      const g = q.result;
+      for (const s of g.steps) s.title = `stale ${s.id}`;
+      tx.objectStore("guides").put(g);
+    };
     await new Promise((res) => (tx.oncomplete = res));
   }, id);
   const ed = await openEditor(id);
   await ed.getByRole("button", { name: /^Step 2:/ }).first().click();
-  await ed.getByRole("button", { name: /^Step 2: .*Edit title/ }).click();
+  await ed.getByRole("button", { name: /^Step 2: .*Edit title/ }).first().click();
   await ed.getByRole("textbox", { name: /^Title for step 2/ }).fill("My own words");
   await ed.keyboard.press("Enter");
   const desc = ed.getByRole("textbox", { name: /description/i }).first();
@@ -202,30 +210,19 @@ test("X2 an edited title survives Regenerate titles, the others are rewritten; d
 
 async function duplicate(id: string): Promise<string> {
   return panel.evaluate(async (gid) => {
-    const open = () =>
-      new Promise<IDBDatabase>((res) => {
-        const r = indexedDB.open("showsteps");
-        r.onsuccess = () => res(r.result);
-      });
-    const db = await open();
-    const get = (store: string, key: string) =>
-      new Promise<any>((res) => {
-        const q = db.transaction(store).objectStore(store).get(key);
-        q.onsuccess = () => res(q.result);
-      });
-    const g = await get("guides", gid);
+    const db = await new Promise<IDBDatabase>((res) => {
+      const r = indexedDB.open("showsteps");
+      r.onsuccess = () => res(r.result);
+    });
+    const req = <T,>(q: IDBRequest<T>) => new Promise<T>((res, rej) => ((q.onsuccess = () => res(q.result)), (q.onerror = () => rej(q.error))));
+    // Read everything first, then write in one transaction (a transaction left idle across awaits commits).
+    const g = await req(db.transaction("guides").objectStore("guides").get(gid));
+    const recs = await req(db.transaction("images").objectStore("images").index("guideId").getAll(gid));
     const nid = `g_copy_${Math.random().toString(36).slice(2, 8)}`;
     const tx = db.transaction(["guides", "images"], "readwrite");
-    tx.objectStore("guides").put({ ...g, id: nid, title: `${g.title} copy`, updatedAt: new Date().toISOString() });
-    for (const s of g.steps) {
-      if (!s.screenshot) continue;
-      const rec = await new Promise<any>((res) => {
-        const q = db.transaction("images").objectStore("images").get(`${gid}/${s.screenshot.image}`);
-        q.onsuccess = () => res(q.result);
-      });
-      if (rec) db.transaction("images", "readwrite").objectStore("images").put({ ...rec, key: `${nid}/${s.screenshot.image}`, guideId: nid });
-    }
-    await new Promise((res) => (tx.oncomplete = res));
+    tx.objectStore("guides").put({ ...g, id: nid, title: `${g.title} copy ${nid.slice(-3)}`, updatedAt: new Date().toISOString() });
+    for (const rec of recs) tx.objectStore("images").put({ ...rec, key: `${nid}/${rec.path}`, guideId: nid });
+    await new Promise((res, rej) => ((tx.oncomplete = res), (tx.onerror = () => rej(tx.error))));
     return nid;
   }, id);
 }
@@ -259,7 +256,10 @@ test("X4 skip keeps a step out of every export but in the project; merge keeps t
   const g1 = await readGuide(panel, id);
   expect(g1.steps[1].screenshot?.image).toBe(g0.steps[1].screenshot?.image);
   // Add a note before step 2.
-  await ed.getByRole("button", { name: /^Add a note before step 2/ }).click();
+  // The "+" between two steps shows away from the selected card: select a later step first.
+  await ed.getByRole("button", { name: /^Step 5:/ }).first().click();
+  await ed.locator(".steps > li").nth(1).hover();
+  await ed.getByRole("button", { name: /^Add a note before step 2/ }).first().click();
   await expect.poll(async () => (await readGuide(panel, id)).steps.some((s: any) => s.action.type === "note")).toBe(true);
   const g2 = await readGuide(panel, id);
   const skippedTitle = g2.steps.find((s: any) => s.skipped).title.replace(/\*\*/g, "");
@@ -276,9 +276,20 @@ test("X4 skip keeps a step out of every export but in the project; merge keeps t
 
 // ---- X5 blur box, X6 crop --------------------------------------------------------------------
 
+/** The n-th image guide.md links to (step order), from a Markdown export zip. */
+function mdImage(files: Record<string, Uint8Array>, n: number): Uint8Array {
+  const mdPath = Object.keys(files).find((k) => k.endsWith("guide.md"))!;
+  const dir = mdPath.slice(0, mdPath.length - "guide.md".length);
+  const links = [...strFromU8(files[mdPath]!).matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => decodeURIComponent(m[1]!));
+  return files[dir + links[n]!]!;
+}
+
 async function drawOnShot(ed: Page, from: [number, number], to: [number, number]) {
   const shot = ed.locator(".ed-detail .shot").first();
-  const b = (await shot.boundingBox())!;
+  const box = (await shot.boundingBox())!;
+  // Only the part of the screenshot inside the window can take a drag.
+  const vp = ed.viewportSize()!;
+  const b = { x: box.x, y: box.y, width: Math.min(box.width, vp.width - box.x - 4), height: Math.min(box.height, vp.height - box.y - 4) };
   await ed.mouse.move(b.x + from[0] * b.width, b.y + from[1] * b.height);
   await ed.mouse.down();
   await ed.mouse.move(b.x + to[0] * b.width, b.y + to[1] * b.height, { steps: 6 });
@@ -296,22 +307,37 @@ test("X5 X6 a manual blur box is burnt into the exported image (and removable in
   const box: Box = g.steps[0].screenshot.redactions.find((r: any) => !r.auto).rect;
   const md = await exportFrom(ed, "markdown");
   const files = unzipSync(new Uint8Array(md.bytes));
-  const img = Object.keys(files).filter((k) => k.endsWith(".png")).sort()[0]!;
-  const png = Buffer.from(files[img]!).toString("base64");
+  const png = Buffer.from(mdImage(files, 0)).toString("base64");
   // The exported image crops nothing here; compare the blur box with the stored original.
   const [exported] = await regionStats(panel, { png }, [box]);
   const [stored] = await regionStats(panel, { guideId: id, path: g.steps[0].screenshot.image }, [box]);
   expect(exported!.texture).toBeLessThanOrEqual(stored!.texture * 0.2 + 0.5);
-  // Crop step 2 and export: the image is exactly the crop.
+  // The editable copy keeps its pixels (a manual box is metadata, removable); the project file is the safe copy with the box burnt in.
+  expect(stored!.texture).toBeGreaterThan(exported!.texture * 2);
+  const safe = await exportFrom(ed, "project");
+  const unpacked = unpackBundle(new Uint8Array(safe.bytes));
+  const safePng = Buffer.from(unpacked.images[g.steps[0].screenshot.image] as Uint8Array).toString("base64");
+  const [safeStats] = await regionStats(panel, { png: safePng }, [box]);
+  expect(safeStats!.texture).toBeLessThanOrEqual(stored!.texture * 0.2 + 0.5);
+  await ed.getByRole("button", { name: /export another/i }).first().click().catch(() => {});
   await ed.keyboard.press("Escape");
+  // Crop step 2 and export: the image is exactly the crop.
+  await ed.reload();
+  await expect(ed.getByRole("list", { name: "Steps" })).toBeVisible();
   await ed.getByRole("button", { name: /^Step 2:/ }).first().click();
+  await expect(ed.getByRole("region", { name: "Step 2 details" })).toBeVisible();
   await ed.getByRole("toolbar", { name: /Step 2 tools/ }).getByRole("button", { name: "Crop" }).click();
+  await ed.waitForTimeout(300);
+  // The whole screenshot fits the pane while cropping (the wrapper once took the crop overlay's styles).
+  const cropBox = (await ed.locator(".ed-detail .shot").first().boundingBox())!;
+  expect(cropBox.x + cropBox.width).toBeLessThanOrEqual(ed.viewportSize()!.width);
   await drawOnShot(ed, [0.1, 0.1], [0.7, 0.6]);
-  await expect.poll(async () => !!(await readGuide(panel, id)).steps[1].screenshot.crop).toBe(true);
+  await expect.poll(async () => JSON.stringify((await readGuide(panel, id)).steps.map((s: any) => !!s.screenshot?.crop))).toContain("true");
+  expect((await readGuide(panel, id)).steps[1].screenshot.crop, "crop lands on step 2").toBeTruthy();
   const crop = (await readGuide(panel, id)).steps[1].screenshot.crop as Box;
   const md2 = await exportFrom(ed, "markdown");
   const f2 = unzipSync(new Uint8Array(md2.bytes));
-  const png2 = f2[Object.keys(f2).filter((k) => k.endsWith(".png")).sort()[1]!]!;
+  const png2 = mdImage(f2, 1);
   const w = (png2[16]! << 24) | (png2[17]! << 16) | (png2[18]! << 8) | png2[19]!;
   const hgt = (png2[20]! << 24) | (png2[21]! << 16) | (png2[22]! << 8) | png2[23]!;
   expect([w, hgt]).toEqual([Math.round(crop.width), Math.round(crop.height)]);
@@ -334,8 +360,9 @@ test("X7 X10 every format exports within its time budget; the support link appea
       const link = ed.getByRole("link", { name: /support/i });
       await expect(link).toHaveCount(1);
       expect(await link.getAttribute("href")).toBe(SUPPORT_URL);
-      const [tab] = await Promise.all([h.context.waitForEvent("page"), link.click()]);
-      expect(tab.url()).toBe(SUPPORT_URL);
+      // Opens a new tab at the support page (the request itself is blocked by this test).
+      const [tab, req] = await Promise.all([h.context.waitForEvent("page"), h.context.waitForEvent("request", (r) => r.url() === SUPPORT_URL), link.click()]);
+      expect(req.url()).toBe(SUPPORT_URL);
       await tab.close();
       first = false;
     }
@@ -478,6 +505,7 @@ test("F-LIB three guides list with title, date, step count and size; deleting on
   const b = await duplicate(guideId);
   const p = await h.context.newPage();
   await p.goto(extUrl(h, "sidepanel.html"));
+  if (!(await p.locator(".lib-item").count())) await p.getByRole("button", { name: "Guides", exact: true }).click();
   const guides = await storeCount(p, "guides");
   expect(guides).toBeGreaterThanOrEqual(3);
   const item = p.locator(".lib-item").first();
@@ -495,6 +523,7 @@ test("F-LIB three guides list with title, date, step count and size; deleting on
   // Interrupted: the worker marks a guide whose recording never reached Stop (see background.ts).
   await p.evaluate((id) => chrome.storage.local.set({ "rec:interrupted": [id] }), b);
   await p.reload();
+  if (!(await p.locator(".lib-item").count())) await p.getByRole("button", { name: "Guides", exact: true }).click();
   const gb = await readGuide(p, b);
   await expect(p.getByText("Recording was interrupted")).toBeVisible();
   await expect(p.getByRole("button", { name: `Recover ${gb.title}` })).toBeVisible();
@@ -506,10 +535,11 @@ test("F-LIB three guides list with title, date, step count and size; deleting on
 // ---- J accessibility -------------------------------------------------------------------------
 
 async function axe(page: Page): Promise<{ id: string; impact: string; nodes: number }[]> {
-  await page.addScriptTag({ content: AXE });
+  // Extension pages forbid inline scripts (CSP); evaluate goes through the debugger instead.
+  if (!(await page.evaluate(() => !!(window as any).axe))) await page.evaluate(`${AXE}\n;window.axe = axe;`);
   return page.evaluate(async () => {
     const r = await (window as any).axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"] } });
-    return r.violations.map((v: any) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length }));
+    return r.violations.map((v: any) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length, targets: v.nodes.slice(0, 4).map((n: any) => `${n.target.join(" ")} ${n.failureSummary?.split("\n")[1] ?? ""}`) }));
   });
 }
 
@@ -533,6 +563,7 @@ test("J1 axe finds no serious or critical issue on the editor, export sheet, set
       const p = await h.context.newPage();
       await p.setViewportSize({ width: 400, height: 900 });
       await p.goto(extUrl(h, "sidepanel.html"));
+      if (!(await p.locator(".lib-item").count())) await p.getByRole("button", { name: "Guides", exact: true }).click();
       return p;
     }],
     ["panel-settings", async () => {
@@ -546,8 +577,10 @@ test("J1 axe finds no serious or critical issue on the editor, export sheet, set
     ["panel-guide", async () => {
       const p = await h.context.newPage();
       await p.setViewportSize({ width: 400, height: 900 });
-      await p.goto(extUrl(h, "sidepanel.html"));
-      await p.locator(".lib-open").first().click();
+      await p.goto(extUrl(h, `sidepanel.html`));
+      if (await p.locator(".lib-open").count()) await p.locator(".lib-open").first().click();
+      await expect(p.getByRole("list", { name: "Steps" })).toBeVisible();
+      await p.getByRole("list", { name: "Steps" }).getByRole("button").first().click();
       return p;
     }],
   ];
@@ -558,43 +591,73 @@ test("J1 axe finds no serious or critical issue on the editor, export sheet, set
       await page.waitForTimeout(200);
       const v = await axe(page);
       for (const x of v) report.push(`${name}/${scheme}: ${x.impact} ${x.id} (${x.nodes})`);
-      expect.soft(v.filter((x) => x.impact === "serious" || x.impact === "critical"), `${name} ${scheme}`).toEqual([]);
+      const bad = v.filter((x) => x.impact === "serious" || x.impact === "critical");
+      expect.soft(bad, `${name} ${scheme}: ${bad.map((x) => `${x.id} ${JSON.stringify((x as any).targets)}`).join("; ")}`).toEqual([]);
     }
     await page.close();
   }
   console.log(`J1 moderate/minor findings:\n${report.join("\n") || "none"}`);
 });
 
-test("J2 keyboard only: from the editor's first stop to a finished Markdown export, focus always visible, no trap", async () => {
+test("J2 keyboard only: every stop in the editor has a visible focus ring and Tab cycles without a trap; Markdown export and Record/Stop by keyboard", async () => {
   const ed = await openEditor();
-  await ed.keyboard.press("Tab");
-  let seen = 0;
-  let reachedExport = false;
-  for (let i = 0; i < 80 && !reachedExport; i++) {
-    const info = await ed.evaluate(() => {
+  const focused = () =>
+    ed.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body) return null;
       const cs = getComputedStyle(el);
-      return { text: (el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40), ring: cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 || cs.boxShadow !== "none" };
+      const ring = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== "none";
+      return { key: `${el.tagName}|${el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 30)}|${el.getBoundingClientRect().top.toFixed(0)}`, ring };
     });
-    if (info) {
-      seen++;
-      expect.soft(info.ring, `visible focus on "${info.text}"`).toBe(true);
-      if (/^Export/.test(info.text)) reachedExport = true;
-    }
-    if (!reachedExport) await ed.keyboard.press("Tab");
+  const stops: string[] = [];
+  let first: string | undefined;
+  for (let i = 0; i < 200; i++) {
+    await ed.keyboard.press("Tab");
+    const f = await focused();
+    if (!f) continue;
+    if (f.key === first) break; // cycled back to the start: no trap
+    first ??= f.key;
+    stops.push(f.key);
+    expect.soft(f.ring, `visible focus on ${f.key}`).toBe(true);
   }
-  expect(reachedExport).toBe(true);
+  expect(stops.length).toBeGreaterThan(10);
+  expect(new Set(stops).size).toBe(stops.length);
+  // Export by keyboard: focus the Export button, Enter, pick Markdown with Space, Enter on the go button.
+  await ed.getByRole("button", { name: /^export/i }).first().focus();
   await ed.keyboard.press("Enter");
   await expect(ed.locator("dialog.export")).toBeVisible();
-  const md = ed.locator('[data-format="markdown"]');
-  await md.focus();
+  await ed.locator('[data-format="markdown"]').focus();
   await ed.keyboard.press("Space");
   await ed.getByTestId("export-go").focus();
   const [dl] = await Promise.all([ed.waitForEvent("download"), ed.keyboard.press("Enter")]);
   expect(dl.suggestedFilename()).toMatch(/\.zip$/);
-  expect(seen).toBeGreaterThan(3);
   await ed.close();
+  // Record and Stop in the side panel by keyboard only.
+  const main = await h.context.newPage();
+  await main.goto(`${FIXTURES}/index.html`);
+  const p = await h.context.newPage();
+  await p.goto(extUrl(h, "sidepanel.html"));
+  await main.bringToFront();
+  const tabTo = async (name: RegExp) => {
+    for (let i = 0; i < 60; i++) {
+      await p.keyboard.press("Tab");
+      const label = await p.evaluate(() => (document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? "").trim());
+      if (name.test(label)) return;
+    }
+    throw new Error(`no keyboard stop named ${name}`);
+  };
+  if (!(await p.getByRole("button", { name: /start recording/i }).count())) {
+    await tabTo(/^Guides$/);
+    await p.keyboard.press("Enter");
+  }
+  await tabTo(/start recording/i);
+  await p.keyboard.press("Enter");
+  const status = () => p.evaluate(() => chrome.storage.session.get("session").then((x) => (x.session as { status: string } | undefined)?.status));
+  await expect.poll(status).toBe("recording");
+  await tabTo(/stop and review/i);
+  await p.keyboard.press("Enter");
+  await expect.poll(status).toBe("idle");
+  for (const x of h.context.pages()) if (x !== panel) await x.close().catch(() => {});
 });
 
 test("J3 with reduced motion the editor runs no animation or transition longer than 50 ms", async () => {

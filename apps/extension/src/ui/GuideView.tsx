@@ -104,7 +104,7 @@ export function GuideView({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const focusId = useRef<string | null>(null);
-  const listEnd = useRef<HTMLDivElement>(null);
+  const listEnd = useRef<HTMLLIElement>(null);
 
   const numbers = useMemo(() => {
     const map = new Map<string, number>();
@@ -352,7 +352,8 @@ export function GuideView({
           <span className="muted">{steps.length ? "Keep going. New steps appear here." : "Click anything on the page. Steps appear here."}</span>
         </li>
       )}
-      <div ref={listEnd} />
+      {/* Scroll anchor for new steps; an <li> so the list holds only list items (axe "list"). */}
+      <li ref={listEnd} className="list-end" aria-hidden="true" />
     </ol>
   );
 

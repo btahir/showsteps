@@ -217,7 +217,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
   return (
     <div
       ref={wrap}
-      className={`shot shot-${size}${drawing ? ` shot-drawing shot-${mode}` : ""}${mode === "highlight" ? " shot-editing-hl" : ""}`}
+      className={`shot shot-${size}${drawing ? ` shot-drawing shot-mode-${mode}` : ""}${mode === "highlight" ? " shot-editing-hl" : ""}`}
       style={{ aspectRatio: `${view.width} / ${view.height}` }}
       onPointerDown={onDown}
       onPointerMove={onMove}

@@ -287,6 +287,8 @@ button.crumb:hover {
   text-decoration: underline;
 }
 code {
+  /* Full ink: the muted colour of the surrounding hint is below 4.5:1 on the code background. */
+  color: var(--ss-ink);
   font: 12px var(--ss-font-mono);
   padding: 1px 4px;
   border-radius: var(--ss-radius-xs);
