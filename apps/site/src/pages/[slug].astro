@@ -23,12 +23,15 @@ const ld = [
 ---
 <Base title={page.title} description={page.description} path={path} jsonLd={ld}>
   <div class="wrap">
-    <div class="page-head">
-      <span class="eyebrow">{page.kind}</span>
-      <h1>{page.h1}</h1>
-      <p class="lede">{page.lede}</p>
-      <div style="margin-top:24px"><InstallCta size="md" /></div>
-      <Shot figure={page.figure} />
+    <div class={page.figure.kind === "themed" ? "kw-top" : ""}>
+      <div class="page-head">
+        <span class="eyebrow">{page.kind}</span>
+        <h1>{page.h1}</h1>
+        <p class="lede">{page.lede}</p>
+        <div style="margin-top:24px"><InstallCta size="md" /></div>
+        {page.figure.kind !== "themed" && <Shot figure={page.figure} />}
+      </div>
+      {page.figure.kind === "themed" && <Shot figure={page.figure} />}
     </div>
     <div class="prose-wrap">
       <article class="prose">

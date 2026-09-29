@@ -1001,7 +1001,7 @@ table.compare {
 }
 .stage {
   position: relative;
-  padding-bottom: 116px;
+  padding-bottom: 140px;
 }
 .stage-guide {
   background: var(--surface);
@@ -1174,4 +1174,19 @@ table.compare-4 {
   .stage { padding-bottom: 0; }
   .stage-panel { display: none; }
   .blur-pair { grid-template-columns: 1fr; }
+}
+
+.shots3 li:last-child .panel-crop { height: auto; }
+
+/* keyword pages: copy left, panel figure right from 1024 px */
+@media (min-width: 1024px) {
+  .kw-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 72px;
+    align-items: start;
+  }
+  .kw-top .shot-fig {
+    margin: 64px 0 0;
+  }
 }

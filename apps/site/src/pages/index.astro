@@ -32,10 +32,7 @@ const title = "Showsteps: free step-by-step guides from a click-through";
       <div class="stage">
         <div class="stage-guide">
           <div class="stage-head"><span class="flag-num">2</span><span>Type “jane@example.com” in <b>Email</b></span></div>
-          <picture>
-            <source srcset="/img/sample-step-email-crop.webp" media="(max-width: 600px)" width="605" height="378" />
-            <img src="/img/sample-step-email.webp" width="1544" height="864" alt="A step from an exported guide: the Email field of a sign-in form outlined with a numbered tab, and the password field below it masked." fetchpriority="high" />
-          </picture>
+          <img src="/img/sample-step-email-crop.webp" width="605" height="378" alt="A step from an exported guide: the Email field of a sign-in form outlined with a numbered tab, and the password field below it masked." fetchpriority="high" />
         </div>
         <picture class="stage-panel">
           <source srcset="/img/panel-guide-dark.webp" media="(prefers-color-scheme: dark)" />
@@ -72,8 +69,8 @@ const title = "Showsteps: free step-by-step guides from a click-through";
           <h3>Send</h3>
           <p>Send a PDF, a single HTML file, Markdown or a DOCX. Or export the agent skill and let something else do the clicking.</p>
           <picture class="panel-crop">
-            <source srcset="/img/panel-export-dark.webp" media="(prefers-color-scheme: dark)" />
-            <img src="/img/panel-export-light.webp" width="800" height="1800" alt="The export sheet with the format choices." loading="lazy" />
+            <source srcset="/img/panel-export-grid-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img src="/img/panel-export-grid-light.webp" width="800" height="670" alt="The export sheet with six formats: PDF, web page, Markdown, Word, agent skill and a Showsteps file." loading="lazy" />
           </picture>
         </li>
       </ol>
@@ -96,7 +93,7 @@ const title = "Showsteps: free step-by-step guides from a click-through";
         <li><strong>No upload.</strong> Screenshots and text live in your browser until you export a file.</li>
         <li><strong>No account.</strong> No sign-up, no email address, no login.</li>
         <li><strong>No analytics.</strong> None in the extension, none on this site.</li>
-        <li><strong>Passwords are not recorded.</strong> Password and card fields are detected, their values are never saved, and the screenshot is blurred.</li>
+        <li><strong>Passwords are not recorded.</strong> Password and card fields are detected, their values are never saved, and they are masked before the screenshot is stored.</li>
         <li><strong>No network after install.</strong> The extension does not phone home.</li>
         <li><strong>Readable source.</strong> MIT licensed, and the file format is documented.</li>
       </ul>

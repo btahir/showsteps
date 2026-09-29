@@ -21,7 +21,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "What happens to passwords and card numbers?",
-    a: "Password and card fields are detected while you record. The typed value is never saved, and the screenshot is blurred over the field. You can also draw a blur or crop on anything else. Check every screenshot before you share it: the extension cannot know that a name in a table is real.",
+    a: "Password and card fields are detected while you record. The typed value is never saved, and the field is masked before the screenshot is stored. Card numbers, tax IDs, IBANs and API keys shown as text on the page are masked too. You can also draw a blur or crop on anything else. Check every screenshot before you share it: the extension cannot know that a name in a table is real.",
   },
   {
     q: "Which formats can I export?",

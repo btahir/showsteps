@@ -85,7 +85,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
                 ["Where guides live", "Your browser. No network requests after install.", "Your device. Its README says site icons are fetched from Google's favicon service, and optional AI features call the provider you configure."],
                 ["Browsers", "Chrome", "Chrome, Firefox, Edge"],
                 ["Exports", "PDF, HTML, Markdown, DOCX, agent skill, project file", "Video (MP4), GIF, PDF, DOCX, HTML, Markdown, project file"],
-                ["Redaction", "Password and card fields blurred automatically; draw your own blur or crop", "Smart Blur for emails, phone numbers, SSNs, cards, IP and MAC addresses, with toggles; manual blur picker"],
+                ["Redaction", "Password fields and card numbers, IBANs and keys on the page masked automatically; draw your own blur or crop", "Smart Blur for emails, phone numbers, SSNs, cards, IP and MAC addresses, with toggles; manual blur picker"],
                 ["Step text", "Written from the page's accessible names; no key needed", "Rule-based by default; optional AI descriptions with your own OpenAI or Anthropic key"],
                 ["Replay", "Playwright script and SKILL.md an agent or CI job can run", "Guide Me: live walkthrough inside the extension"],
                 ["CLI and MCP server for agents", "Yes", "None mentioned in its README"],
@@ -226,7 +226,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "What Showsteps does with sensitive fields",
         blocks: [
           {
-            p: "While you record, Showsteps looks for password, card and other sensitive fields. The typed value is never stored, and the screenshot is blurred over the field, so the sensitive value never exists in the guide, not even hidden under a mask. You can also draw a blur or crop over anything else, such as a customer name in a table.",
+            p: "While you record, Showsteps looks for password, card and other sensitive fields. The typed value is never stored, and the field is masked before the screenshot is stored, so the sensitive value never exists in the guide, not even hidden under an overlay. You can also draw a blur or crop over anything else, such as a customer name in a table.",
           },
           {
             p: "Automatic detection is a safety net. It cannot know that the name in a table is a real person, so read each screenshot before you send the guide.",
@@ -416,7 +416,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         ],
       },
       {
-        h2: "Sensitive fields are blurred for you",
+        h2: "Sensitive fields are masked for you",
         blocks: [
           {
             p: "Password fields, card numbers and other fields that look sensitive are marked while you record, and their values are never stored in the step text. The screenshot for that step gets a blur over the field. You can turn it off for a step, or draw your own blur or crop over anything else, such as a customer name in a table. Redactions are stored as regions and applied when you export, so you can change your mind before sending.",
@@ -467,7 +467,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     slug: "how-to-create-an-sop-with-screenshots",
     label: "How to create an SOP with screenshots",
     kind: "How-to",
-    figure: { kind: "step", name: "sample-step-email", alt: "One step of an exported guide: the Email field of a sign-in form outlined with a numbered tab.", caption: "One step of an exported guide: the target outlined and numbered, the password field below it blurred. Mock data." },
+    figure: { kind: "step", name: "sample-step-email", alt: "One step of an exported guide: the Email field of a sign-in form outlined with a numbered tab.", caption: "One step of an exported guide: the target outlined and numbered, the password field below it masked. Mock data." },
     title: "How to create an SOP with screenshots (with a checklist)",
     h1: "How to create an SOP with screenshots",
     description:
@@ -637,7 +637,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "Sensitive data: what is automatic and what is not",
         blocks: [
           {
-            p: "Showsteps marks password, card and similar fields as sensitive while recording. Their values are never stored, and the step screenshot is blurred over the field. It cannot know that a name in a table or an email in a header belongs to a real person, so it lets you draw a blur or crop on any screenshot before you export. Read each image before you send the file.",
+            p: "Showsteps marks password, card and similar fields as sensitive while recording. Their values are never stored, and the field is masked before the screenshot is stored. It cannot know that a name in a table or an email in a header belongs to a real person, so it lets you draw a blur or crop on any screenshot before you export. Read each image before you send the file.",
           },
         ],
       },

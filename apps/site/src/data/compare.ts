@@ -31,7 +31,7 @@ export const COMPARE_ROWS: CompareRow[] = [
   },
   {
     feature: "Blur or redact screenshots",
-    showsteps: "Free. Password and card fields blurred as you record; draw your own blur or crop.",
+    showsteps: "Free. Password fields and card numbers, tax IDs, IBANs and keys on the page are masked as you record; draw your own blur or crop.",
     mimik: "Free. Smart Blur for emails, phone numbers, SSNs, cards, IP and MAC addresses, plus a manual picker.",
     scribe: "Not on Basic. Editing and redacting screenshots is a Pro feature.",
     tango: "Not on the free plan. Annotation and blurring are in Pro.",

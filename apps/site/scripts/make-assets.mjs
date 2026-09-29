@@ -21,6 +21,8 @@ const webp = (src, dest, q = 88, crop = []) => execFileSync("cwebp", ["-quiet", 
 for (const name of ["panel-recording", "panel-guide", "panel-export", "panel-support", "panel-empty"]) {
   for (const t of ["light", "dark"]) webp(join(screens, `${name}-2x-${t}.png`), `${name}-${t}.webp`, 82);
 }
+// The export sheet's format grid (title, six format tiles), cropped from the export screen.
+for (const t of ["light", "dark"]) webp(join(screens, `panel-export-2x-${t}.png`), `panel-export-grid-${t}.webp`, 84, [0, 545, 800, 670]);
 
 // 2. figures from the built sample guide
 const types = { ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2" };

@@ -27,9 +27,11 @@ const desc = "Showsteps stores everything on your device, has no account and no 
         </p>
         <h2>Passwords and sensitive fields</h2>
         <p>
-          While you record, Showsteps looks for password fields, card numbers and other fields that look sensitive. The typed value is
-          not saved, and the step screenshot is blurred over the field. Auto-detection is a safety net, not a guarantee: it cannot know
-          that a name in a table is a real customer. Review every screenshot before sharing, and use the blur and crop tools.
+          While you record, Showsteps looks for password fields and for card numbers, tax IDs, IBANs, API keys and tokens, both in form
+          fields and in text on the page. The typed value is not saved, and what was found is masked before the screenshot is stored, so
+          the original never reaches the guide. Numbers that only look similar, such as order numbers and timestamps, are left alone.
+          Auto-detection is a safety net, not a guarantee: it cannot know that a name in a table is a real customer. Review every
+          screenshot before sharing, and use the blur and crop tools.
         </p>
         <h2>Permissions, and why</h2>
         <div class="table-scroll" role="region" aria-label="Permissions" tabindex="0">
