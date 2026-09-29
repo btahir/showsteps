@@ -24,7 +24,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(here, "../../..");
 const EXT_SRC = resolve(ROOT, "apps/extension/.output/chrome-mv3-e2e");
 const FLOW = JSON.parse(readFileSync(resolve(ROOT, "apps/fixtures/flows/fixture-flow.json"), "utf8"));
-const FIXTURES = "http://127.0.0.1:4517";
+// The fixture server listens on 127.0.0.1:4517, but the browser is told that books.acme.test is that address,
+// so every real UI string (recording bar, editor meta, URL captions, exported files) shows a made-up host.
+const HOST = "books.acme.test";
+const FIXTURES = `http://${HOST}:4517`;
+const RESOLVER = `--host-resolver-rules=MAP ${HOST} 127.0.0.1`;
 const DPR = 2;
 
 const args = process.argv.slice(2);
@@ -58,7 +62,7 @@ async function launch(theme, extDir) {
     deviceScaleFactor: DPR,
     colorScheme: theme,
     acceptDownloads: true,
-    args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`, `--force-device-scale-factor=${DPR}`],
+    args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`, `--force-device-scale-factor=${DPR}`, RESOLVER],
   });
   let [worker] = context.serviceWorkers();
   worker ??= await context.waitForEvent("serviceworker", { timeout: 15_000 });
@@ -307,7 +311,7 @@ async function guideAndReplay(out, context, theme) {
   for (const f of ["replay.spec.ts", "SKILL.md", "steps.json"]) cpSync(join(dir, f), join(replay, f));
   writeFileSync(
     join(replay, "playwright.config.ts"),
-    `import { defineConfig } from "@playwright/test";\nexport default defineConfig({ testDir: ".", timeout: 60_000, workers: 1, reporter: [["list"]], use: { headless: true }, outputDir: "./results" });\n`,
+    `import { defineConfig } from "@playwright/test";\nexport default defineConfig({ testDir: ".", timeout: 60_000, workers: 1, reporter: [["list"]], use: { headless: true, launchOptions: { args: [${JSON.stringify(RESOLVER)}] } }, outputDir: "./results" });\n`,
   );
   const cli = resolve(ROOT, "apps/extension/node_modules/.bin/playwright");
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(TEST_|PW_TEST|PWTEST|SHOWSTEPS_SECRET)/.test(k)));

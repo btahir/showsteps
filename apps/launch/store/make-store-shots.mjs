@@ -82,7 +82,7 @@ const shots = [];
     "01-record",
     "Press Record and click through the task",
     "Every click and keystroke becomes a step, across tabs.",
-    `<div class="win" style="width:${W}px"><div class="bar"><i></i><i></i><i></i><b>acme-books.example</b></div>
+    `<div class="win" style="width:${W}px"><div class="bar"><i></i><i></i><i></i><b>books.acme.test</b></div>
        <div class="body" style="width:${W}px;height:${H}px"><img src="${img("page-s08-before.png")}" style="width:${W}px;height:${H}px">
          <div class="flag" style="left:${(b.x - 4) * sc}px;top:${(b.y - 4) * sc}px;width:${(b.width + 8) * sc}px;height:${(b.height + 8) * sc}px"><b>${num}</b></div></div></div>
      <div class="frame" style="width:315px;height:560px"><img src="${img("panel-recording.png")}" style="object-position:top"></div>`,
