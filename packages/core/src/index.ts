@@ -8,6 +8,7 @@ export * from "./png";
 export * from "./raster";
 export { parseInline, plainTitle, escapeInline, type InlineRun } from "./text";
 export * from "./bundle";
+export { canonicalJson } from "./json";
 export { visibleSteps, renderGuideImages, resolveIncludeUrls, stepNumbers, displayUrl, formatDate, type ImageRenderOptions } from "./export/shared";
 export { renderMarkdownHtml, renderInlineHtml } from "./markdown-html";
 export * from "./brand";
@@ -15,7 +16,6 @@ export * from "./export/markdown";
 export * from "./export/html";
 export * from "./export/playwright";
 export * from "./export/skill";
-// pdf.ts / docx.ts are written by the exporter agent; index.ts re-exports them once they exist.
 export { exportPdf, defaultPdfFonts, type PdfExportOptions, type PdfFonts } from "./export/pdf";
 export { exportDocx, type DocxExportOptions } from "./export/docx";
 export type { DocExportOptions } from "./export/doc-shared";

@@ -12,6 +12,9 @@ export class GuideValidationError extends Error {
   }
 }
 
+const MAX_TITLE = 2000;
+const MAX_STEPS = 5000;
+const MAX_DEPTH = 40;
 const ID_RE = /^[A-Za-z0-9_-]+$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
@@ -101,13 +104,18 @@ class Checker {
       this.err(`${path}.${key}`, `expected an ISO 8601 timestamp such as 2026-09-28T10:15:00Z, got ${describe(v)}`);
     }
   }
-  rect(v: unknown, path: string): void {
+  rect(v: unknown, path: string, bounds?: { width?: number; height?: number }): void {
     const o = this.obj(v, path);
     if (!o) return;
-    this.num(o, "x", path);
-    this.num(o, "y", path);
-    this.num(o, "width", path, { min: 0 });
-    this.num(o, "height", path, { min: 0 });
+    const x = this.num(o, "x", path);
+    const y = this.num(o, "y", path);
+    const w = this.num(o, "width", path, { min: 0 });
+    const h = this.num(o, "height", path, { min: 0 });
+    if (bounds?.width !== undefined && x !== undefined && w !== undefined && (x < 0 || x + w > bounds.width)) {
+      this.err(path, `is outside the image (x ${x}, width ${w}, image width ${bounds.width})`);
+    } else if (bounds?.height !== undefined && y !== undefined && h !== undefined && (y < 0 || y + h > bounds.height)) {
+      this.err(path, `is outside the image (y ${y}, height ${h}, image height ${bounds.height})`);
+    }
   }
   strArray(v: unknown, path: string): void {
     if (!Array.isArray(v)) {
@@ -118,6 +126,43 @@ class Checker {
       if (typeof s !== "string") this.err(`${path}[${i}]`, `expected a string, got ${describe(s)}`);
     });
   }
+}
+
+/**
+ * Reject values that cannot come out of `JSON.parse` and keys that enable prototype pollution:
+ * functions, symbols, bigints, class instances (Date, Map, typed arrays), `undefined` inside arrays,
+ * `__proto__` keys, and nesting deeper than MAX_DEPTH.
+ */
+function scanJson(c: Checker, v: unknown, path: string, depth: number): void {
+  if (depth > MAX_DEPTH) {
+    c.err(path, `is nested too deeply (more than ${MAX_DEPTH} levels)`);
+    return;
+  }
+  if (v === null || typeof v === "string" || typeof v === "boolean" || v === undefined) return;
+  if (typeof v === "number") return; // finiteness is checked where a number is expected
+  if (Array.isArray(v)) {
+    v.forEach((item, i) => {
+      if (item === undefined) c.err(`${path}[${i}]`, "is undefined, which is not a JSON value");
+      else scanJson(c, item, `${path}[${i}]`, depth + 1);
+    });
+    return;
+  }
+  if (typeof v === "object") {
+    const proto = Object.getPrototypeOf(v);
+    if (proto !== Object.prototype && proto !== null) {
+      c.err(path, "is not plain JSON data (a class instance such as Date, Map or a typed array)");
+      return;
+    }
+    for (const key of Object.getOwnPropertyNames(v)) {
+      if (key === "__proto__") {
+        c.err(`${path}.__proto__`, "forbidden key (prototype pollution)");
+        continue;
+      }
+      scanJson(c, (v as Obj)[key], `${path}.${key}`, depth + 1);
+    }
+    return;
+  }
+  c.err(path, `is a ${typeof v}, which is not a JSON value`);
 }
 
 /** A path inside a bundle: relative, forward slashes, no `..`, no drive letters. */
@@ -169,10 +214,14 @@ function checkAction(c: Checker, v: unknown, path: string): void {
       c.oneOf(o, "button", path, ["left", "right", "middle"] as const, true);
       c.bool(o, "double", path);
       break;
-    case "type":
-      c.str(o, "value", path);
-      c.bool(o, "masked", path);
+    case "type": {
+      const value = c.str(o, "value", path);
+      const masked = c.bool(o, "masked", path);
+      if (masked === true && value !== undefined && value !== "" && value !== "\u2022\u2022\u2022") {
+        c.err(`${path}.value`, 'a masked type step must have value "" or "\u2022\u2022\u2022"; the real value must never be stored');
+      }
       break;
+    }
     case "select":
       c.str(o, "value", path);
       c.str(o, "optionText", path, { optional: true });
@@ -196,11 +245,12 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
   const o = c.obj(v, path);
   if (!o) return;
   const image = c.str(o, "image", path, { nonEmpty: true });
-  if (image !== undefined && image !== "" && !isSafeBundlePath(image)) {
-    c.err(`${path}.image`, `must be a relative bundle path such as images/s_1.png, got ${describe(image)}`);
+  if (image !== undefined && image !== "" && (!isSafeBundlePath(image) || !image.startsWith("images/"))) {
+    c.err(`${path}.image`, `must be a relative path inside images/, such as images/s_1.png, got ${describe(image)}`);
   }
-  c.num(o, "width", path, { min: 1 });
-  c.num(o, "height", path, { min: 1 });
+  const width = c.num(o, "width", path, { min: 1 });
+  const height = c.num(o, "height", path, { min: 1 });
+  const bounds = { ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}) };
   c.num(o, "devicePixelRatio", path, { min: 0.01 });
   const vp = c.obj(o.viewport, `${path}.viewport`);
   if (vp) {
@@ -209,8 +259,8 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
     c.num(vp, "scrollX", `${path}.viewport`);
     c.num(vp, "scrollY", `${path}.viewport`);
   }
-  if (o.highlight !== undefined) c.rect(o.highlight, `${path}.highlight`);
-  if (o.crop !== undefined) c.rect(o.crop, `${path}.crop`);
+  if (o.highlight !== undefined) c.rect(o.highlight, `${path}.highlight`, bounds);
+  if (o.crop !== undefined) c.rect(o.crop, `${path}.crop`, bounds);
   if (o.redactions !== undefined) {
     if (!Array.isArray(o.redactions)) c.err(`${path}.redactions`, `expected an array, got ${describe(o.redactions)}`);
     else
@@ -218,7 +268,7 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
         const rp = `${path}.redactions[${i}]`;
         const ro = c.obj(r, rp);
         if (!ro) return;
-        c.rect(ro.rect, `${rp}.rect`);
+        c.rect(ro.rect, `${rp}.rect`, bounds);
         c.oneOf(ro, "style", rp, REDACT_STYLES);
         c.bool(ro, "auto", rp);
       });
@@ -236,7 +286,8 @@ function checkStep(c: Checker, v: unknown, path: string, ids: Set<string>): void
   }
   checkAction(c, o.action, `${path}.action`);
   if (o.target !== undefined) checkTarget(c, o.target, `${path}.target`);
-  c.str(o, "title", path);
+  const title = c.str(o, "title", path);
+  if (title !== undefined && title.length > MAX_TITLE) c.err(`${path}.title`, `is too long (${title.length} characters, at most ${MAX_TITLE})`);
   c.bool(o, "titleEdited", path);
   c.str(o, "description", path, { optional: true });
   const page = c.obj(o.page, `${path}.page`);
@@ -264,11 +315,17 @@ export function validateGuide(x: unknown): ValidateResult {
         : `unsupported version ${describe(x.schemaVersion)}; this build reads version ${SCHEMA_VERSION}`,
     );
   }
+  scanJson(c, x, root, 0);
   c.str(x, "id", root, { nonEmpty: true });
-  c.str(x, "title", root);
+  const gtitle = c.str(x, "title", root);
+  if (gtitle !== undefined && gtitle.length > MAX_TITLE) c.err(`${root}.title`, `is too long (${gtitle.length} characters, at most ${MAX_TITLE})`);
   c.str(x, "description", root, { optional: true });
   c.iso(x, "createdAt", root);
   c.iso(x, "updatedAt", root);
+  if (typeof x.createdAt === "string" && typeof x.updatedAt === "string") {
+    const a = Date.parse(x.createdAt), b = Date.parse(x.updatedAt);
+    if (!Number.isNaN(a) && !Number.isNaN(b) && b < a) c.err(`${root}.updatedAt`, "is before createdAt");
+  }
   if (x.app !== undefined) {
     const app = c.obj(x.app, `${root}.app`);
     if (app) {
@@ -286,6 +343,8 @@ export function validateGuide(x: unknown): ValidateResult {
   }
   if (!Array.isArray(x.steps)) {
     c.err(`${root}.steps`, `expected an array, got ${describe(x.steps)}`);
+  } else if (x.steps.length > MAX_STEPS) {
+    c.err(`${root}.steps`, `has too many steps (${x.steps.length}, at most ${MAX_STEPS})`);
   } else {
     const ids = new Set<string>();
     x.steps.forEach((s, i) => checkStep(c, s, `${root}.steps[${i}]`, ids));

@@ -2,6 +2,8 @@ import type { ElementDescriptor, Guide, Locator, Step, StepAction } from "../sch
 import { PRODUCT_NAME, SITE_URL, STEPS_JSON_FORMAT, STEPS_JSON_VERSION } from "../brand";
 import { hostnameOf, plainTitle, slugify } from "../text";
 import type { ExportFiles, ExportResult, ImageSource } from "../types";
+import { canonicalJson } from "../json";
+import stepsSchema from "../../schema/steps.schema.json";
 import { exportPlaywright } from "./playwright";
 import { buildReplayPlan, q, type PlanStep } from "./replay-plan";
 import { formatDate, renderGuideImages, type ImageRenderOptions } from "./shared";
@@ -15,7 +17,10 @@ export interface AgentSkillOptions extends ImageRenderOptions {
   description?: string;
 }
 
-/** Shape of `steps.json`. Documented in docs/schema.md. Additive changes keep `version`; breaking ones bump it. */
+/** JSON Schema (draft 2020-12) of `steps.json`; same file as packages/core/schema/steps.schema.json. */
+export const STEPS_JSON_SCHEMA: Record<string, unknown> = stepsSchema;
+
+/** Shape of `steps.json`. Documented in docs/schema.md; JSON Schema in packages/core/schema/steps.schema.json. */
 export interface StepsJson {
   format: typeof STEPS_JSON_FORMAT;
   version: typeof STEPS_JSON_VERSION;
@@ -30,7 +35,8 @@ export interface StepsJson {
 }
 
 export interface StepsJsonStep {
-  n: number;
+  /** 1-based position among the exported (non-skipped) steps. */
+  index: number;
   id: string;
   /** Plain-text instruction, e.g. `Click Sign in`. */
   title: string;
@@ -38,9 +44,15 @@ export interface StepsJsonStep {
   titleMarkdown: string;
   description?: string;
   action: StepsJsonAction;
-  page: { url: string; title?: string; tab: number };
-  /** Element the step acted on; `null` for navigation, scroll and note steps. */
-  target: StepsJsonTarget | null;
+  /** Best first: testid, role, label, placeholder, text, css, xpath. Empty when the step has no element. */
+  locators: Locator[];
+  /** iframe CSS selectors, outermost first. */
+  frame: string[];
+  /** Shadow-host CSS selectors, outermost first. */
+  shadow: string[];
+  /** What was known about the element. `text` is left out for text fields (it may hold what was typed). */
+  element?: StepsJsonElement;
+  page: { url: string; title?: string; tabIndex: number };
   replay: { replayable: boolean; playwright: string; secret?: string; note?: string };
   screenshot?: string;
 }
@@ -56,7 +68,7 @@ export type StepsJsonAction =
   | { type: "hover" }
   | { type: "note" };
 
-export interface StepsJsonTarget {
+export interface StepsJsonElement {
   tag: string;
   role?: string;
   name?: string;
@@ -66,14 +78,10 @@ export interface StepsJsonTarget {
   inputType?: string;
   href?: string;
   sensitive?: true;
-  /** Best first: testid, role, label, placeholder, text, css, xpath. */
-  locators: Locator[];
-  frame?: string[];
-  shadow?: string[];
 }
 
-function jsonTarget(t: ElementDescriptor, hideText: boolean): StepsJsonTarget {
-  const o: StepsJsonTarget = { tag: t.tag, locators: t.locators };
+function jsonElement(t: ElementDescriptor, hideText: boolean): StepsJsonElement {
+  const o: StepsJsonElement = { tag: t.tag };
   if (t.role) o.role = t.role;
   if (t.name) o.name = t.name;
   if (t.label) o.label = t.label;
@@ -82,8 +90,6 @@ function jsonTarget(t: ElementDescriptor, hideText: boolean): StepsJsonTarget {
   if (t.inputType) o.inputType = t.inputType;
   if (t.href) o.href = t.href;
   if (t.sensitive) o.sensitive = true;
-  if (t.frame?.length) o.frame = t.frame;
-  if (t.shadow?.length) o.shadow = t.shadow;
   return o;
 }
 
@@ -98,8 +104,14 @@ function jsonAction(a: StepAction, ps: PlanStep): StepsJsonAction {
   }
 }
 
+/** Skill names are lowercase letters, digits and hyphens, at most 64, and may not contain reserved words. */
 function skillName(guide: Guide, override?: string): string {
-  const s = slugify(override ?? guide.title, 64);
+  const s = slugify(override ?? guide.title, 80)
+    .split("-")
+    .filter((w) => w && !/claude|anthropic/.test(w))
+    .join("-")
+    .slice(0, 64)
+    .replace(/-+$/, "");
   return s || "recorded-workflow";
 }
 
@@ -135,15 +147,18 @@ function buildStepsJson(guide: Guide, images: ImageSource | undefined): { json: 
     if (ps.secret) replay.secret = ps.secret;
     if (ps.note) replay.note = ps.note;
     const step: StepsJsonStep = {
-      n: ps.n,
+      index: ps.n,
       id: s.id,
       title: plainTitle(s.title).replace(/\s+/g, " ").trim(),
       titleMarkdown: s.title,
       action: jsonAction(s.action, ps),
-      page: { url: s.page.url, ...(s.page.title ? { title: s.page.title } : {}), tab: ps.tab },
-      target: s.target ? jsonTarget(s.target, sensitiveTarget || ["textbox", "searchbox"].includes(s.target.role ?? "") || ["input", "textarea"].includes(s.target.tag)) : null,
+      locators: s.target?.locators ?? [],
+      frame: s.target?.frame ?? [],
+      shadow: s.target?.shadow ?? [],
+      page: { url: s.page.url, ...(s.page.title ? { title: s.page.title } : {}), tabIndex: ps.tab },
       replay,
     };
+    if (s.target) step.element = jsonElement(s.target, sensitiveTarget || ["textbox", "searchbox"].includes(s.target.role ?? "") || ["input", "textarea"].includes(s.target.tag));
     if (s.description?.trim()) step.description = s.description.trim();
     if (s.screenshot && images?.[s.screenshot.image]) step.screenshot = s.screenshot.image;
     return step;
@@ -191,24 +206,24 @@ function buildSkillMd(guide: Guide, json: StepsJson, opts: AgentSkillOptions, ha
     "",
     "## How to use this skill",
     "",
-    "- **Replay it:** run `npx playwright test replay.spec.ts` in this folder (needs `@playwright/test` and a browser: `npx playwright install chromium`).",
+    "- **Replay it:** run `npx playwright test replay.spec.ts` in this folder (needs `@playwright/test` and a browser: `npx playwright install chromium`). The test opens its own tab, and follows tabs the recording opened.",
     "- **Do it by hand or with a browser tool:** follow the steps below in order. `steps.json` lists the same steps with every recorded locator, best first, for tools that drive a browser directly.",
     "- **If a step fails:** the page probably changed. Re-locate the element from its name and role instead of the CSS selector, and update `replay.spec.ts`.",
   );
   if (json.secrets.length) {
-    L.push("", "## Secrets", "", "The recording never stored the values typed into these fields. Provide them as environment variables before replaying:", "");
+    L.push("", "## Secrets", "", "The recording never stored the values typed into these fields. Provide them as environment variables before replaying (the replay is skipped, not failed, when one is missing):", "");
     for (const s of json.secrets) L.push(`- \`${s.env}\`: step ${s.step}${s.field ? `, field "${s.field}"` : ""}`);
   }
   L.push("", "## Steps", "");
   const plan = buildReplayPlan(guide);
   json.steps.forEach((st, i) => {
     const ps = plan.steps[i] as PlanStep;
-    const pad = " ".repeat(`${st.n}. `.length);
-    L.push(`${st.n}. ${st.titleMarkdown.trim()}`);
+    const pad = " ".repeat(`${st.index}. `.length);
+    L.push(`${st.index}. ${st.titleMarkdown.trim()}`);
     if (st.description) L.push(`${pad}${oneLine(st.description)}`);
-    const best = st.target?.locators.find((l) => (l.kind === "role" ? !!l.name : l.value !== ""));
-    if (best) L.push(`${pad}- Find it by: ${locatorHint(best)}${st.target?.frame?.length ? ` inside iframe ${st.target.frame.map((f) => `\`${f}\``).join(" > ")}` : ""}`);
-    if (st.page.tab > 1 || json.guide.tabCount > 1) L.push(`${pad}- Tab ${st.page.tab}`);
+    const best = st.locators.find((l) => (l.kind === "role" ? !!l.name : l.value !== ""));
+    if (best) L.push(`${pad}- Find it by: ${locatorHint(best)}${st.frame.length ? ` inside iframe ${st.frame.map((f) => `\`${f}\``).join(" > ")}` : ""}${st.shadow.length ? ` inside shadow host ${st.shadow.map((f) => `\`${f}\``).join(" > ")}` : ""}`);
+    if (json.guide.tabCount > 1) L.push(`${pad}- Tab ${st.page.tabIndex}`);
     if (st.action.type === "navigate") L.push(`${pad}- URL: ${st.action.url}`);
     else if (st.page.url && (i === 0 || st.page.url !== json.steps[i - 1]?.page.url)) L.push(`${pad}- Page: ${st.page.title ? `${st.page.title}, ` : ""}${st.page.url}`);
     if (ps.secret) L.push(`${pad}- Value: read from \`${ps.secret}\``);
@@ -231,7 +246,7 @@ export function exportAgentSkill(guide: Guide, opts: AgentSkillOptions = {}): Ex
   const files: ExportFiles = {
     "SKILL.md": buildSkillMd(guide, json, opts, !!rendered && Object.keys(rendered).length > 0),
     "replay.spec.ts": exportPlaywright(guide),
-    "steps.json": JSON.stringify(json, null, 2) + "\n",
+    "steps.json": canonicalJson(json),
   };
   if (rendered) for (const p of Object.keys(rendered).sort()) files[p] = rendered[p] as Uint8Array;
   return { files };

@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 1,
+  "id": "g_sample11",
+  "title": "Sign in, ask for help, and update billing in Acme Books",
+  "description": "Sign in, look something up in the help centre in a second tab, then switch the **billing period** to yearly and save.",
+  "createdAt": "2026-09-28T10:00:00Z",
+  "updatedAt": "2026-09-28T10:04:00Z",
+  "app": {
+    "name": "showsteps",
+    "version": "0.1.0"
+  },
+  "steps": [
+    {
+      "id": "s00",
+      "action": {
+        "type": "navigate",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "title": "Go to **Sign in – Acme Books**",
+      "page": {
+        "url": "http://127.0.0.1:4517/index.html",
+        "title": "Sign in – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s00.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        }
+      },
+      "timestamp": "2026-09-28T10:00:00Z"
+    },
+    {
+      "id": "s01",
+      "action": {
+        "type": "type",
+        "value": "jane@example.com"
+      },
+      "target": {
+        "tag": "input",
+        "role": "textbox",
+        "name": "Email",
+        "label": "Email",
+        "inputType": "email",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Email"
+          },
+          {
+            "kind": "placeholder",
+            "value": "you@company.com"
+          },
+          {
+            "kind": "css",
+            "value": "#email"
+          }
+        ]
+      },
+      "title": "Type \"jane@example.com\" in **Email**",
+      "page": {
+        "url": "http://127.0.0.1:4517/index.html",
+        "title": "Sign in – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s01.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 600,
+          "width": 960,
+          "height": 88
+        },
+        "redactions": [
+          {
+            "rect": {
+              "x": 952,
+              "y": 736,
+              "width": 976,
+              "height": 104
+            },
+            "style": "blur",
+            "auto": true
+          }
+        ]
+      },
+      "timestamp": "2026-09-28T10:00:04Z"
+    },
+    {
+      "id": "s02",
+      "action": {
+        "type": "type",
+        "masked": true,
+        "value": ""
+      },
+      "target": {
+        "tag": "input",
+        "name": "Password",
+        "label": "Password",
+        "inputType": "password",
+        "sensitive": true,
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Password"
+          },
+          {
+            "kind": "css",
+            "value": "#password"
+          }
+        ]
+      },
+      "title": "Enter your password",
+      "page": {
+        "url": "http://127.0.0.1:4517/index.html",
+        "title": "Sign in – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s02.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 744,
+          "width": 960,
+          "height": 88
+        },
+        "redactions": [
+          {
+            "rect": {
+              "x": 952,
+              "y": 736,
+              "width": 976,
+              "height": 104
+            },
+            "style": "blur",
+            "auto": true
+          }
+        ]
+      },
+      "timestamp": "2026-09-28T10:00:08Z"
+    },
+    {
+      "id": "s03",
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "tag": "button",
+        "role": "button",
+        "name": "Sign in",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Sign in"
+          },
+          {
+            "kind": "css",
+            "value": "#sign-in"
+          }
+        ]
+      },
+      "title": "Click **Sign in**",
+      "page": {
+        "url": "http://127.0.0.1:4517/index.html",
+        "title": "Sign in – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s03.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 888,
+          "width": 240,
+          "height": 88
+        },
+        "redactions": [
+          {
+            "rect": {
+              "x": 952,
+              "y": 736,
+              "width": 976,
+              "height": 104
+            },
+            "style": "blur",
+            "auto": true
+          }
+        ]
+      },
+      "timestamp": "2026-09-28T10:00:12Z"
+    },
+    {
+      "id": "s04",
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "tag": "a",
+        "role": "link",
+        "name": "Help centre",
+        "href": "http://127.0.0.1:4517/help.html",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "link",
+            "name": "Help centre"
+          },
+          {
+            "kind": "css",
+            "value": "#help-link"
+          }
+        ]
+      },
+      "title": "Click **Help centre**",
+      "page": {
+        "url": "http://127.0.0.1:4517/dashboard.html",
+        "title": "Dashboard – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s04.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 2460,
+          "y": 48,
+          "width": 240,
+          "height": 56
+        }
+      },
+      "timestamp": "2026-09-28T10:00:16Z"
+    },
+    {
+      "id": "s05",
+      "action": {
+        "type": "type",
+        "value": "invoices"
+      },
+      "target": {
+        "tag": "input",
+        "role": "searchbox",
+        "name": "Search help",
+        "placeholder": "Search help",
+        "inputType": "search",
+        "locators": [
+          {
+            "kind": "placeholder",
+            "value": "Search help"
+          },
+          {
+            "kind": "role",
+            "role": "searchbox",
+            "name": "Search help"
+          },
+          {
+            "kind": "css",
+            "value": "#help-search"
+          }
+        ]
+      },
+      "title": "Search for \"invoices\"",
+      "page": {
+        "url": "http://127.0.0.1:4517/help.html",
+        "title": "Help centre – Acme Books",
+        "tabId": 2
+      },
+      "screenshot": {
+        "image": "images/s05.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 800,
+          "y": 400,
+          "width": 1280,
+          "height": 88
+        }
+      },
+      "timestamp": "2026-09-28T10:00:20Z"
+    },
+    {
+      "id": "s06",
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "tag": "a",
+        "role": "link",
+        "name": "Reports",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "link",
+            "name": "Reports"
+          },
+          {
+            "kind": "css",
+            "value": "#nav-reports"
+          }
+        ]
+      },
+      "title": "Click **Reports**",
+      "page": {
+        "url": "http://127.0.0.1:4517/dashboard.html",
+        "title": "Dashboard – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s06.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 80,
+          "y": 240,
+          "width": 180,
+          "height": 56
+        }
+      },
+      "timestamp": "2026-09-28T10:00:24Z"
+    },
+    {
+      "id": "s07",
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "tag": "a",
+        "role": "link",
+        "name": "Settings",
+        "href": "http://127.0.0.1:4517/settings.html",
+        "locators": [
+          {
+            "kind": "role",
+            "role": "link",
+            "name": "Settings"
+          },
+          {
+            "kind": "css",
+            "value": "#settings-link"
+          }
+        ]
+      },
+      "title": "Click **Settings**",
+      "page": {
+        "url": "http://127.0.0.1:4517/dashboard/reports",
+        "title": "Reports – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s07.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 2600,
+          "y": 48,
+          "width": 160,
+          "height": 56
+        }
+      },
+      "timestamp": "2026-09-28T10:00:28Z"
+    },
+    {
+      "id": "s08",
+      "action": {
+        "type": "select",
+        "value": "yearly",
+        "optionText": "Yearly"
+      },
+      "target": {
+        "tag": "select",
+        "role": "combobox",
+        "name": "Billing period",
+        "label": "Billing period",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Billing period"
+          },
+          {
+            "kind": "css",
+            "value": "#billing-period"
+          }
+        ]
+      },
+      "title": "Select **Yearly** in **Billing period**",
+      "page": {
+        "url": "http://127.0.0.1:4517/settings.html",
+        "title": "Settings – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s08.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 520,
+          "width": 480,
+          "height": 80
+        }
+      },
+      "timestamp": "2026-09-28T10:00:32Z"
+    },
+    {
+      "id": "s09",
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "target": {
+        "tag": "input",
+        "role": "checkbox",
+        "name": "Email me invoices",
+        "label": "Email me invoices",
+        "inputType": "checkbox",
+        "locators": [
+          {
+            "kind": "label",
+            "value": "Email me invoices"
+          },
+          {
+            "kind": "css",
+            "value": "#email-invoices"
+          }
+        ]
+      },
+      "title": "Check **Email me invoices**",
+      "page": {
+        "url": "http://127.0.0.1:4517/settings.html",
+        "title": "Settings – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s09.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 660,
+          "width": 40,
+          "height": 40
+        }
+      },
+      "timestamp": "2026-09-28T10:00:36Z"
+    },
+    {
+      "id": "s10",
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "tag": "button",
+        "role": "button",
+        "name": "Save",
+        "locators": [
+          {
+            "kind": "testid",
+            "value": "save-settings"
+          },
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Save"
+          }
+        ]
+      },
+      "title": "Click **Save**",
+      "page": {
+        "url": "http://127.0.0.1:4517/settings.html",
+        "title": "Settings – Acme Books",
+        "tabId": 1
+      },
+      "screenshot": {
+        "image": "images/s10.png",
+        "width": 2880,
+        "height": 1800,
+        "devicePixelRatio": 2,
+        "viewport": {
+          "width": 1440,
+          "height": 900,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "highlight": {
+          "x": 960,
+          "y": 800,
+          "width": 200,
+          "height": 80
+        }
+      },
+      "timestamp": "2026-09-28T10:00:40Z"
+    }
+  ],
+  "settings": {
+    "redactStyle": "blur",
+    "includeUrls": true
+  }
+}

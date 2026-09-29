@@ -1,0 +1,435 @@
+{
+  "format": "showsteps-steps",
+  "generator": {
+    "name": "Showsteps",
+    "url": "https://showsteps.vercel.app"
+  },
+  "guide": {
+    "createdAt": "2026-09-28T10:00:00Z",
+    "description": "Sign in, look something up in the help centre in a second tab, then switch the **billing period** to yearly and save.",
+    "id": "g_sample11",
+    "stepCount": 11,
+    "tabCount": 2,
+    "title": "Sign in, ask for help, and update billing in Acme Books"
+  },
+  "secrets": [
+    {
+      "env": "SHOWSTEPS_SECRET_1",
+      "field": "Password",
+      "step": 3
+    }
+  ],
+  "startUrl": "http://127.0.0.1:4517/index.html",
+  "steps": [
+    {
+      "action": {
+        "type": "navigate",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "frame": [],
+      "id": "s00",
+      "index": 1,
+      "locators": [],
+      "page": {
+        "tabIndex": 1,
+        "title": "Sign in – Acme Books",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "replay": {
+        "playwright": "await page.goto(\"http://127.0.0.1:4517/index.html\");\nawait expect(page).toHaveURL(/^http:\\/\\/127\\.0\\.0\\.1:4517\\/index\\.html\\/?(?:[?#].*)?$/);",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Go to Sign in – Acme Books",
+      "titleMarkdown": "Go to **Sign in – Acme Books**"
+    },
+    {
+      "action": {
+        "type": "type",
+        "value": "jane@example.com"
+      },
+      "element": {
+        "inputType": "email",
+        "label": "Email",
+        "name": "Email",
+        "role": "textbox",
+        "tag": "input"
+      },
+      "frame": [],
+      "id": "s01",
+      "index": 2,
+      "locators": [
+        {
+          "kind": "label",
+          "value": "Email"
+        },
+        {
+          "kind": "placeholder",
+          "value": "you@company.com"
+        },
+        {
+          "kind": "css",
+          "value": "#email"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Sign in – Acme Books",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "replay": {
+        "playwright": "await page.getByLabel(\"Email\").fill(\"jane@example.com\");",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Type \"jane@example.com\" in Email",
+      "titleMarkdown": "Type \"jane@example.com\" in **Email**"
+    },
+    {
+      "action": {
+        "masked": true,
+        "secret": "SHOWSTEPS_SECRET_1",
+        "type": "type"
+      },
+      "element": {
+        "inputType": "password",
+        "label": "Password",
+        "name": "Password",
+        "sensitive": true,
+        "tag": "input"
+      },
+      "frame": [],
+      "id": "s02",
+      "index": 3,
+      "locators": [
+        {
+          "kind": "label",
+          "value": "Password"
+        },
+        {
+          "kind": "css",
+          "value": "#password"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Sign in – Acme Books",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "replay": {
+        "playwright": "await page.getByLabel(\"Password\").fill(process.env.SHOWSTEPS_SECRET_1!);",
+        "replayable": true,
+        "secret": "SHOWSTEPS_SECRET_1"
+      },
+      "shadow": [],
+      "title": "Enter your password",
+      "titleMarkdown": "Enter your password"
+    },
+    {
+      "action": {
+        "type": "click"
+      },
+      "element": {
+        "name": "Sign in",
+        "role": "button",
+        "tag": "button"
+      },
+      "frame": [],
+      "id": "s03",
+      "index": 4,
+      "locators": [
+        {
+          "kind": "role",
+          "name": "Sign in",
+          "role": "button"
+        },
+        {
+          "kind": "css",
+          "value": "#sign-in"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Sign in – Acme Books",
+        "url": "http://127.0.0.1:4517/index.html"
+      },
+      "replay": {
+        "playwright": "await page.getByRole(\"button\", { name: \"Sign in\" }).click();",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Click Sign in",
+      "titleMarkdown": "Click **Sign in**"
+    },
+    {
+      "action": {
+        "type": "click"
+      },
+      "element": {
+        "href": "http://127.0.0.1:4517/help.html",
+        "name": "Help centre",
+        "role": "link",
+        "tag": "a"
+      },
+      "frame": [],
+      "id": "s04",
+      "index": 5,
+      "locators": [
+        {
+          "kind": "role",
+          "name": "Help centre",
+          "role": "link"
+        },
+        {
+          "kind": "css",
+          "value": "#help-link"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Dashboard – Acme Books",
+        "url": "http://127.0.0.1:4517/dashboard.html"
+      },
+      "replay": {
+        "playwright": "[page2] = await Promise.all([context.waitForEvent(\"page\"), page.getByRole(\"link\", { name: \"Help centre\" }).click()]);",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Click Help centre",
+      "titleMarkdown": "Click **Help centre**"
+    },
+    {
+      "action": {
+        "type": "type",
+        "value": "invoices"
+      },
+      "element": {
+        "inputType": "search",
+        "name": "Search help",
+        "placeholder": "Search help",
+        "role": "searchbox",
+        "tag": "input"
+      },
+      "frame": [],
+      "id": "s05",
+      "index": 6,
+      "locators": [
+        {
+          "kind": "placeholder",
+          "value": "Search help"
+        },
+        {
+          "kind": "role",
+          "name": "Search help",
+          "role": "searchbox"
+        },
+        {
+          "kind": "css",
+          "value": "#help-search"
+        }
+      ],
+      "page": {
+        "tabIndex": 2,
+        "title": "Help centre – Acme Books",
+        "url": "http://127.0.0.1:4517/help.html"
+      },
+      "replay": {
+        "playwright": "await page2.waitForLoadState(\"domcontentloaded\");\nawait page2.getByPlaceholder(\"Search help\").fill(\"invoices\");",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Search for \"invoices\"",
+      "titleMarkdown": "Search for \"invoices\""
+    },
+    {
+      "action": {
+        "type": "click"
+      },
+      "element": {
+        "name": "Reports",
+        "role": "link",
+        "tag": "a"
+      },
+      "frame": [],
+      "id": "s06",
+      "index": 7,
+      "locators": [
+        {
+          "kind": "role",
+          "name": "Reports",
+          "role": "link"
+        },
+        {
+          "kind": "css",
+          "value": "#nav-reports"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Dashboard – Acme Books",
+        "url": "http://127.0.0.1:4517/dashboard.html"
+      },
+      "replay": {
+        "playwright": "await page.bringToFront();\nawait page.getByRole(\"link\", { name: \"Reports\" }).click();",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Click Reports",
+      "titleMarkdown": "Click **Reports**"
+    },
+    {
+      "action": {
+        "type": "click"
+      },
+      "element": {
+        "href": "http://127.0.0.1:4517/settings.html",
+        "name": "Settings",
+        "role": "link",
+        "tag": "a"
+      },
+      "frame": [],
+      "id": "s07",
+      "index": 8,
+      "locators": [
+        {
+          "kind": "role",
+          "name": "Settings",
+          "role": "link"
+        },
+        {
+          "kind": "css",
+          "value": "#settings-link"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Reports – Acme Books",
+        "url": "http://127.0.0.1:4517/dashboard/reports"
+      },
+      "replay": {
+        "playwright": "await page.getByRole(\"link\", { name: \"Settings\" }).click();",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Click Settings",
+      "titleMarkdown": "Click **Settings**"
+    },
+    {
+      "action": {
+        "optionText": "Yearly",
+        "type": "select",
+        "value": "yearly"
+      },
+      "element": {
+        "label": "Billing period",
+        "name": "Billing period",
+        "role": "combobox",
+        "tag": "select"
+      },
+      "frame": [],
+      "id": "s08",
+      "index": 9,
+      "locators": [
+        {
+          "kind": "label",
+          "value": "Billing period"
+        },
+        {
+          "kind": "css",
+          "value": "#billing-period"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Settings – Acme Books",
+        "url": "http://127.0.0.1:4517/settings.html"
+      },
+      "replay": {
+        "playwright": "await page.getByLabel(\"Billing period\").selectOption({ label: \"Yearly\" });",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Select Yearly in Billing period",
+      "titleMarkdown": "Select **Yearly** in **Billing period**"
+    },
+    {
+      "action": {
+        "checked": true,
+        "type": "check"
+      },
+      "element": {
+        "inputType": "checkbox",
+        "label": "Email me invoices",
+        "name": "Email me invoices",
+        "role": "checkbox",
+        "tag": "input"
+      },
+      "frame": [],
+      "id": "s09",
+      "index": 10,
+      "locators": [
+        {
+          "kind": "label",
+          "value": "Email me invoices"
+        },
+        {
+          "kind": "css",
+          "value": "#email-invoices"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Settings – Acme Books",
+        "url": "http://127.0.0.1:4517/settings.html"
+      },
+      "replay": {
+        "playwright": "await page.getByLabel(\"Email me invoices\").setChecked(true);",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Check Email me invoices",
+      "titleMarkdown": "Check **Email me invoices**"
+    },
+    {
+      "action": {
+        "type": "click"
+      },
+      "element": {
+        "name": "Save",
+        "role": "button",
+        "tag": "button"
+      },
+      "frame": [],
+      "id": "s10",
+      "index": 11,
+      "locators": [
+        {
+          "kind": "testid",
+          "value": "save-settings"
+        },
+        {
+          "kind": "role",
+          "name": "Save",
+          "role": "button"
+        }
+      ],
+      "page": {
+        "tabIndex": 1,
+        "title": "Settings – Acme Books",
+        "url": "http://127.0.0.1:4517/settings.html"
+      },
+      "replay": {
+        "playwright": "await page.getByTestId(\"save-settings\").click();",
+        "replayable": true
+      },
+      "shadow": [],
+      "title": "Click Save",
+      "titleMarkdown": "Click **Save**"
+    }
+  ],
+  "version": 1,
+  "viewport": {
+    "height": 900,
+    "width": 1440
+  }
+}

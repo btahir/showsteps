@@ -21,7 +21,8 @@ export class PngError extends Error {
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 let CRC_TABLE: Uint32Array | undefined;
-function crc32(bytes: Uint8Array, start: number, end: number): number {
+/** CRC-32 (PNG/zip polynomial) of `bytes[start, end)`. */
+export function crc32(bytes: Uint8Array, start = 0, end: number = bytes.length): number {
   if (!CRC_TABLE) {
     CRC_TABLE = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {

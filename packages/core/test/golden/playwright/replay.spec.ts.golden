@@ -3,19 +3,16 @@
 // Values typed into sensitive fields were never stored. Set SHOWSTEPS_SECRET_1 before running.
 import { expect, test, type Page } from "@playwright/test";
 
-function secret(name: string): string {
-  const value = process.env[name];
-  if (value === undefined) throw new Error(`Set ${name} to replay this step: the recording did not store it.`);
-  return value;
-}
-
 test.use({ viewport: { width: 80, height: 50 } });
 
-test("Update billing settings in Acme", async ({ page, context }) => {
+test("Update billing settings in Acme", async ({ context }) => {
+  test.skip(!process.env.SHOWSTEPS_SECRET_1, "set SHOWSTEPS_SECRET_1");
+  const page = await context.newPage();
   let page2!: Page;
 
   await test.step("1. Go to Sign in – Acme", async () => {
     await page.goto("https://app.acme.test/login");
+    await expect(page).toHaveURL(/^https:\/\/app\.acme\.test\/login\/?(?:[?#].*)?$/);
   });
 
   await test.step('2. Type "jane@example.com" in Email', async () => {
@@ -23,7 +20,7 @@ test("Update billing settings in Acme", async ({ page, context }) => {
   });
 
   await test.step("3. Enter your password", async () => {
-    await page.getByLabel("Password").fill(secret("SHOWSTEPS_SECRET_1"));
+    await page.getByLabel("Password").fill(process.env.SHOWSTEPS_SECRET_1!);
   });
 
   await test.step("4. Click Sign in", async () => {
@@ -39,16 +36,16 @@ test("Update billing settings in Acme", async ({ page, context }) => {
   });
 
   await test.step("7. Check Email me invoices", async () => {
-    await page.getByLabel("Email me invoices").check();
+    await page.getByLabel("Email me invoices").setChecked(true);
   });
 
   await test.step("8. Click Pay now", async () => {
-    await page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now" }).click();
+    [page2] = await Promise.all([context.waitForEvent("page"), page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now" }).click()]);
   });
 
   await test.step("9. Go to Invoices – Acme Help", async () => {
-    page2 = await context.newPage();
-    await page2.goto("https://help.acme.test/invoices");
+    await page2.waitForLoadState("domcontentloaded");
+    await expect(page2).toHaveURL(/^https:\/\/help\.acme\.test\/invoices\/?(?:[?#].*)?$/);
   });
 
   await test.step("10. Press Enter to search", async () => {

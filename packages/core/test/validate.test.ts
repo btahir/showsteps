@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GuideValidationError, migrateGuide, validateGuide } from "../src";
 import { fixtureGuide } from "./fixtures/guide";
+import bad from "./validate.bad.json";
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -162,5 +163,111 @@ describe("migrateGuide", () => {
     expect(() => migrateGuide({ schemaVersion: 1.5 })).toThrow(/schemaVersion/);
     expect(() => migrateGuide("x")).toThrow(/expected an object/);
     expect(() => migrateGuide(null)).toThrow(GuideValidationError);
+  });
+});
+
+// ---- data-driven bad inputs (test/validate.bad.json) -----------------------------------------
+
+type Op = ["set", string, unknown] | ["delete", string] | ["setNum", string, string] | ["setJson", string, string] | ["fillSteps", number];
+interface BadCase {
+  name: string;
+  expect: string;
+  patch?: Op[];
+  input?: unknown;
+}
+
+function applyPatch(root: Any, ops: Op[]): void {
+  const walk = (path: string): { parent: Any; key: string } => {
+    const parts = path.split(".");
+    let cur = root;
+    for (const p of parts.slice(0, -1)) cur = cur[p];
+    return { parent: cur, key: parts[parts.length - 1] as string };
+  };
+  for (const op of ops) {
+    if (op[0] === "fillSteps") {
+      const base = root.steps[0];
+      root.steps = Array.from({ length: op[1] }, (_, i) => ({ ...clone(base), id: `s${i}` }));
+    } else if (op[0] === "set") {
+      const { parent, key } = walk(op[1]);
+      parent[key] = op[2];
+    } else if (op[0] === "delete") {
+      const { parent, key } = walk(op[1]);
+      delete parent[key];
+    } else if (op[0] === "setNum") {
+      const { parent, key } = walk(op[1]);
+      parent[key] = op[2] === "NaN" ? Number.NaN : op[2] === "Infinity" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    } else {
+      const { parent, key } = walk(op[1]);
+      // JSON.parse creates an own "__proto__" property, exactly like a hostile file would
+      Object.defineProperty(parent, key, { value: JSON.parse(op[2]), enumerable: true, writable: true, configurable: true });
+    }
+  }
+}
+
+describe("validate.bad.json", () => {
+  const cases = bad as unknown as BadCase[];
+  it("has at least 30 bad inputs", () => expect(cases.length).toBeGreaterThanOrEqual(30));
+  it.each(cases.map((c) => [c.name, c] as const))("rejects: %s", (_name, c) => {
+    let input: unknown;
+    if ("input" in c) input = c.input;
+    else {
+      const g = clone(fixtureGuide()) as unknown as Any;
+      applyPatch(g, c.patch ?? []);
+      input = g;
+    }
+    const r = validateGuide(input);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join("\n")).toContain(c.expect);
+  });
+});
+
+describe("non-JSON values and hostile shapes", () => {
+  const g = (): Any => clone(fixtureGuide()) as unknown as Any;
+  it.each([
+    ["a function", () => () => 1],
+    ["a Date", () => new Date()],
+    ["a Map", () => new Map()],
+    ["a Uint8Array", () => new Uint8Array(2)],
+    ["a symbol", () => Symbol("x")],
+    ["a bigint", () => 10n],
+  ])("rejects %s inside a guide", (_n, make) => {
+    const x = g();
+    x.meta = { v: make() };
+    const r = validateGuide(x);
+    expect(r.ok).toBe(false);
+  });
+  it("rejects undefined inside an array but accepts undefined optional fields", () => {
+    const x = g();
+    x.steps[0].target = undefined;
+    expect(validateGuide(x).ok).toBe(true);
+    x.meta = [undefined];
+    expect(validateGuide(x).ok).toBe(false);
+  });
+  it("rejects absurdly deep nesting", () => {
+    const x = g();
+    let cur: Any = (x.meta = {});
+    for (let i = 0; i < 60; i++) cur = cur.n = {};
+    const r = validateGuide(x);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join()).toContain("nested too deeply");
+  });
+  it("accepts a masked type step with the bullet placeholder, and a null-prototype object", () => {
+    const x = g();
+    x.steps[2].action.value = "\u2022\u2022\u2022";
+    expect(validateGuide(x).ok).toBe(true);
+    expect(validateGuide(Object.assign(Object.create(null), x)).ok).toBe(true);
+  });
+  it("accepts an agent-authored guide: no screenshots, no tabId, no timestamps beyond ISO", () => {
+    const x = g();
+    x.steps = x.steps.map((s: Any) => ({ id: s.id, action: s.action, title: s.title, page: { url: s.page.url }, timestamp: s.timestamp, ...(s.target ? { target: s.target } : {}) }));
+    expect(validateGuide(x).ok).toBe(true);
+  });
+  it("migrateGuide is idempotent and accepts both app names", () => {
+    for (const name of ["showsteps", "stepsnap"]) {
+      const x = g();
+      x.app.name = name;
+      const once = migrateGuide(x);
+      expect(migrateGuide(once)).toEqual(once);
+    }
   });
 });

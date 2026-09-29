@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="Showsteps">
+<meta name="description" content="Sign in, look something up in the help centre in a second tab, then switch the billing period to yearly and save.">
+<title>Sign in, ask for help, and update billing in Acme Books</title>
+<style>@font-face { font-family: "Rethink Sans"; src: url(data:font/woff2;base64,...) format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Rethink Sans"; src: url(data:font/woff2;base64,...) format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Fragment Mono"; src: url(data:font/woff2;base64,...) format("woff2"); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root { --ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
+  --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
+  --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
+  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-radius-md: 10px; --ss-radius-lg: 14px;
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-guide-measure: 820px; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; } }
+:root[data-theme="dark"] { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ss-bg); color: var(--ss-ink); font: 400 16px/1.55 var(--ss-font-ui); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+main { max-width: var(--ss-guide-measure); margin: 0 auto; padding: 72px 24px 96px; }
+b, strong { font-weight: 650; }
+a { color: var(--ss-accent-ink); text-underline-offset: 2px; }
+code { font-family: var(--ss-font-mono); font-size: .9em; background: var(--ss-surface-2); padding: .1em .35em; border-radius: 5px; }
+pre { font-family: var(--ss-font-mono); font-size: 13px; background: var(--ss-surface-2); padding: 12px 14px; border-radius: var(--ss-radius-md); overflow-x: auto; white-space: pre-wrap; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 12px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--ss-line-2); color: var(--ss-ink-2); }
+.mono { font-family: var(--ss-font-mono); font-size: 12px; letter-spacing: -.01em; }
+
+.flag { display: inline-grid; place-items: center; min-width: 36px; height: 32px; padding: 0 9px; background: var(--ss-accent); color: var(--ss-on-accent);
+  font: 700 17px/1 var(--ss-font-ui); font-variant-numeric: tabular-nums; border-radius: 9px 9px 9px 3px; }
+.flag.sm { min-width: 20px; height: 20px; padding: 0 5px; font-size: 11px; border-radius: 6px 6px 6px 2px; }
+
+.eyebrow { display: flex; gap: 10px; align-items: center; color: var(--ss-ink-3); text-transform: uppercase; }
+h1 { margin: 18px 0 0; font: 750 44px/1.08 var(--ss-font-ui); letter-spacing: -.03em; text-wrap: balance; max-width: 18ch; overflow-wrap: anywhere; }
+.lede { margin-top: 16px; font-size: 18px; line-height: 1.55; color: var(--ss-ink-2); max-width: 60ch; }
+.lede p { margin: 0 0 .6em; }
+.facts { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 0; border-top: 1px solid var(--ss-line); border-bottom: 1px solid var(--ss-line); font-size: 13.5px; color: var(--ss-ink-2); }
+.facts b { display: block; color: var(--ss-ink); font-weight: 650; font-size: 14px; }
+
+ol.steps { list-style: none; padding: 0; margin: 56px 0 0; display: flex; flex-direction: column; gap: 64px; }
+.step { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 8px; }
+.step .flag { margin-top: 2px; align-self: start; justify-self: start; }
+.step h2 { margin: 0; font: 600 22px/1.3 var(--ss-font-ui); letter-spacing: -.015em; overflow-wrap: anywhere; }
+.step h2 b { font-weight: 750; }
+.desc { margin-top: 6px; color: var(--ss-ink-2); font-size: 16px; }
+.desc p { margin: 6px 0 0; }
+.desc ul, .desc ol { margin: 6px 0 0; padding-left: 1.3em; }
+figure { grid-column: 1 / -1; margin: 18px 0 0; }
+.frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--ss-line); box-shadow: var(--ss-shadow-2); line-height: 0; background: #fff; }
+.frame img { display: block; width: 100%; height: auto; }
+figcaption { margin-top: 10px; display: flex; gap: 8px; align-items: center; color: var(--ss-ink-3); min-width: 0; }
+figcaption svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+figcaption .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+figcaption a { color: inherit; text-decoration: none; }
+figcaption a:hover { text-decoration: underline; }
+.step.note h2 { font-weight: 600; }
+.step.note .flag { background: var(--ss-surface-2); color: var(--ss-ink-2); }
+
+footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--ss-line); color: var(--ss-ink-3); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; }
+footer a { color: inherit; }
+
+@media (max-width: 600px) {
+  main { padding: 40px 16px 64px; }
+  h1 { font-size: 32px; }
+  .step { grid-template-columns: 1fr; row-gap: 8px; }
+  .step h2 { font-size: 19px; }
+}
+
+@media print {
+  :root { --ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
+  --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
+  --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
+  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-radius-md: 10px; --ss-radius-lg: 14px;
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-guide-measure: 820px; --ss-bg: #fff; --ss-shadow-2: none; color-scheme: light; }
+  @page { margin: 16mm 14mm; }
+  html, body { background: #fff; }
+  body { font-size: 11pt; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { max-width: none; padding: 0; }
+  h1 { font-size: 26pt; max-width: none; }
+  .lede { font-size: 12pt; }
+  ol.steps { margin-top: 22pt; gap: 22pt; }
+  .step { break-inside: avoid; page-break-inside: avoid; }
+  .step h2 { font-size: 14pt; break-after: avoid; page-break-after: avoid; }
+  figure { break-inside: avoid; page-break-inside: avoid; margin-top: 10pt; }
+  .frame { box-shadow: none; }
+  .frame img { max-height: 200mm; width: auto; max-width: 100%; margin: 0 auto; }
+  .facts, .eyebrow { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+  footer { margin-top: 28pt; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow"><span class="flag sm" aria-hidden="true">11</span><span class="mono">STEPS · ABOUT 4 MINUTES</span></div>
+<h1>Sign in, ask for help, and update billing in Acme Books</h1>
+<div class="lede"><p>Sign in, look something up in the help centre in a second tab, then switch the <b>billing period</b> to yearly and save.</p></div>
+<div class="facts"><div><b>Starts at</b>127.0.0.1:4517</div><div><b>Created</b>28 September 2026</div></div>
+</header>
+<ol class="steps">
+<li class="step" id="step-1"><span class="flag" aria-hidden="true">1</span><div><h2>Go to <b>Sign in – Acme Books</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 1: Go to Sign in – Acme Books" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
+<li class="step" id="step-2"><span class="flag" aria-hidden="true">2</span><div><h2>Type &quot;jane@example.com&quot; in <b>Email</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 2: Type &quot;jane@example.com&quot; in Email" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
+<li class="step" id="step-3"><span class="flag" aria-hidden="true">3</span><div><h2>Enter your password</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 3: Enter your password" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
+<li class="step" id="step-4"><span class="flag" aria-hidden="true">4</span><div><h2>Click <b>Sign in</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 4: Click Sign in" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
+<li class="step" id="step-5"><span class="flag" aria-hidden="true">5</span><div><h2>Click <b>Help centre</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 5: Click Help centre" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
+<li class="step" id="step-6"><span class="flag" aria-hidden="true">6</span><div><h2>Search for &quot;invoices&quot;</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 6: Search for &quot;invoices&quot;" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/help.html</span></figcaption></figure></li>
+<li class="step" id="step-7"><span class="flag" aria-hidden="true">7</span><div><h2>Click <b>Reports</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 7: Click Reports" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
+<li class="step" id="step-8"><span class="flag" aria-hidden="true">8</span><div><h2>Click <b>Settings</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 8: Click Settings" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard/reports</span></figcaption></figure></li>
+<li class="step" id="step-9"><span class="flag" aria-hidden="true">9</span><div><h2>Select <b>Yearly</b> in <b>Billing period</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 9: Select Yearly in Billing period" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
+<li class="step" id="step-10"><span class="flag" aria-hidden="true">10</span><div><h2>Check <b>Email me invoices</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 10: Check Email me invoices" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
+<li class="step" id="step-11"><span class="flag" aria-hidden="true">11</span><div><h2>Click <b>Save</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 11: Click Save" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
+</ol>
+<footer><span>Made with Showsteps · showsteps.vercel.app</span><span class="mono">28 September 2026</span></footer>
+</main>
+</body>
+</html>

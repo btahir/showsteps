@@ -94,6 +94,7 @@ export interface PlanStep {
   tab: number;
   /** `page`, `page2`, ... */
   tabVar: string;
+  /** True when this step is the first one in a tab that no earlier step used. */
   opensTab: boolean;
   switchesTab: boolean;
   /** Playwright statement(s) for the step body, without indentation. */
@@ -118,46 +119,38 @@ export interface ReplayPlan {
 
 export const SECRET_PREFIX = "SHOWSTEPS_SECRET_";
 
-/** Turn a guide into the ordered Playwright statements shared by `replay.spec.ts` and `steps.json`. */
+const isHttp = (u: string): boolean => /^https?:\/\//i.test(u);
+
+/**
+ * Turn a guide into the ordered Playwright statements shared by `replay.spec.ts` and `steps.json`
+ * (PLAN 3.9): the first tab is `context.newPage()`; a never-seen `tabId` means the previous step's
+ * action opened a popup, so that action is wrapped in `Promise.all([context.waitForEvent("page"), ...])`;
+ * a seen `tabId` gets `bringToFront()`; a navigate step in a just-opened tab has no `goto`; masked
+ * values come from `process.env.SHOWSTEPS_SECRET_<n>`. Steps without a `tabId` share one page.
+ */
 export function buildReplayPlan(guide: Guide): ReplayPlan {
   const visible = visibleSteps(guide);
-  const tabIds: (number | string)[] = [];
+  const tabKeys: (number | string)[] = [];
   const tabVarOf = (i: number): string => (i === 0 ? "page" : `page${i + 1}`);
   const plan: PlanStep[] = [];
   const secrets: string[] = [];
   const preamble: string[] = [];
-  const started = new Set<number>(); // tab indexes that have loaded a page
   let prevTab = 0;
 
   visible.forEach((step, idx) => {
-    const key = step.page.tabId ?? (idx === 0 ? "default" : tabIds[prevTab] ?? "default");
-    let tabIdx = tabIds.indexOf(key);
+    const key = step.page.tabId ?? (idx === 0 ? "default" : (tabKeys[prevTab] ?? "default"));
+    let tabIdx = tabKeys.indexOf(key);
     const opensTab = tabIdx === -1;
     if (opensTab) {
-      tabIds.push(key);
-      tabIdx = tabIds.length - 1;
+      tabKeys.push(key);
+      tabIdx = tabKeys.length - 1;
     }
     const pv = tabVarOf(tabIdx);
-    const switchesTab = idx > 0 && tabIdx !== prevTab && !opensTab;
     const a = step.action;
     const lines: string[] = [];
     let replayable = true;
     let note: string | undefined;
     let secret: string | undefined;
-
-    const first = !started.has(tabIdx);
-    if (opensTab && idx > 0) {
-      if (a.type === "navigate") {
-        lines.push(`${pv} = await context.newPage();`);
-      } else {
-        const known = Array.from({ length: tabIdx }, (_, i) => tabVarOf(i)).join(", ");
-        lines.push(`${pv} = context.pages().find((p) => ![${known}].includes(p)) ?? (await context.waitForEvent("page"));`);
-        lines.push(`await ${pv}.waitForLoadState();`);
-      }
-    } else if (switchesTab) {
-      lines.push(`await ${pv}.bringToFront();`);
-    }
-
     const loc = locatorCode(step.target, pv);
     const needLoc = (): string | undefined => {
       if (loc) return loc;
@@ -165,15 +158,18 @@ export function buildReplayPlan(guide: Guide): ReplayPlan {
       note = "no locator was recorded for this element";
       return undefined;
     };
+    const secretEnv = (): string => {
+      secrets.push(`${SECRET_PREFIX}${secrets.length + 1}`);
+      return secrets[secrets.length - 1] as string;
+    };
 
     switch (a.type) {
-      case "navigate":
-        if (first) {
-          lines.push(`await ${pv}.goto(${q(a.url)});`);
-        } else {
-          lines.push(urlAssertion(pv, a.url));
-        }
+      case "navigate": {
+        // Whether this navigation needs a goto is decided in pass 2 (it depends on how the tab was opened).
+        lines.push(`await ${pv}.goto(${q(a.url)});`);
+        lines.push(urlAssertion(pv, isHttp(step.page.url) ? step.page.url : a.url));
         break;
+      }
       case "click": {
         const l = needLoc();
         if (l) {
@@ -187,9 +183,8 @@ export function buildReplayPlan(guide: Guide): ReplayPlan {
         const l = needLoc();
         if (l) {
           if (isSensitiveStep(step)) {
-            secrets.push(`${SECRET_PREFIX}${secrets.length + 1}`);
-            secret = secrets[secrets.length - 1];
-            lines.push(`await ${l}.fill(secret(${q(secret as string)}));`);
+            secret = secretEnv();
+            lines.push(`await ${l}.fill(process.env.${secret}!);`);
           } else {
             lines.push(`await ${l}.fill(${q(a.value)});`);
           }
@@ -200,9 +195,8 @@ export function buildReplayPlan(guide: Guide): ReplayPlan {
         const l = needLoc();
         if (l) {
           if (step.target?.sensitive) {
-            secrets.push(`${SECRET_PREFIX}${secrets.length + 1}`);
-            secret = secrets[secrets.length - 1];
-            lines.push(`await ${l}.selectOption(secret(${q(secret as string)}));`);
+            secret = secretEnv();
+            lines.push(`await ${l}.selectOption(process.env.${secret}!);`);
           } else if (a.optionText && a.optionText.trim() !== "") lines.push(`await ${l}.selectOption({ label: ${q(a.optionText)} });`);
           else lines.push(`await ${l}.selectOption(${q(a.value)});`);
         }
@@ -210,7 +204,7 @@ export function buildReplayPlan(guide: Guide): ReplayPlan {
       }
       case "check": {
         const l = needLoc();
-        if (l) lines.push(a.checked ? `await ${l}.check();` : `await ${l}.uncheck();`);
+        if (l) lines.push(`await ${l}.setChecked(${a.checked ? "true" : "false"});`);
         break;
       }
       case "press": {
@@ -240,19 +234,60 @@ export function buildReplayPlan(guide: Guide): ReplayPlan {
         note = "note for humans, nothing to replay";
         break;
     }
-    started.add(tabIdx);
-    if (idx === 0 && a.type !== "navigate" && step.page.url) preamble.push(`await ${pv}.goto(${q(step.page.url)});`);
 
-    const ps: PlanStep = { n: idx + 1, step, tab: tabIdx + 1, tabVar: pv, opensTab: opensTab && idx > 0, switchesTab, lines, replayable, ...(note ? { note } : {}), ...(secret ? { secret } : {}) };
+    const ps: PlanStep = {
+      n: idx + 1,
+      step,
+      tab: tabIdx + 1,
+      tabVar: pv,
+      opensTab: opensTab && idx > 0,
+      switchesTab: idx > 0 && tabIdx !== prevTab && !opensTab,
+      lines,
+      replayable,
+      ...(note ? { note } : {}),
+      ...(secret ? { secret } : {}),
+    };
     if (loc) ps.locator = locatorCode(step.target, "page") as string;
     plan.push(ps);
     prevTab = tabIdx;
   });
 
+  // Pass 2: tab handling and the start of the recording.
+  const started = new Set<number>();
+  plan.forEach((ps, idx) => {
+    const a = ps.step.action;
+    const pv = ps.tabVar;
+    const tabIdx = ps.tab - 1;
+    const goto = ps.lines.findIndex((l) => l.startsWith(`await ${pv}.goto(`));
+    const dropGoto = (): void => {
+      if (goto >= 0) ps.lines.splice(goto, 1);
+    };
+    if (idx === 0) {
+      if (a.type !== "navigate" && ps.step.page.url) preamble.push(`await ${pv}.goto(${q(ps.step.page.url)});`);
+    } else if (ps.opensTab) {
+      const prev = plan[idx - 1] as PlanStep;
+      const last = prev.lines[prev.lines.length - 1];
+      const wrappable = prev.replayable && last !== undefined && last.startsWith("await ") && !last.includes(".goto(") && !last.startsWith("await expect(");
+      if (wrappable) {
+        const expr = (last as string).replace(/^await /, "").replace(/;$/, "");
+        prev.lines[prev.lines.length - 1] = `[${pv}] = await Promise.all([context.waitForEvent("page"), ${expr}]);`;
+        dropGoto();
+        ps.lines.unshift(`await ${pv}.waitForLoadState("domcontentloaded");`);
+      } else {
+        // Nothing preceded the tab (agent-authored guide): open it ourselves and go to its page.
+        ps.lines.unshift(`${pv} = await context.newPage();`);
+        if (a.type !== "navigate" && ps.step.page.url) ps.lines.splice(1, 0, `await ${pv}.goto(${q(ps.step.page.url)});`);
+      }
+    } else if (ps.switchesTab) {
+      ps.lines.unshift(`await ${pv}.bringToFront();`);
+    }
+    started.add(tabIdx);
+  });
+
   const vp = visible.find((s) => s.screenshot)?.screenshot?.viewport;
   return {
     steps: plan,
-    tabCount: tabIds.length,
+    tabCount: tabKeys.length,
     secrets,
     ...(vp && vp.width > 0 && vp.height > 0 ? { viewport: { width: Math.round(vp.width), height: Math.round(vp.height) } } : {}),
     preamble,

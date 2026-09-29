@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://showsteps.vercel.app/schema/steps.schema.json",
+  "title": "Showsteps steps.json (format showsteps-steps, version 1)",
+  "description": "Machine-readable step list written next to SKILL.md by exportAgentSkill. Contains no image data and never a masked value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "generator", "guide", "secrets", "steps"],
+  "properties": {
+    "format": { "const": "showsteps-steps" },
+    "version": { "const": 1 },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url"],
+      "properties": { "name": { "type": "string" }, "url": { "type": "string" } }
+    },
+    "guide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "createdAt", "stepCount", "tabCount"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "description": { "type": "string", "description": "Markdown" },
+        "createdAt": { "type": "string" },
+        "stepCount": { "type": "integer", "minimum": 0 },
+        "tabCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "startUrl": { "type": "string", "description": "Page of the first step: where a replay starts." },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": { "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 } }
+    },
+    "secrets": {
+      "type": "array",
+      "description": "Environment variables the replay needs, one per masked or sensitive field. Values are never stored.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["env", "step"],
+        "properties": {
+          "env": { "type": "string", "pattern": "^SHOWSTEPS_SECRET_[0-9]+$" },
+          "step": { "type": "integer", "minimum": 1, "description": "index of the step that needs it" },
+          "field": { "type": "string" }
+        }
+      }
+    },
+    "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } }
+  },
+  "$defs": {
+    "locator": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": { "kind": { "enum": ["testid", "label", "placeholder", "css", "xpath"] }, "value": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "value"], "properties": { "kind": { "const": "text" }, "value": { "type": "string", "minLength": 1 }, "exact": { "type": "boolean" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "role", "name"], "properties": { "kind": { "const": "role" }, "role": { "type": "string", "minLength": 1 }, "name": { "type": "string" } } }
+      ]
+    },
+    "action": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["type", "url"], "properties": { "type": { "const": "navigate" }, "url": { "type": "string" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "click" }, "button": { "enum": ["left", "right", "middle"] }, "double": { "type": "boolean" } } },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "description": "Either a literal value, or masked with the environment variable that supplies it.",
+          "properties": { "type": { "const": "type" }, "value": { "type": "string" }, "masked": { "const": true }, "secret": { "type": "string", "pattern": "^SHOWSTEPS_SECRET_[0-9]+$" } },
+          "oneOf": [{ "required": ["value"], "not": { "required": ["masked"] } }, { "required": ["masked", "secret"], "not": { "required": ["value"] } }]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": { "type": { "const": "select" }, "value": { "type": "string" }, "optionText": { "type": "string" }, "masked": { "const": true }, "secret": { "type": "string", "pattern": "^SHOWSTEPS_SECRET_[0-9]+$" } }
+        },
+        { "type": "object", "additionalProperties": false, "required": ["type", "checked"], "properties": { "type": { "const": "check" }, "checked": { "type": "boolean" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "key"], "properties": { "type": { "const": "press" }, "key": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "x", "y"], "properties": { "type": { "const": "scroll" }, "x": { "type": "number" }, "y": { "type": "number" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "hover" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "note" } } }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "id", "title", "titleMarkdown", "action", "locators", "frame", "shadow", "page", "replay"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 1, "description": "1-based position among the exported (non-skipped) steps" },
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "title": { "type": "string", "description": "plain text, e.g. Click Sign in" },
+        "titleMarkdown": { "type": "string", "description": "the same with Markdown emphasis, as shown in the guide" },
+        "description": { "type": "string" },
+        "action": { "$ref": "#/$defs/action" },
+        "locators": { "type": "array", "items": { "$ref": "#/$defs/locator" }, "description": "best first; empty when the step has no element" },
+        "frame": { "type": "array", "items": { "type": "string" }, "description": "iframe CSS selectors, outermost first" },
+        "shadow": { "type": "array", "items": { "type": "string" }, "description": "shadow-host CSS selectors, outermost first" },
+        "element": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tag"],
+          "description": "what was known about the element (text of text fields is left out)",
+          "properties": {
+            "tag": { "type": "string" },
+            "role": { "type": "string" },
+            "name": { "type": "string" },
+            "label": { "type": "string" },
+            "text": { "type": "string" },
+            "placeholder": { "type": "string" },
+            "inputType": { "type": "string" },
+            "href": { "type": "string" },
+            "sensitive": { "const": true }
+          }
+        },
+        "page": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url", "tabIndex"],
+          "properties": { "url": { "type": "string" }, "title": { "type": "string" }, "tabIndex": { "type": "integer", "minimum": 1, "description": "1-based tab number in order of first appearance" } }
+        },
+        "replay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["replayable", "playwright"],
+          "properties": {
+            "replayable": { "type": "boolean" },
+            "playwright": { "type": "string", "description": "the statement(s) replay.spec.ts runs for this step" },
+            "secret": { "type": "string", "pattern": "^SHOWSTEPS_SECRET_[0-9]+$" },
+            "note": { "type": "string", "description": "why the step is not replayed" }
+          }
+        },
+        "screenshot": { "type": "string", "pattern": "^images/", "description": "path of the screenshot in the same folder, only when images were exported" }
+      }
+    }
+  }
+}

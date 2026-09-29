@@ -4,7 +4,7 @@ import { renderInlineHtml, renderMarkdownHtml } from "../markdown-html";
 import { pngSize } from "../png";
 import { bytesToBase64, escapeHtml, plainTitle } from "../text";
 import type { ImageSource } from "../types";
-import { HTML_CSS } from "./html-css";
+import { HTML_CSS, HTML_FONT_FACES } from "./html-css";
 import { displayUrl, formatDate, renderGuideImages, resolveIncludeUrls, sniffImageMime, visibleSteps, type ImageRenderOptions } from "./shared";
 
 export interface HtmlOptions extends ImageRenderOptions {
@@ -18,6 +18,8 @@ export interface HtmlOptions extends ImageRenderOptions {
   css?: string;
   /** `lang` attribute of the document. Default "en". */
   lang?: string;
+  /** Embed Rethink Sans and Fragment Mono (about 100 KB). Default true; false falls back to system fonts. */
+  embedFonts?: boolean;
 }
 
 const LINK_ICON =
@@ -49,9 +51,8 @@ function stepHtml(step: Step, n: number, images: ImageSource, includeUrls: boole
     }
     if (showUrl) {
       const u = displayUrl(step.page.url);
-      const isWeb = /^https?:\/\//i.test(u);
-      const label = escapeHtml(u);
-      parts.push(`<figcaption>${LINK_ICON}<span class="mono">${isWeb ? `<a href="${label}" rel="noopener noreferrer">${label}</a>` : label}</span></figcaption>`);
+      // Plain text on purpose: the file makes no requests and links to nothing but what the author wrote.
+      parts.push(`<figcaption>${LINK_ICON}<span class="mono">${escapeHtml(u)}</span></figcaption>`);
     }
     parts.push("</figure>");
   }
@@ -89,7 +90,7 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
   html.push(`<meta name="generator" content="${PRODUCT_NAME}">`);
   if (plainDesc) html.push(`<meta name="description" content="${escapeHtml(plainDesc)}">`);
   html.push(`<title>${escapeHtml(title)}</title>`);
-  html.push(`<style>${HTML_CSS}${opts.css ? "\n" + opts.css : ""}</style>`);
+  html.push(`<style>${opts.embedFonts === false ? "" : HTML_FONT_FACES}${HTML_CSS}${opts.css ? "\n" + opts.css : ""}</style>`);
   html.push("</head>");
   html.push("<body>");
   html.push("<main>");
@@ -103,7 +104,7 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
   steps.forEach((s, i) => html.push(stepHtml(s, i + 1, rendered, includeUrls)));
   html.push("</ol>");
   if (opts.branding !== false) {
-    html.push(`<footer><span>Made with <a href="${SITE_URL}" rel="noopener noreferrer">${PRODUCT_NAME}</a></span><span class="mono">${escapeHtml(formatDate(guide.updatedAt || guide.createdAt))}</span></footer>`);
+    html.push(`<footer><span>Made with ${PRODUCT_NAME} · ${escapeHtml(SITE_URL.replace(/^https?:\/\//, ""))}</span><span class="mono">${escapeHtml(formatDate(guide.updatedAt || guide.createdAt))}</span></footer>`);
   }
   html.push("</main>");
   html.push("</body>");

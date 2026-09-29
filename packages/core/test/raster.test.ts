@@ -5,7 +5,8 @@ import {
   encodePng,
   highlightScale,
   parseColor,
-  redactCell,
+  redactBlock,
+  REDACT_MIN_CELL_CSS_PX,
   redactRegion,
   RenderError,
   renderStepImage,
@@ -79,11 +80,12 @@ describe("redactions on a 1440x900 text-like image", () => {
 
   it("pixelate: at most one colour per cell", () => {
     const out = decodePng(renderStepImage(bytes, shot(src, { redactions: [{ rect: R1, style: "pixelate" }] })));
-    const cell = redactCell(2);
+    const cell = redactBlock(R1.height, 2);
     const colours = new Set<string>();
     for (let y = R1.y; y < R1.y + R1.height; y++) for (let x = R1.x; x < R1.x + R1.width; x++) colours.add(px(out, x, y).join(","));
     expect(colours.size).toBeLessThanOrEqual(Math.ceil(R1.width / cell) * Math.ceil(R1.height / cell));
-    expect(cell).toBe(16); // 8 CSS px at dpr 2
+    expect(cell).toBeGreaterThanOrEqual(8 * 2); // cells are at least 8 CSS px (10 at dpr 2 is 20 px)
+    expect(REDACT_MIN_CELL_CSS_PX).toBeGreaterThanOrEqual(8);
   });
 
   it("blur: neighbour differences drop to at most 15% of the original's (not reversible)", () => {

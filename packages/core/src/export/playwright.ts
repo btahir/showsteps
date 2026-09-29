@@ -29,23 +29,16 @@ export function exportPlaywright(guide: Guide, opts: PlaywrightOptions = {}): st
   out.push(multi ? 'import { expect, test, type Page } from "@playwright/test";' : 'import { expect, test } from "@playwright/test";');
   out.push("");
 
-  if (plan.secrets.length) {
-    out.push("function secret(name: string): string {");
-    out.push("  const value = process.env[name];");
-    out.push("  if (value === undefined) throw new Error(`Set ${name} to replay this step: the recording did not store it.`);");
-    out.push("  return value;");
-    out.push("}");
-    out.push("");
-  }
-
   if (plan.viewport && opts.viewport !== false) {
     out.push(`test.use({ viewport: { width: ${plan.viewport.width}, height: ${plan.viewport.height} } });`);
     out.push("");
   }
 
-  out.push(`test(${q(title)}, async ({ ${multi ? "page, context" : "page"} }) => {`);
+  out.push(`test(${q(title)}, async ({ context }) => {`);
+  for (const env of plan.secrets) out.push(`  test.skip(!process.env.${env}, "set ${env}");`);
+  out.push("  const page = await context.newPage();");
   for (let i = 2; i <= plan.tabCount; i++) out.push(`  let page${i}!: Page;`);
-  if (multi) out.push("");
+  out.push("");
   for (const line of plan.preamble) out.push(`  ${line}`);
   if (plan.preamble.length) out.push("");
 

@@ -12,13 +12,6 @@ export type Screenshot = NonNullable<Step["screenshot"]>;
 export const DEFAULT_HIGHLIGHT_COLOR = "#EB4E26";
 /** Brand `redactSolidColor` (#1F1C19). */
 export const SOLID_REDACTION_RGB: [number, number, number] = [31, 28, 25];
-/** Pixelate/blur cells are at least this many CSS px (brand: "cells of at least 8 CSS px"). */
-export const REDACT_MIN_CELL_CSS_PX = 8;
-
-/** Cell size in image pixels for pixelate/blur redactions at `scale` image px per CSS px. */
-export function redactCell(scale: number): number {
-  return Math.max(4, Math.round(REDACT_MIN_CELL_CSS_PX * (scale > 0 ? scale : 1)));
-}
 
 export class RenderError extends Error {
   constructor(message: string) {
@@ -66,100 +59,84 @@ export function parseColor(css: string): [number, number, number] | undefined {
 }
 
 // ---- redaction ----------------------------------------------------------------------------
+// Same algorithm as the extension's canvas renderer (apps/extension/src/lib/render.ts) so both agree:
+// average the region down to a coarse grid, then scale it back up (nearest for pixelate, bilinear plus a
+// light grey veil for blur). The original glyphs are gone from the pixels, not hidden.
 
-function pixelate(img: RgbaImage, r: Rect, block: number): void {
-  const { width, data } = img;
-  for (let by = r.y; by < r.y + r.height; by += block) {
-    for (let bx = r.x; bx < r.x + r.width; bx += block) {
-      const x2 = Math.min(bx + block, r.x + r.width);
-      const y2 = Math.min(by + block, r.y + r.height);
-      let sr = 0, sg = 0, sb = 0, n = 0;
-      for (let y = by; y < y2; y++) {
-        for (let x = bx; x < x2; x++) {
-          const p = (y * width + x) * 4;
-          sr += data[p] as number; sg += data[p + 1] as number; sb += data[p + 2] as number; n++;
-        }
-      }
-      const ar = Math.round(sr / n), ag = Math.round(sg / n), ab = Math.round(sb / n);
-      for (let y = by; y < y2; y++) {
-        for (let x = bx; x < x2; x++) {
-          const p = (y * width + x) * 4;
-          data[p] = ar; data[p + 1] = ag; data[p + 2] = ab; data[p + 3] = 255;
-        }
-      }
-    }
-  }
-}
+/** Pixelate/blur cells are at least this many CSS px (the renderer uses 10; the brand minimum is 8). */
+export const REDACT_MIN_CELL_CSS_PX = 10;
+/** Opacity of the grey veil laid over a blur so it reads as "hidden on purpose". */
+export const BLUR_VEIL = 0.18;
 
-/** Separable box blur restricted to the rect (edge-clamped inside it, never reads outside pixels). */
-function boxBlur(img: RgbaImage, r: Rect, radius: number, passes: number): void {
-  const { width, data } = img;
-  const w = r.width, h = r.height;
-  const buf = new Float32Array(w * h * 3);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const p = ((r.y + y) * width + r.x + x) * 4;
-      const o = (y * w + x) * 3;
-      buf[o] = data[p] as number; buf[o + 1] = data[p + 1] as number; buf[o + 2] = data[p + 2] as number;
-    }
-  }
-  const tmp = new Float32Array(buf.length);
-  const size = radius * 2 + 1;
-  for (let pass = 0; pass < passes; pass++) {
-    for (let y = 0; y < h; y++) {
-      for (let c = 0; c < 3; c++) {
-        let acc = 0;
-        for (let k = -radius; k <= radius; k++) acc += buf[(y * w + Math.min(w - 1, Math.max(0, k))) * 3 + c] as number;
-        for (let x = 0; x < w; x++) {
-          tmp[(y * w + x) * 3 + c] = acc / size;
-          const add = Math.min(w - 1, x + radius + 1), sub = Math.max(0, x - radius);
-          acc += (buf[(y * w + add) * 3 + c] as number) - (buf[(y * w + sub) * 3 + c] as number);
-        }
-      }
-    }
-    for (let x = 0; x < w; x++) {
-      for (let c = 0; c < 3; c++) {
-        let acc = 0;
-        for (let k = -radius; k <= radius; k++) acc += tmp[(Math.min(h - 1, Math.max(0, k)) * w + x) * 3 + c] as number;
-        for (let y = 0; y < h; y++) {
-          buf[(y * w + x) * 3 + c] = acc / size;
-          const add = Math.min(h - 1, y + radius + 1), sub = Math.max(0, y - radius);
-          acc += (tmp[(add * w + x) * 3 + c] as number) - (tmp[(sub * w + x) * 3 + c] as number);
-        }
-      }
-    }
-  }
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const p = ((r.y + y) * width + r.x + x) * 4;
-      const o = (y * w + x) * 3;
-      data[p] = Math.round(buf[o] as number); data[p + 1] = Math.round(buf[o + 1] as number); data[p + 2] = Math.round(buf[o + 2] as number); data[p + 3] = 255;
-    }
-  }
+/** Cell size in image px for a region `height` px tall at `scale` image px per CSS px. */
+export function redactBlock(height: number, scale: number): number {
+  const k = scale > 0 ? scale : 1;
+  return Math.max(Math.round(REDACT_MIN_CELL_CSS_PX * k), Math.round(Math.min(height, 40 * k) / 2));
 }
 
 /**
- * Cover `rect` (image pixels) in place. `pixelate` averages square cells of `cell` px (`redactCell`);
- * `blur` pixelates the same way and then smooths the cell edges lightly. Both are irreversible:
- * the original detail is gone from the pixels, not hidden. `solid` fills `SOLID_REDACTION_RGB`.
+ * Cover `rect` (image pixels) in place. `solid` fills `SOLID_REDACTION_RGB`; `pixelate` shows the
+ * coarse grid; `blur` interpolates it and adds a light veil. `scale` is image px per CSS px.
  */
-export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style"], cell = redactCell(1)): void {
+export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style"], scale = 1): void {
   const r = roundRectOut(clampRect(rect, img));
   if (isEmptyRect(r)) return;
+  const { width: W, data } = img;
   if (style === "solid") {
     for (let y = r.y; y < r.y + r.height; y++) {
       for (let x = r.x; x < r.x + r.width; x++) {
-        const p = (y * img.width + x) * 4;
-        img.data[p] = SOLID_REDACTION_RGB[0]; img.data[p + 1] = SOLID_REDACTION_RGB[1]; img.data[p + 2] = SOLID_REDACTION_RGB[2]; img.data[p + 3] = 255;
+        const p = (y * W + x) * 4;
+        data[p] = SOLID_REDACTION_RGB[0]; data[p + 1] = SOLID_REDACTION_RGB[1]; data[p + 2] = SOLID_REDACTION_RGB[2]; data[p + 3] = 255;
       }
     }
     return;
   }
-  pixelate(img, r, cell);
-  if (style === "blur") {
-    const side = Math.min(r.width, r.height);
-    const radius = Math.min(Math.max(1, Math.round(cell / 3)), Math.floor(side / 2) - 1);
-    if (radius >= 1) boxBlur(img, r, radius, 1);
+  const block = redactBlock(r.height, scale);
+  const sw = Math.max(1, Math.round(r.width / block));
+  const sh = Math.max(1, Math.round(r.height / block));
+  // 1. average down to sw x sh cells
+  const grid = new Float32Array(sw * sh * 3);
+  for (let j = 0; j < sh; j++) {
+    const y0 = r.y + Math.floor((j * r.height) / sh), y1 = r.y + Math.max(Math.floor(((j + 1) * r.height) / sh), Math.floor((j * r.height) / sh) + 1);
+    for (let i = 0; i < sw; i++) {
+      const x0 = r.x + Math.floor((i * r.width) / sw), x1 = r.x + Math.max(Math.floor(((i + 1) * r.width) / sw), Math.floor((i * r.width) / sw) + 1);
+      let sr = 0, sg = 0, sb = 0, n = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const p = (y * W + x) * 4;
+          sr += data[p] as number; sg += data[p + 1] as number; sb += data[p + 2] as number; n++;
+        }
+      }
+      const o = (j * sw + i) * 3;
+      grid[o] = sr / n; grid[o + 1] = sg / n; grid[o + 2] = sb / n;
+    }
+  }
+  // 2. scale back up over the region
+  const veil = style === "blur" ? BLUR_VEIL : 0;
+  for (let dy = 0; dy < r.height; dy++) {
+    const v = ((dy + 0.5) * sh) / r.height - 0.5;
+    const j0 = Math.max(0, Math.min(sh - 1, Math.floor(v))), j1 = Math.min(sh - 1, j0 + 1);
+    const ty = style === "blur" ? Math.max(0, Math.min(1, v - Math.floor(v))) : 0;
+    const jn = Math.max(0, Math.min(sh - 1, Math.floor((dy + 0.5) * sh / r.height)));
+    for (let dx = 0; dx < r.width; dx++) {
+      const u = ((dx + 0.5) * sw) / r.width - 0.5;
+      const p = ((r.y + dy) * W + r.x + dx) * 4;
+      for (let c = 0; c < 3; c++) {
+        let val: number;
+        if (style === "blur") {
+          const i0 = Math.max(0, Math.min(sw - 1, Math.floor(u))), i1 = Math.min(sw - 1, i0 + 1);
+          const tx = Math.max(0, Math.min(1, u - Math.floor(u)));
+          const top = (grid[(j0 * sw + i0) * 3 + c] as number) * (1 - tx) + (grid[(j0 * sw + i1) * 3 + c] as number) * tx;
+          const bot = (grid[(j1 * sw + i0) * 3 + c] as number) * (1 - tx) + (grid[(j1 * sw + i1) * 3 + c] as number) * tx;
+          val = top * (1 - ty) + bot * ty;
+        } else {
+          const inn = Math.max(0, Math.min(sw - 1, Math.floor(((dx + 0.5) * sw) / r.width)));
+          val = grid[(jn * sw + inn) * 3 + c] as number;
+        }
+        data[p + c] = Math.round(veil ? val * (1 - veil) + 128 * veil : val);
+      }
+      data[p + 3] = 255;
+    }
   }
 }
 
@@ -417,8 +394,8 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
   const sx = shot.width > 0 ? img.width / shot.width : 1;
   const sy = shot.height > 0 ? img.height / shot.height : 1;
   const fit = (r: Rect): Rect => (Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001 ? r : scaleRect(r, sx, sy));
-  const cell = redactCell(shot.devicePixelRatio * Math.max(sx, sy));
-  if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style, cell);
+  const redactScale = shot.width > 0 && shot.viewport.width > 0 ? img.width / shot.viewport.width : shot.devicePixelRatio;
+  if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style, redactScale);
   if (wantHighlight) {
     const color = parseColor(opts.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR) ?? (parseColor(DEFAULT_HIGHLIGHT_COLOR) as [number, number, number]);
     drawFlagHighlight(img, {

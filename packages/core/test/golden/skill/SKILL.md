@@ -11,13 +11,13 @@ Recorded with Showsteps on 28 September 2026: 10 steps across 2 tabs, starting a
 
 ## How to use this skill
 
-- **Replay it:** run `npx playwright test replay.spec.ts` in this folder (needs `@playwright/test` and a browser: `npx playwright install chromium`).
+- **Replay it:** run `npx playwright test replay.spec.ts` in this folder (needs `@playwright/test` and a browser: `npx playwright install chromium`). The test opens its own tab, and follows tabs the recording opened.
 - **Do it by hand or with a browser tool:** follow the steps below in order. `steps.json` lists the same steps with every recorded locator, best first, for tools that drive a browser directly.
 - **If a step fails:** the page probably changed. Re-locate the element from its name and role instead of the CSS selector, and update `replay.spec.ts`.
 
 ## Secrets
 
-The recording never stored the values typed into these fields. Provide them as environment variables before replaying:
+The recording never stored the values typed into these fields. Provide them as environment variables before replaying (the replay is skipped, not failed, when one is missing):
 
 - `SHOWSTEPS_SECRET_1`: step 3, field "Password"
 

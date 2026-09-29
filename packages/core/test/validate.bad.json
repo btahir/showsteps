@@ -1,0 +1,801 @@
+[
+ {
+  "name": "root: string",
+  "expect": "guide: expected an object",
+  "input": "a string"
+ },
+ {
+  "name": "root: null",
+  "expect": "guide: expected an object",
+  "input": null
+ },
+ {
+  "name": "root: array",
+  "expect": "guide: expected an object",
+  "input": []
+ },
+ {
+  "name": "root: number",
+  "expect": "guide: expected an object",
+  "input": 42
+ },
+ {
+  "name": "schemaVersion missing",
+  "expect": "guide.schemaVersion: is required",
+  "patch": [
+   [
+    "delete",
+    "schemaVersion"
+   ]
+  ]
+ },
+ {
+  "name": "schemaVersion unknown (2)",
+  "expect": "unsupported version 2",
+  "patch": [
+   [
+    "set",
+    "schemaVersion",
+    2
+   ]
+  ]
+ },
+ {
+  "name": "schemaVersion is a string",
+  "expect": "unsupported version \"1\"",
+  "patch": [
+   [
+    "set",
+    "schemaVersion",
+    "1"
+   ]
+  ]
+ },
+ {
+  "name": "guide id missing",
+  "expect": "guide.id: is required",
+  "patch": [
+   [
+    "delete",
+    "id"
+   ]
+  ]
+ },
+ {
+  "name": "guide title missing",
+  "expect": "guide.title: is required",
+  "patch": [
+   [
+    "delete",
+    "title"
+   ]
+  ]
+ },
+ {
+  "name": "guide title not a string",
+  "expect": "guide.title: expected a string",
+  "patch": [
+   [
+    "set",
+    "title",
+    12
+   ]
+  ]
+ },
+ {
+  "name": "guide title over 2000 chars",
+  "expect": "guide.title: is too long",
+  "patch": [
+   [
+    "set",
+    "title",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ]
+  ]
+ },
+ {
+  "name": "step title over 2000 chars",
+  "expect": "steps[1].title: is too long",
+  "patch": [
+   [
+    "set",
+    "steps.1.title",
+    "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+   ]
+  ]
+ },
+ {
+  "name": "step title missing",
+  "expect": "steps[0].title: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.0.title"
+   ]
+  ]
+ },
+ {
+  "name": "duplicate step ids",
+  "expect": "duplicate step id",
+  "patch": [
+   [
+    "set",
+    "steps.1.id",
+    "s_open"
+   ]
+  ]
+ },
+ {
+  "name": "step id with a space",
+  "expect": "must be url-safe",
+  "patch": [
+   [
+    "set",
+    "steps.1.id",
+    "a b"
+   ]
+  ]
+ },
+ {
+  "name": "step id with a slash",
+  "expect": "must be url-safe",
+  "patch": [
+   [
+    "set",
+    "steps.1.id",
+    "a/b"
+   ]
+  ]
+ },
+ {
+  "name": "step id empty",
+  "expect": "steps[1].id: must not be empty",
+  "patch": [
+   [
+    "set",
+    "steps.1.id",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "action type unknown",
+  "expect": "steps[2].action.type: expected one of",
+  "patch": [
+   [
+    "set",
+    "steps.2.action.type",
+    "teleport"
+   ]
+  ]
+ },
+ {
+  "name": "action missing",
+  "expect": "steps[2].action: expected an object",
+  "patch": [
+   [
+    "delete",
+    "steps.2.action"
+   ]
+  ]
+ },
+ {
+  "name": "navigate without url",
+  "expect": "steps[0].action.url: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.0.action.url"
+   ]
+  ]
+ },
+ {
+  "name": "check without checked",
+  "expect": "steps[6].action.checked: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.6.action.checked"
+   ]
+  ]
+ },
+ {
+  "name": "press with empty key",
+  "expect": "steps[9].action.key: must not be empty",
+  "patch": [
+   [
+    "set",
+    "steps.9.action.key",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "click with a bad button",
+  "expect": "steps[3].action.button: expected one of",
+  "patch": [
+   [
+    "set",
+    "steps.3.action.button",
+    "back"
+   ]
+  ]
+ },
+ {
+  "name": "masked type with a real value",
+  "expect": "a masked type step must have value",
+  "patch": [
+   [
+    "set",
+    "steps.2.action.value",
+    "hunter2"
+   ]
+  ]
+ },
+ {
+  "name": "highlight width negative",
+  "expect": "steps[1].screenshot.highlight.width: must be >= 0",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.highlight.width",
+    -5
+   ]
+  ]
+ },
+ {
+  "name": "highlight x is NaN",
+  "expect": "steps[1].screenshot.highlight.x: expected a finite number",
+  "patch": [
+   [
+    "setNum",
+    "steps.1.screenshot.highlight.x",
+    "NaN"
+   ]
+  ]
+ },
+ {
+  "name": "redaction rect Infinity",
+  "expect": "redactions[0].rect.width: expected a finite number",
+  "patch": [
+   [
+    "setNum",
+    "steps.2.screenshot.redactions.0.rect.width",
+    "Infinity"
+   ]
+  ]
+ },
+ {
+  "name": "highlight outside the image (right edge)",
+  "expect": "steps[1].screenshot.highlight: is outside the image",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.highlight",
+    {
+     "x": 150,
+     "y": 10,
+     "width": 30,
+     "height": 10
+    }
+   ]
+  ]
+ },
+ {
+  "name": "highlight outside the image (bottom edge)",
+  "expect": "steps[1].screenshot.highlight: is outside the image",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.highlight",
+    {
+     "x": 10,
+     "y": 95,
+     "width": 10,
+     "height": 10
+    }
+   ]
+  ]
+ },
+ {
+  "name": "highlight with negative origin",
+  "expect": "steps[1].screenshot.highlight: is outside the image",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.highlight",
+    {
+     "x": -1,
+     "y": 10,
+     "width": 10,
+     "height": 10
+    }
+   ]
+  ]
+ },
+ {
+  "name": "redaction outside the image",
+  "expect": "redactions[0].rect: is outside the image",
+  "patch": [
+   [
+    "set",
+    "steps.2.screenshot.redactions.0.rect",
+    {
+     "x": 100,
+     "y": 50,
+     "width": 80,
+     "height": 20
+    }
+   ]
+  ]
+ },
+ {
+  "name": "crop outside the image",
+  "expect": "steps[1].screenshot.crop: is outside the image",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.crop",
+    {
+     "x": 0,
+     "y": 0,
+     "width": 200,
+     "height": 100
+    }
+   ]
+  ]
+ },
+ {
+  "name": "redaction style unknown",
+  "expect": "redactions[0].style: expected one of",
+  "patch": [
+   [
+    "set",
+    "steps.2.screenshot.redactions.0.style",
+    "smudge"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path with ../",
+  "expect": "must be a relative path inside images/",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    "../evil.png"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path absolute",
+  "expect": "must be a relative path inside images/",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    "/etc/passwd"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path with a backslash",
+  "expect": "must be a relative path inside images/",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    "images\\a.png"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path with a drive letter",
+  "expect": "must be a relative path inside images/",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    "C:/a.png"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path outside images/",
+  "expect": "must be a relative path inside images/",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    "pics/a.png"
+   ]
+  ]
+ },
+ {
+  "name": "screenshot path empty",
+  "expect": "steps[1].screenshot.image: must not be empty",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.image",
+    ""
+   ]
+  ]
+ },
+ {
+  "name": "screenshot width 0",
+  "expect": "steps[1].screenshot.width: must be >= 1",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.width",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "screenshot height 0",
+  "expect": "steps[1].screenshot.height: must be >= 1",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.height",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "devicePixelRatio 0",
+  "expect": "steps[1].screenshot.devicePixelRatio: must be >= 0.01",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.devicePixelRatio",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "devicePixelRatio negative",
+  "expect": "steps[1].screenshot.devicePixelRatio: must be >= 0.01",
+  "patch": [
+   [
+    "set",
+    "steps.1.screenshot.devicePixelRatio",
+    -2
+   ]
+  ]
+ },
+ {
+  "name": "viewport missing",
+  "expect": "steps[1].screenshot.viewport: expected an object",
+  "patch": [
+   [
+    "delete",
+    "steps.1.screenshot.viewport"
+   ]
+  ]
+ },
+ {
+  "name": "viewport scrollX missing",
+  "expect": "viewport.scrollX: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.1.screenshot.viewport.scrollX"
+   ]
+  ]
+ },
+ {
+  "name": "guide createdAt not a date",
+  "expect": "guide.createdAt: expected an ISO 8601 timestamp",
+  "patch": [
+   [
+    "set",
+    "createdAt",
+    "yesterday"
+   ]
+  ]
+ },
+ {
+  "name": "guide updatedAt missing",
+  "expect": "guide.updatedAt: is required",
+  "patch": [
+   [
+    "delete",
+    "updatedAt"
+   ]
+  ]
+ },
+ {
+  "name": "step timestamp not a date",
+  "expect": "steps[4].timestamp: expected an ISO 8601 timestamp",
+  "patch": [
+   [
+    "set",
+    "steps.4.timestamp",
+    "12:00"
+   ]
+  ]
+ },
+ {
+  "name": "updatedAt before createdAt",
+  "expect": "guide.updatedAt: is before createdAt",
+  "patch": [
+   [
+    "set",
+    "updatedAt",
+    "2026-09-27T10:00:00Z"
+   ]
+  ]
+ },
+ {
+  "name": "locator kind unknown",
+  "expect": "locators[1].kind: expected one of testid",
+  "patch": [
+   [
+    "set",
+    "steps.1.target.locators.1.kind",
+    "magic"
+   ]
+  ]
+ },
+ {
+  "name": "locator role without a name",
+  "expect": "locators[0].name: is required",
+  "patch": [
+   [
+    "set",
+    "steps.4.target.locators.0",
+    {
+     "kind": "role",
+     "role": "button"
+    }
+   ]
+  ]
+ },
+ {
+  "name": "locator value empty",
+  "expect": "locators[0].value: must not be empty",
+  "patch": [
+   [
+    "set",
+    "steps.1.target.locators.0",
+    {
+     "kind": "label",
+     "value": ""
+    }
+   ]
+  ]
+ },
+ {
+  "name": "target with no locators",
+  "expect": "steps[1].target.locators: expected a non-empty array",
+  "patch": [
+   [
+    "set",
+    "steps.1.target.locators",
+    []
+   ]
+  ]
+ },
+ {
+  "name": "target locators not an array",
+  "expect": "steps[1].target.locators: expected a non-empty array",
+  "patch": [
+   [
+    "set",
+    "steps.1.target.locators",
+    "css"
+   ]
+  ]
+ },
+ {
+  "name": "target tag missing",
+  "expect": "steps[1].target.tag: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.1.target.tag"
+   ]
+  ]
+ },
+ {
+  "name": "frame not an array",
+  "expect": "steps[7].target.frame: expected an array of strings",
+  "patch": [
+   [
+    "set",
+    "steps.7.target.frame",
+    "iframe#a"
+   ]
+  ]
+ },
+ {
+  "name": "frame entry not a string",
+  "expect": "steps[7].target.frame[0]: expected a string",
+  "patch": [
+   [
+    "set",
+    "steps.7.target.frame",
+    [
+     3
+    ]
+   ]
+  ]
+ },
+ {
+  "name": "shadow entry not a string",
+  "expect": "steps[1].target.shadow[0]: expected a string",
+  "patch": [
+   [
+    "set",
+    "steps.1.target.shadow",
+    [
+     {}
+    ]
+   ]
+  ]
+ },
+ {
+  "name": "sensitive is not a boolean",
+  "expect": "steps[2].target.sensitive: expected true or false",
+  "patch": [
+   [
+    "set",
+    "steps.2.target.sensitive",
+    "yes"
+   ]
+  ]
+ },
+ {
+  "name": "page missing",
+  "expect": "steps[1].page: expected an object",
+  "patch": [
+   [
+    "delete",
+    "steps.1.page"
+   ]
+  ]
+ },
+ {
+  "name": "page url missing",
+  "expect": "steps[1].page.url: is required",
+  "patch": [
+   [
+    "delete",
+    "steps.1.page.url"
+   ]
+  ]
+ },
+ {
+  "name": "page dir invalid",
+  "expect": "steps[1].page.dir: expected one of ltr, rtl",
+  "patch": [
+   [
+    "set",
+    "steps.1.page.dir",
+    "up"
+   ]
+  ]
+ },
+ {
+  "name": "more than 5000 steps",
+  "expect": "has too many steps",
+  "patch": [
+   [
+    "fillSteps",
+    5001
+   ]
+  ]
+ },
+ {
+  "name": "steps not an array",
+  "expect": "guide.steps: expected an array",
+  "patch": [
+   [
+    "set",
+    "steps",
+    {}
+   ]
+  ]
+ },
+ {
+  "name": "__proto__ key in a step",
+  "expect": "forbidden key (prototype pollution)",
+  "patch": [
+   [
+    "setJson",
+    "steps.1.target",
+    "{\"__proto__\":{\"polluted\":true},\"tag\":\"a\",\"locators\":[{\"kind\":\"css\",\"value\":\"a\"}]}"
+   ]
+  ]
+ },
+ {
+  "name": "__proto__ key at the root",
+  "expect": "guide.meta.__proto__: forbidden key",
+  "patch": [
+   [
+    "setJson",
+    "meta",
+    "{\"__proto__\":{\"x\":1}}"
+   ]
+  ]
+ },
+ {
+  "name": "settings.redactStyle invalid",
+  "expect": "settings.redactStyle: expected one of",
+  "patch": [
+   [
+    "set",
+    "settings.redactStyle",
+    "fuzzy"
+   ]
+  ]
+ },
+ {
+  "name": "settings.includeUrls not a boolean",
+  "expect": "settings.includeUrls: expected true or false",
+  "patch": [
+   [
+    "set",
+    "settings.includeUrls",
+    "no"
+   ]
+  ]
+ },
+ {
+  "name": "app.name unknown",
+  "expect": "app.name: expected \"showsteps\"",
+  "patch": [
+   [
+    "set",
+    "app.name",
+    "other"
+   ]
+  ]
+ },
+ {
+  "name": "app.version missing",
+  "expect": "app.version: is required",
+  "patch": [
+   [
+    "delete",
+    "app.version"
+   ]
+  ]
+ },
+ {
+  "name": "description not a string",
+  "expect": "guide.description: expected a string",
+  "patch": [
+   [
+    "set",
+    "description",
+    5
+   ]
+  ]
+ },
+ {
+  "name": "skipped not a boolean",
+  "expect": "steps[1].skipped: expected true or false",
+  "patch": [
+   [
+    "set",
+    "steps.1.skipped",
+    "x"
+   ]
+  ]
+ },
+ {
+  "name": "tabId not a number",
+  "expect": "steps[1].page.tabId: expected a finite number",
+  "patch": [
+   [
+    "set",
+    "steps.1.page.tabId",
+    "one"
+   ]
+  ]
+ }
+]
