@@ -1,0 +1,33 @@
+{
+  "name": "@stepsnap/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "wxt --port 4620",
+    "prepare:wxt": "wxt prepare",
+    "build": "wxt build",
+    "build:e2e": "wxt build --mode e2e",
+    "zip": "wxt zip",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test --workers=2"
+  },
+  "dependencies": {
+    "@stepsnap/core": "workspace:*",
+    "@stepsnap/dom": "workspace:*",
+    "fflate": "^0.8.3",
+    "idb": "^8.0.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/chrome": "^0.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@wxt-dev/module-react": "^1.2.2",
+    "wxt": "^0.21.4"
+  }
+}
