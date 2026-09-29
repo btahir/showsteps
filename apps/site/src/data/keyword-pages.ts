@@ -3,6 +3,7 @@
  * Blocks: p (HTML allowed, trusted), ul, ol, code, table, callout, compare (the shared comparison table).
  * Competitor claims are dated and sourced in docs/launch/claims.md (gitignored). No invented numbers.
  */
+import { SAMPLE_REPLAY_TS, SAMPLE_SKILL_MD } from "./samples";
 
 export type Block =
   | { p: string }
@@ -225,7 +226,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
           {
             ul: [
               "No hosted share links. You send a file: PDF, single-file HTML, Markdown or DOCX.",
-              "No shared team library. Guides live on the machine that recorded them until you export or hand over the <code>.stepsnap</code> project file.",
+              "No shared team library. Guides live on the machine that recorded them until you export or hand over the <code>.showsteps</code> project file.",
               "No desktop or mobile capture. Chrome tabs only.",
               "No viewer analytics, because nothing is hosted.",
             ],
@@ -318,7 +319,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
             p: "Tango's Enterprise plan lists automations and guided walk-throughs that run inside Tango. Showsteps takes a different route: the same recording exports as a <code>replay.spec.ts</code> Playwright script and a <code>SKILL.md</code> a coding agent can read. You own the script, it runs wherever Node runs, and you can edit it in any editor.",
           },
           {
-            p: "There is a command line (<code>stepsnap export guide.stepsnap --format skill --json</code>) and a local MCP server for agents that prefer tools over shell commands. Details are on the <a href=\"/docs/agents/\">agents page</a>.",
+            p: "There is a command line (<code>showsteps export guide.showsteps --format skill --json</code>) and a local MCP server for agents that prefer tools over shell commands. Details are on the <a href=\"/docs/agents/\">agents page</a>.",
           },
         ],
       },
@@ -388,7 +389,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
                 ["Markdown", "The guide is going into a wiki, a README or a docs repo. You get a folder with guide.md and an images directory."],
                 ["DOCX", "Someone will edit it in Word or Google Docs."],
                 ["Agent skill", "A coding agent or a test runner should follow or replay the steps."],
-                [".stepsnap project", "You want to keep editing later, or hand the recording to a teammate or an agent."],
+                [".showsteps project", "You want to keep editing later, or hand the recording to a teammate or an agent."],
               ],
             },
           },
@@ -528,7 +529,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "8. Version it and set a review date",
         blocks: [
           {
-            p: "Put the version, owner and last-reviewed date at the top. Keep the recording file: with Showsteps you can reopen the <code>.stepsnap</code> project, fix the one step that changed and export again, instead of starting over.",
+            p: "Put the version, owner and last-reviewed date at the top. Keep the recording file: with Showsteps you can reopen the <code>.showsteps</code> project, fix the one step that changed and export again, instead of starting over.",
           },
           {
             code: "SOP: Refund a customer in the billing dashboard\nOwner: Support lead     Version: 1.2     Reviewed: 2026-09-28\n\nPurpose\nAfter following this, a support agent can issue a full refund without help.\n\nBefore you start\n- You have the Support Agent role in the billing dashboard.\n- You have the order number from the ticket.\n\nSteps\n1. Click Orders.\n2. Type the order number in Search, then press Enter.\n3. Click the order in the results.\n4. Click Refund. A confirmation dialog opens.\n5. Select Full refund, then click Confirm. A green banner reads Refund issued.\n\nIf something goes wrong\n- Refund is greyed out: the order is more than 90 days old; escalate to the finance lead.\n\nChange log\n1.2  Refund button moved to the order header.",
@@ -548,7 +549,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
       },
       {
         q: "Which format should I keep the SOP in?",
-        a: "Keep the source as the <code>.stepsnap</code> project so it stays editable, and export Markdown, HTML or PDF for wherever people read it.",
+        a: "Keep the source as the <code>.showsteps</code> project so it stays editable, and export Markdown, HTML or PDF for wherever people read it.",
       },
     ],
     related: ["work-instructions-template", "free-step-by-step-guide-maker", "open-source-scribe-alternative"],
@@ -623,7 +624,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "Getting the documents out",
         blocks: [
           {
-            p: "You can export Markdown (a folder with <code>guide.md</code> and images), a self-contained HTML file, PDF, DOCX, an agent skill, or the <code>.stepsnap</code> project itself, which is a zip with a <code>guide.json</code> and PNG images. Because the format is documented, you or a script can open, read and rewrite it without the extension.",
+            p: "You can export Markdown (a folder with <code>guide.md</code> and images), a self-contained HTML file, PDF, DOCX, an agent skill, or the <code>.showsteps</code> project itself, which is a zip with a <code>guide.json</code> and PNG images. Because the format is documented, you or a script can open, read and rewrite it without the extension.",
           },
         ],
       },
@@ -772,7 +773,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
                 ["Records", "Windows desktop apps and browsers", "Chrome tabs only"],
                 ["Step text", "Automatic description of the action", "Automatic title you can edit, plus optional description"],
                 ["Editing", "Little; you edit outside the tool", "Reorder, delete, merge, add notes, blur, crop"],
-                ["Output", "Zipped web archive (.mht)", "PDF, HTML, Markdown, DOCX, agent skill, .stepsnap project"],
+                ["Output", "Zipped web archive (.mht)", "PDF, HTML, Markdown, DOCX, agent skill, .showsteps project"],
               ],
             },
           },
@@ -859,7 +860,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "What the exported test looks like",
         blocks: [
           {
-            code: "import { test, expect } from \"@playwright/test\";\n\ntest(\"Invite a teammate\", async ({ page }) => {\n  await page.goto(\"https://app.example.com/settings\");\n  await page.getByRole(\"link\", { name: \"Team\" }).click();\n  await page.getByRole(\"button\", { name: \"Invite member\" }).click();\n  await page.getByLabel(\"Email\").fill(\"jane@example.com\");\n  await page.getByRole(\"combobox\", { name: \"Role\" }).selectOption(\"Editor\");\n  await page.getByRole(\"button\", { name: \"Send invite\" }).click();\n});",
+            code: SAMPLE_REPLAY_TS,
             caption: "replay.spec.ts (mock data)",
           },
           {
@@ -960,7 +961,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
             },
           },
           {
-            code: "---\nname: invite-a-teammate\ndescription: Invite a teammate to the Acme workspace with the Editor role.\n---\n\n# Invite a teammate\n\nStart at https://app.acme.test/settings (signed in as an admin).\n\n1. Click **Team**\n2. Click **Invite member**\n3. Type \"jane@example.com\" in **Email**\n4. Select **Editor** in **Role**\n5. Click **Send invite**",
+            code: SAMPLE_SKILL_MD,
             caption: "SKILL.md (mock data)",
           },
         ],

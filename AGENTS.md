@@ -24,7 +24,7 @@ Every command and tool accepts both (older `.stepsnap` files also open; the form
 
 ```sh
 npx -y @stepsnap/cli --help
-# or, from a checkout: pnpm --filter @stepsnap/cli build && node packages/cli/dist/stepsnap.js --help
+# or, from a checkout: pnpm --filter @stepsnap/cli build && node packages/cli/dist/showsteps.js --help
 ```
 
 | Command | What it does |
@@ -130,7 +130,7 @@ Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
 }
 ```
 
-From a checkout, build first (`pnpm --filter @stepsnap/mcp build`) and use `"command": "node", "args": ["/abs/path/to/stepsnap/packages/mcp/dist/stepsnap-mcp.js"]`.
+From a checkout, build first (`pnpm --filter @stepsnap/mcp build`) and use `"command": "node", "args": ["/abs/path/to/stepsnap/packages/mcp/dist/showsteps-mcp.js"]`.
 
 | Tool | Inputs | Returns |
 | --- | --- | --- |

@@ -1,34 +1,10 @@
-/** Example agent-skill output shown on the landing page and agents docs. Mock data. Keep in step with core's exportAgentSkill / exportPlaywright. */
-export const SAMPLE_SKILL_MD = `---
-name: invite-a-teammate
-description: Invite a teammate to the Acme workspace with the Editor role.
----
+// Real exporter output for scripts/site-sample-steps.json (mock data). Regenerate with
+// `node scripts/check-site-samples.mjs --write`; the verifier fails the build when these drift from core.
+import skillMd from "./samples/SKILL.md?raw";
+import replayTs from "./samples/replay.spec.ts?raw";
 
-# Invite a teammate
-
-Start at https://app.acme.test/settings (signed in as an admin).
-
-1. Click **Team**
-2. Click **Invite member**
-3. Type "jane@example.com" in **Email**
-4. Select **Editor** in **Role**
-5. Click **Send invite**
-   Expected: a green banner reads "Invite sent".
-
-Machine-readable steps: steps.json. Replay: replay.spec.ts.
-`;
-
-export const SAMPLE_REPLAY_TS = `import { test } from "@playwright/test";
-
-test("Invite a teammate", async ({ page }) => {
-  await page.goto("https://app.acme.test/settings");
-  await page.getByRole("link", { name: "Team" }).click();
-  await page.getByRole("button", { name: "Invite member" }).click();
-  await page.getByLabel("Email").fill("jane@example.com");
-  await page.getByLabel("Role").selectOption("Editor");
-  await page.getByRole("button", { name: "Send invite" }).click();
-});
-`;
+export const SAMPLE_SKILL_MD: string = skillMd.trimEnd();
+export const SAMPLE_REPLAY_TS: string = replayTs.trimEnd();
 
 export const LANDING_FAQ = [
   {
@@ -49,7 +25,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "Which formats can I export?",
-    a: "PDF, self-contained HTML, Markdown with images, DOCX, an agent skill (SKILL.md, steps.json and a Playwright script), and a .stepsnap project file you can reopen and edit later.",
+    a: "PDF, self-contained HTML, Markdown with images, DOCX, an agent skill (SKILL.md, steps.json and a Playwright script), and a .showsteps project file you can reopen and edit later.",
   },
   {
     q: "How is it different from other free tools such as Mimik?",
@@ -57,7 +33,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "What is the agent skill for?",
-    a: "It lets a coding agent, or a test runner, follow or replay the task you recorded. The <code>stepsnap</code> command line and a local MCP server let an agent list, edit, validate and export guides too. See <a href=\"/docs/agents/\">the agents page</a>.",
+    a: "It lets a coding agent, or a test runner, follow or replay the task you recorded. The <code>showsteps</code> command line and a local MCP server let an agent list, edit, validate and export guides too. See <a href=\"/docs/agents/\">the agents page</a>.",
   },
   {
     q: "Does it work in Edge, Firefox or Safari?",

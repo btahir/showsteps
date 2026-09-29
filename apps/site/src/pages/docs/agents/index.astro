@@ -4,14 +4,14 @@ import Code from "../../../components/Code.astro";
 import { GITHUB_URL } from "../../../config/site";
 import { breadcrumbs, article } from "../../../data/jsonld";
 
-const desc = "Use Showsteps from an AI agent: the stepsnap command line with JSON output and exit codes, the local stepsnap-mcp server, file format, and worked examples.";
+const desc = "Use Showsteps from an AI agent: the showsteps command line with JSON output and exit codes, the local showsteps-mcp server, file format, and worked examples.";
 
-const editExample = `stepsnap info onboarding.stepsnap --json
-stepsnap steps onboarding.stepsnap --json          # find the step ids
-stepsnap edit-step onboarding.stepsnap --id s4 \\
+const editExample = `showsteps info onboarding.showsteps --json
+showsteps steps onboarding.showsteps --json          # find the step ids
+showsteps edit-step onboarding.showsteps --id s4 \\
   --title "Open **Billing** in the sidebar" \\
-  --description "You need the Admin role to see this." --out reviewed.stepsnap
-stepsnap export reviewed.stepsnap --format md,pdf,skill --out ./out --json`;
+  --description "You need the Admin role to see this." --out reviewed.showsteps
+showsteps export reviewed.showsteps --format md,pdf,skill --out ./out --json`;
 
 const stepsJson = `{
   "title": "Reset your password",
@@ -25,12 +25,12 @@ const stepsJson = `{
   ]
 }`;
 
-const newExample = `stepsnap new --from-steps steps.json --out reset-password.stepsnap --json
-stepsnap export reset-password.stepsnap --format skill --out ./skill --json`;
+const newExample = `showsteps new --from-steps steps.json --out reset-password.showsteps --json
+showsteps export reset-password.showsteps --format skill --out ./skill --json`;
 
 const mcpConfig = `{
   "mcpServers": {
-    "stepsnap": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+    "showsteps": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
   }
 }`;
 
@@ -64,7 +64,7 @@ const path = "/docs/agents/";
         <h2>Files</h2>
         <p>A guide is either:</p>
         <ul>
-          <li><code>something.stepsnap</code>: a zip with <code>guide.json</code> and <code>images/&lt;stepId&gt;.png</code>, or</li>
+          <li><code>something.showsteps</code>: a zip with <code>guide.json</code> and <code>images/&lt;stepId&gt;.png</code>, or</li>
           <li>a bare <code>guide.json</code>. Screenshots are picked up from an <code>images/</code> folder next to it, if present.</li>
         </ul>
         <p>
@@ -79,13 +79,13 @@ const path = "/docs/agents/";
           <table class="compare">
             <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
             <tbody>
-              <tr><th scope="row"><code>stepsnap validate &lt;file&gt; [--json]</code></th><td>Checks the file against the schema. Exit 1 lists every problem.</td></tr>
-              <tr><th scope="row"><code>stepsnap info &lt;file&gt; [--json]</code></th><td>Title, step counts, actions, pages, sensitive steps, screenshot counts.</td></tr>
-              <tr><th scope="row"><code>stepsnap steps &lt;file&gt; [--json]</code></th><td>Steps with id, title, action, target, skipped and sensitive flags.</td></tr>
-              <tr><th scope="row"><code>stepsnap edit-step &lt;file&gt; --id &lt;id&gt; [--title T] [--description D] [--skip|--unskip] [--out F]</code></th><td>Edit one step. Overwrites the file unless <code>--out</code> is given.</td></tr>
-              <tr><th scope="row"><code>stepsnap regen-titles &lt;file&gt; [--out F]</code></th><td>Regenerate generated titles. Hand-edited titles are kept.</td></tr>
-              <tr><th scope="row"><code>stepsnap export &lt;file&gt; --format md|html|pdf|docx|playwright|skill|all --out &lt;dir&gt; [--json]</code></th><td>Write exports. Comma lists work: <code>--format md,pdf</code>.</td></tr>
-              <tr><th scope="row"><code>stepsnap new --from-steps &lt;steps.json&gt; --out &lt;file.stepsnap&gt; [--title T]</code></th><td>Create a guide from a step list.</td></tr>
+              <tr><th scope="row"><code>showsteps validate &lt;file&gt; [--json]</code></th><td>Checks the file against the schema. Exit 1 lists every problem.</td></tr>
+              <tr><th scope="row"><code>showsteps info &lt;file&gt; [--json]</code></th><td>Title, step counts, actions, pages, sensitive steps, screenshot counts.</td></tr>
+              <tr><th scope="row"><code>showsteps steps &lt;file&gt; [--json]</code></th><td>Steps with id, title, action, target, skipped and sensitive flags.</td></tr>
+              <tr><th scope="row"><code>showsteps edit-step &lt;file&gt; --id &lt;id&gt; [--title T] [--description D] [--skip|--unskip] [--out F]</code></th><td>Edit one step. Overwrites the file unless <code>--out</code> is given.</td></tr>
+              <tr><th scope="row"><code>showsteps regen-titles &lt;file&gt; [--out F]</code></th><td>Regenerate generated titles. Hand-edited titles are kept.</td></tr>
+              <tr><th scope="row"><code>showsteps export &lt;file&gt; --format md|html|pdf|docx|playwright|skill|all --out &lt;dir&gt; [--json]</code></th><td>Write exports. Comma lists work: <code>--format md,pdf</code>.</td></tr>
+              <tr><th scope="row"><code>showsteps new --from-steps &lt;steps.json&gt; --out &lt;file.showsteps&gt; [--title T]</code></th><td>Create a guide from a step list.</td></tr>
             </tbody>
           </table>
         </div>
@@ -132,8 +132,8 @@ const path = "/docs/agents/";
         <p>Guides made this way have no screenshots. Exports still work, and a person can open the file in the extension to review it.</p>
 
         <h2>MCP server</h2>
-        <p><code>stepsnap-mcp</code> speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.</p>
-        <Code code={`claude mcp add stepsnap -- npx -y @stepsnap/mcp`} caption="Claude Code" />
+        <p><code>showsteps-mcp</code> speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.</p>
+        <Code code={`claude mcp add showsteps -- npx -y @stepsnap/mcp`} caption="Claude Code" />
         <Code code={mcpConfig} caption="Claude Desktop (claude_desktop_config.json) and Cursor (.cursor/mcp.json)" />
         <div class="table-scroll" role="region" aria-label="MCP tools" tabindex="0">
           <table class="compare">
@@ -162,7 +162,7 @@ const path = "/docs/agents/";
         <h2>Working with people</h2>
         <p>
           The recording is a human&rsquo;s account of a task. A sensible split: you fix wording, structure and exports; the person reviews
-          screenshots and redactions in the extension (<code>.stepsnap</code> files open there directly) before sharing. Send them the file
+          screenshots and redactions in the extension (<code>.showsteps</code> files open there directly) before sharing. Send them the file
           path, not the contents.
         </p>
         <p>See also: <a href="/record-workflow-as-agent-skill/">record a workflow as an agent skill</a> and <a href="/record-clicks-to-playwright-test/">convert clicks to a Playwright test</a>.</p>

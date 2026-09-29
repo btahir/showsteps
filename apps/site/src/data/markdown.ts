@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { COMPARE_ROWS, COMPARE_DATE } from "./compare";
 import type { Block, KeywordPage } from "./keyword-pages";
-import { GITHUB_URL, SITE_NAME, SITE_DESCRIPTION, SITE_URL, SUPPORT_URL, abs, fill } from "../config/site";
+import { GITHUB_URL, SITE_DESCRIPTION, SITE_URL, SUPPORT_URL, abs, fill } from "../config/site";
 
 const ENT: Record<string, string> = { "&ldquo;": '"', "&rdquo;": '"', "&rsquo;": "'", "&lsquo;": "'", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&mdash;": "-" };
 
@@ -22,7 +22,7 @@ function table(head: string[], rows: string[][]): string {
 
 export function compareMd(): string {
   return [
-    table(["", "Showsteps", "Scribe", "Tango"], COMPARE_ROWS.map((r) => [r.feature, r.stepsnap, r.scribe, r.tango])),
+    table(["", "Showsteps", "Scribe", "Tango"], COMPARE_ROWS.map((r) => [r.feature, r.showsteps, r.scribe, r.tango])),
     `\nCompetitor details are from each vendor's own pages as of ${COMPARE_DATE}. Plans and prices change.`,
   ].join("\n");
 }
@@ -48,7 +48,7 @@ export function pageMd(p: KeywordPage): string {
 
 export function agentsMd(): string {
   const file = resolve(process.cwd(), "../../AGENTS.md");
-  if (existsSync(file)) return readFileSync(file, "utf8").replace(/Stepsnap/g, SITE_NAME);
+  if (existsSync(file)) return readFileSync(file, "utf8");
   return `See ${abs("/docs/agents/")}`;
 }
 
