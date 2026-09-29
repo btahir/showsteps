@@ -1,0 +1,15 @@
+{
+  "comment": "Packages whose licence is outside the allowed list but is accepted, each with a reason. Owner: verifier. The coordinator must confirm the LGPL entry (RULES section 4 allows LGPL only as an unmodified, separate, replaceable file).",
+  "packages": [
+    {
+      "name": "@img/sharp-libvips-*",
+      "license": "LGPL-3.0-or-later",
+      "reason": "Prebuilt libvips shared library pulled in by sharp, which Astro uses at BUILD time for image optimisation in apps/site (a static site). It is never bundled into shipped JS, the extension, the CLI or the MCP server, is loaded as a separate unmodified native file, and nothing from it is in apps/site/dist. Remove it from the closure by setting the Astro image service to 'noop' or dropping sharp."
+    },
+    {
+      "name": "argparse",
+      "license": "Python-2.0",
+      "reason": "PSF-style permissive licence (attribution only). Transitive dependency of js-yaml used by Astro at build time; not part of any shipped bundle."
+    }
+  ]
+}

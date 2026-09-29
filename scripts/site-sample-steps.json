@@ -1,0 +1,12 @@
+{
+  "title": "Invite a teammate",
+  "description": "Invite a teammate to the Acme workspace with the Editor role.",
+  "steps": [
+    { "action": "navigate", "url": "https://app.acme.test/settings", "page": {"url": "https://app.acme.test/settings", "title": "Settings – Acme"} },
+    { "action": "click", "target": {"role": "link", "name": "Team"} },
+    { "action": "click", "target": {"role": "button", "name": "Invite member"} },
+    { "action": "type", "target": {"label": "Email"}, "value": "jane@example.com" },
+    { "action": "select", "target": {"label": "Role"}, "value": "editor", "optionText": "Editor" },
+    { "action": "click", "target": {"role": "button", "name": "Send invite"} }
+  ]
+}

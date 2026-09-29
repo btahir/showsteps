@@ -6,7 +6,9 @@
   "scripts": {
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "verify": "node scripts/verify.mjs",
+    "licenses": "node scripts/check-licenses.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
