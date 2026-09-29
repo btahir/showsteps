@@ -4,7 +4,7 @@
 //  - renderAnnotated: crop + redactions + highlight box + numbered step marker, for human
 //    exports (Markdown, HTML, PDF, DOCX) and previews.
 
-import { redactRegion } from "@stepsnap/core";
+import { isInputLike, redactRegion } from "@stepsnap/core";
 import type { Rect, Redaction, Step } from "@stepsnap/core";
 import { clipRect, toCropSpace } from "./rect";
 import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
@@ -147,6 +147,7 @@ export async function renderAnnotated(blob: Blob, step: Step, opts: AnnotateOpti
         corner: sh.highlight.corner,
         labelRect: sh.highlight.labelRect ? toCropSpace(sh.highlight.labelRect, crop) : undefined,
         rtl: step.page.dir === "rtl",
+        inputLike: isInputLike(step),
       });
     }
   }

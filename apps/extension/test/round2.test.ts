@@ -171,6 +171,10 @@ describe("focus frame thumbnails (review #4, R2-3)", async () => {
     const wide = focusFrame(img, { x: 100, y: 100, width: 700, height: 60 }, undefined, 2, 2);
     expect(wide.width).toBe(Math.round(1.6 * (700 + 16)));
   });
+  it("always leaves 24 CSS px around the ring (review R3-5)", () => {
+    const f = focusFrame(img, { x: 200, y: 200, width: 1500, height: 40 }, undefined, 2, 2);
+    expect(f.width).toBeGreaterThanOrEqual(1500 + 2 * 4 * 2 + 2 * 24 * 2);
+  });
   it("stays inside the image near an edge", () => {
     const f = focusFrame(img, { x: 2500, y: 10, width: 50, height: 20 });
     expect(f.x + f.width).toBe(2560);

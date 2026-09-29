@@ -218,12 +218,23 @@ export default defineUnlistedScript(() => {
   function labelOf(el: Element): Element | undefined {
     const type = (el.getAttribute("type") ?? "").toLowerCase();
     const role = el.getAttribute("role");
-    if (!(tagIs(el, "input") && (type === "checkbox" || type === "radio")) && role !== "switch" && role !== "checkbox" && role !== "radio") return undefined;
+    const toggle = (tagIs(el, "input") && (type === "checkbox" || type === "radio")) || role === "switch" || role === "checkbox" || role === "radio";
+    const NOT_FIELD = ["checkbox", "radio", "button", "submit", "reset", "image", "file", "color", "range", "hidden"];
+    const field =
+      (tagIs(el, "input") && !NOT_FIELD.includes(type)) || tagIs(el, "select") || tagIs(el, "textarea") || ["textbox", "searchbox", "combobox", "listbox"].includes(role ?? "");
+    if (!toggle && !field) return undefined;
     const ids = el.getAttribute("aria-labelledby");
     const byId = ids ? el.ownerDocument.getElementById(ids.split(/\s+/)[0]!) : null;
     const label = byId ?? (el as HTMLInputElement).labels?.[0] ?? null;
     const r = label?.getBoundingClientRect();
-    return label && r && r.width > 0 && r.height > 0 ? label : undefined;
+    if (!label || !r || r.width <= 0 || r.height <= 0 || label.contains(el)) return toggle && label && r && r.width > 0 ? label : undefined;
+    if (toggle) return label;
+    // Text fields, selects: only a label sitting just above the field (review R3-3), so the ring
+    // stops below it instead of running through it.
+    const f = el.getBoundingClientRect();
+    const gap = f.top - r.bottom;
+    const overlaps = r.left < f.right && r.right > f.left;
+    return gap >= -1 && gap <= 8 && overlaps ? label : undefined;
   }
 
   /** The highlight tab's corner with the least page text under it (undefined = the default is fine). */

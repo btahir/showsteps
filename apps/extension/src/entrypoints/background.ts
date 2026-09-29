@@ -154,7 +154,8 @@ export default defineBackground(() => {
     if (!tab?.active || tab.windowId === undefined) return null; // captureVisibleTab only sees the active tab
     // The recording bar must never be in a screenshot: hide it, capture, show it again (hiding
     // changes opacity only, so the bar stays clickable for the few milliseconds it is invisible).
-    if (!(await hideBar(tabId))) {
+    // A busy page (heavy load, a fresh tab still parsing) gets a second chance before the capture is skipped.
+    if (!(await hideBar(tabId)) && !(await hideBar(tabId))) {
       showBar(tabId);
       if (DEBUG) console.warn("Showsteps: bar did not hide in time, capture skipped");
       return null;

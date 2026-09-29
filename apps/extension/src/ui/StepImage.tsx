@@ -5,6 +5,7 @@
 // In "highlight" mode the ring gets a move handle and four corner handles (mouse or arrow keys).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as RKeyboardEvent, PointerEvent as RPointerEvent } from "react";
+import { isInputLike } from "@stepsnap/core";
 import type { Rect, Step } from "@stepsnap/core";
 import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
 import { displayRectToImage, focusFrame, moveRect, resizeRect } from "../lib/rect";
@@ -111,6 +112,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
       corner: hlDrag ? undefined : sh.highlight?.corner,
       labelRect: hlDrag || !sh.highlight?.labelRect ? undefined : { x: (sh.highlight.labelRect.x - view.x) * s, y: (sh.highlight.labelRect.y - view.y) * s, width: sh.highlight.labelRect.width * s, height: sh.highlight.labelRect.height * s },
       rtl: step.page.dir === "rtl",
+      inputLike: isInputLike(step),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sh, liveHl, width, number, size, color, fontsReady, frame, mode, themeTick]);
