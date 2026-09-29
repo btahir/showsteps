@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodePng, encodePng, flagLayout, flagRingPath, flagTabPath, focusFrame, highlightScale, minRingBox, renderStepImage, type Rect, type RgbaImage, type Screenshot } from "../src";
+import { isInputLike, decodePng, encodePng, flagLayout, flagRingPath, flagTabPath, focusFrame, highlightScale, minRingBox, renderStepImage, type Rect, type RgbaImage, type Screenshot } from "../src";
 import { expectGoldenBytes } from "./golden";
 
 const k = 2; // image px per highlight CSS px (dpr 2, narrow viewport)
@@ -90,6 +90,43 @@ describe("labels and small controls (R2-4)", () => {
   });
 });
 
+describe("labels above inputs (R3-3)", () => {
+  const field: Rect = { x: 400, y: 300, width: 400, height: 44 };
+  const base = { target: field, n: 4, scale: k, imageWidth: 1440, imageHeight: 900 } as const;
+  it("an input gets 2 CSS px of ring above it instead of 4", () => {
+    const plain = flagLayout(base).ring, input = flagLayout({ ...base, inputLike: true }).ring;
+    expect(plain.y).toBeCloseTo(field.y - 4 * k);
+    expect(input.y).toBeCloseTo(field.y - 2 * k);
+    expect(input.x).toBeCloseTo(plain.x); // sides and bottom unchanged
+    expect(input.y + input.h).toBeCloseTo(plain.y + plain.h);
+  });
+  it("a label right above the field stops the ring 1 px below the label", () => {
+    const label: Rect = { x: 400, y: 284, width: 120, height: 14 }; // bottom at 298, field top 300
+    const r = flagLayout({ ...base, labelRect: label }).ring;
+    expect(r.y).toBeCloseTo(299);
+    expect(r.y).toBeGreaterThanOrEqual(label.y + label.height);
+  });
+  it("a label further than 8 CSS px above is ignored", () => {
+    const far: Rect = { x: 400, y: 240, width: 120, height: 14 };
+    expect(flagLayout({ ...base, labelRect: far }).ring.y).toBeCloseTo(field.y - 4 * k);
+  });
+  it("checkbox labels to the side still ring together", () => {
+    const cb: Rect = { x: 400, y: 300, width: 26, height: 26 };
+    const l = flagLayout({ target: cb, n: 4, scale: k, imageWidth: 1440, imageHeight: 900, labelRect: { x: 440, y: 298, width: 300, height: 30 } }).ring;
+    expect(l.x + l.w).toBeGreaterThanOrEqual(740);
+  });
+  it("isInputLike picks text inputs, selects and textareas, not checkboxes or buttons", () => {
+    const t = (tag: string, extra: object = {}) => isInputLike({ target: { tag, locators: [{ kind: "css", value: tag }], ...extra } });
+    expect(t("input", { inputType: "email" })).toBe(true);
+    expect(t("select")).toBe(true);
+    expect(t("textarea")).toBe(true);
+    expect(t("div", { role: "textbox" })).toBe(true);
+    expect(t("input", { inputType: "checkbox" })).toBe(false);
+    expect(t("button")).toBe(false);
+    expect(isInputLike({})).toBe(false);
+  });
+});
+
 describe("focusFrame", () => {
   const image = { width: 2880, height: 1800 };
   it("is 16:10 and centred on the ring; width = max(1.6 x ring, 0.3 x image, 360 CSS px)", () => {
@@ -111,6 +148,12 @@ describe("focusFrame", () => {
     const f = focusFrame({ x: 460, y: 300, width: 360, height: 36 }, { width: 1280, height: 800 }, 1, 1);
     expect(f.width / 1280).toBeLessThan(0.55);
     expect(f.width).toBe(Math.round(1.6 * (360 + 8)));
+  });
+  it("a wide ring is never cut off: the window is at least the ring plus 24 CSS px each side (R3-5)", () => {
+    const f = focusFrame({ x: 400, y: 800, width: 2000, height: 60 }, { width: 5000, height: 3000 }, 2, 2);
+    expect(f.width).toBeGreaterThanOrEqual(2000 + 16 + 96 - 1);
+    expect(f.x).toBeLessThanOrEqual(400 - 8 - 48 + 1);
+    expect(f.x + f.width).toBeGreaterThanOrEqual(2400 + 8 + 48 - 1);
   });
   it("grows the height only when the ring and its tab do not fit", () => {
     const tall = focusFrame({ x: 1000, y: 400, width: 200, height: 500 }, image, 2, 2);

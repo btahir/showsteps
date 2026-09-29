@@ -46,6 +46,11 @@ export interface FlagLayoutInput {
    * the minimum ring, the ring goes around the control and its label together.
    */
   labelRect?: Rect;
+  /**
+   * The target is a text input, select or textarea. Its label usually sits right above it, so the ring's top
+   * pad is 2 CSS px instead of 4 and the ring never covers that label.
+   */
+  inputLike?: boolean;
 }
 
 function unionOf(a: Rect, b: Rect): Rect {
@@ -78,10 +83,19 @@ export function flagLayout(o: FlagLayoutInput): FlagLayout {
   const digits = o.n === undefined ? "" : String(Math.max(0, Math.floor(o.n)));
   const advance = fs * 0.6;
   const tw = digits ? Math.max(T.minWidth * k, digits.length * advance + T.paddingX * 2 * k) : 0;
-  const grow = (r: Rect): Rect => ({ x: r.x - pad, y: r.y - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+  const topPad = o.inputLike ? 2 * k : pad;
+  const grow = (r: Rect): Rect => ({ x: r.x - pad, y: r.y - topPad, width: r.width + pad * 2, height: r.height + pad + topPad });
   let padded = grow(o.target);
   const tooSmall = (r: Rect): boolean => r.width < tw + 2 * FLAG.radius * k + 4 * k || r.height < 0.75 * th;
   if (digits && o.labelRect && tooSmall(padded)) padded = grow(unionOf(o.target, o.labelRect)); // ring the control and its label together
+  else if (o.labelRect) {
+    // a label right above the field (within 8 CSS px): the ring's top edge stops 1 px below the label
+    const lb = o.labelRect.y + o.labelRect.height;
+    if (lb <= o.target.y + 1 && o.target.y - lb <= 8 * k && padded.y < lb + 1) {
+      const y = lb + 1;
+      padded = { ...padded, y, height: padded.height - (y - padded.y) };
+    }
+  }
   const box = digits ? minRingBox(padded, tw, th, FLAG.radius * k, k, o.corner ? (o.corner.endsWith("right") ? "right" : "left") : undefined) : padded;
   const { x, y } = box, w = box.width, h = box.height;
   const rad = Math.min(FLAG.radius * k, h / 2, w / 2);

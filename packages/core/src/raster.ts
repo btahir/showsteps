@@ -28,6 +28,8 @@ export interface RenderOptions {
   highlightColor?: string;
   /** Number shown on the highlight's tab (the step number). Omit for a plain ring. */
   stepNumber?: number;
+  /** The target is a text input, select or textarea: 2 CSS px of ring above it so a label right above stays clear. */
+  inputLike?: boolean;
   /** Dim everything outside the highlight (brand "spotlight"). Default true. */
   spotlight?: boolean;
   /** Right-to-left page: the numbered tab grows out of the top-left corner instead. */
@@ -277,6 +279,7 @@ interface FlagOptions {
   rtl?: boolean;
   corner?: TabCorner;
   labelRect?: Rect;
+  inputLike?: boolean;
 }
 
 function blend(img: RgbaImage, p: number, rgb: readonly number[], a: number): void {
@@ -292,7 +295,7 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** Draw the Showsteps "Flag" highlight in place: spotlight dim, haloed ring, numbered tab. */
 export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
-  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}), ...(o.corner ? { corner: o.corner } : {}), ...(o.labelRect ? { labelRect: o.labelRect } : {}) });
+  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}), ...(o.corner ? { corner: o.corner } : {}), ...(o.labelRect ? { labelRect: o.labelRect } : {}), ...(o.inputLike ? { inputLike: true } : {}) });
   const { x, y, w, h, radii } = layout.ring;
   const { sw, halo } = layout;
   const cx = x + w / 2, cy = y + h / 2, hw = w / 2, hh = h / 2;
@@ -454,6 +457,7 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
       color,
       dim: opts.spotlight === false ? null : [...FLAG.spotlightDim],
       ...(opts.rtl ? { rtl: true } : {}),
+      ...(opts.inputLike ? { inputLike: true } : {}),
       ...((shot.highlight as { corner?: TabCorner }).corner ? { corner: (shot.highlight as { corner?: TabCorner }).corner as TabCorner } : {}),
       ...(shot.highlight?.labelRect ? { labelRect: ((l) => ({ x: l.x - dx, y: l.y - dy, width: l.width, height: l.height }))(fit(shot.highlight.labelRect)) } : {}),
     });

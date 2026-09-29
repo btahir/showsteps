@@ -130,6 +130,8 @@ export interface FlagOptions {
   corner?: Corner;
   /** Box of the control's <label> in image px. A control smaller than the minimum ring is ringed together with it. */
   labelRect?: Box;
+  /** Text input, select or textarea: 2 CSS px of ring above it so a label right above stays clear. */
+  inputLike?: boolean;
 }
 
 /** Rounded rectangle with per-corner radii, clockwise from top-left. */
@@ -157,12 +159,20 @@ export function drawFlagHighlight(ctx: Ctx2D, o: FlagOptions): void {
   ctx.font = `${H.tab.fontWeight} ${fs}px ${H.tab.fontFamily}`;
   const tw = Math.max(H.tab.minWidth * k, ctx.measureText(label).width + H.tab.paddingX * 2 * k);
   // The ring is the target plus padding, grown if needed so the tab always fits on it (small targets such as checkboxes).
-  const grow = (r: Box): Box => ({ x: r.x - pad, y: r.y - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+  const topPad = o.inputLike ? 2 * k : pad;
+  const grow = (r: Box): Box => ({ x: r.x - pad, y: r.y - topPad, width: r.width + pad * 2, height: r.height + pad + topPad });
   let padded = grow(o.target);
   if (o.labelRect && (padded.width < tw + 2 * H.radius * k + 4 * k || padded.height < 0.75 * th)) {
     const l = o.labelRect, t = o.target;
     const x1 = Math.min(t.x, l.x), y1 = Math.min(t.y, l.y), x2 = Math.max(t.x + t.width, l.x + l.width), y2 = Math.max(t.y + t.height, l.y + l.height);
     padded = grow({ x: x1, y: y1, width: x2 - x1, height: y2 - y1 }); // control and label together
+  } else if (o.labelRect) {
+    // a label right above the field (within 8 CSS px): the ring's top edge stops 1 px below it
+    const lb = o.labelRect.y + o.labelRect.height;
+    if (lb <= o.target.y + 1 && o.target.y - lb <= 8 * k && padded.y < lb + 1) {
+      const y = lb + 1;
+      padded = { ...padded, y, height: padded.height - (y - padded.y) };
+    }
   }
   const ringBox = minRingBox(padded, tw, th, H.radius * k, k, o.corner ? (o.corner.endsWith("right") ? "right" : "left") : undefined);
   const x = ringBox.x, y = ringBox.y, w = ringBox.width, h = ringBox.height;

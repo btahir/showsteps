@@ -8,7 +8,7 @@ import { highlightScale } from "../geometry";
 import { DEFAULT_HIGHLIGHT_COLOR, imageSpace, renderStepImage } from "../raster";
 import { pngSize } from "../png";
 import { typographicQuotes } from "../text";
-import { displayUrl } from "./shared";
+import { displayUrl, isInputLike } from "./shared";
 
 // ---------------------------------------------------------------------------------------------
 // Options
@@ -283,6 +283,7 @@ export interface PreparedImage {
   corner?: TabCorner;
   /** The control's label box in prepared-image pixels, if the highlight carries one. */
   labelRect?: Rect;
+  inputLike?: boolean;
   /** Scale (image px per CSS px) for the highlight geometry, when `highlight` is set. */
   highlightScale?: number;
 }
@@ -319,6 +320,7 @@ export function prepareStepImage(step: Step, bytes: Uint8Array, opts: PrepareOpt
     stepNumber: opts.n,
     redact: !opts.redactionsBaked,
     ...(rtl ? { rtl: true } : {}),
+    ...(isInputLike(step) ? { inputLike: true } : {}),
   });
   const size = out === bytes ? { width: info.width, height: info.height } : (pngSize(out) ?? { width: info.width, height: info.height });
   const prepared: PreparedImage = { bytes: out, format: out === bytes ? info.format : "png", width: size.width, height: size.height };
@@ -332,6 +334,7 @@ export function prepareStepImage(step: Step, bytes: Uint8Array, opts: PrepareOpt
     prepared.highlight = hl;
     const stored = (shot.highlight as { corner?: TabCorner }).corner;
     if (stored) prepared.corner = stored;
+    if (isInputLike(step)) prepared.inputLike = true;
     if (shot.highlight?.labelRect) {
       const l = space.fit(shot.highlight.labelRect);
       prepared.labelRect = space.crop && out !== bytes && size.width === space.crop.width ? { x: l.x - space.crop.x, y: l.y - space.crop.y, width: l.width, height: l.height } : l;

@@ -220,3 +220,15 @@ describe("DOCX repeats no URL (R2-9)", () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
 });
+
+describe("DOCX runs all carry Arial (R3-4)", () => {
+  it("every text run has a font, including the meta line, URL captions and footer", async () => {
+    const xml = strFromU8(unzipSync(await exportDocx(guide, images))["word/document.xml"] as Uint8Array);
+    const runs = xml.match(/<w:r>(?:(?!<\/w:r>)[^])*<\/w:r>/g) ?? [];
+    const textRuns = runs.filter((r) => /<w:t[ >]/.test(r));
+    expect(textRuns.length).toBeGreaterThan(10);
+    for (const r of textRuns) expect(r, r.slice(0, 120)).toContain('w:ascii="Arial"');
+    const footer = strFromU8(unzipSync(await exportDocx(guide, images))["word/footer1.xml"] as Uint8Array);
+    expect(footer).toContain('w:ascii="Arial"');
+  });
+});

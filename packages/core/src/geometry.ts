@@ -152,7 +152,7 @@ export function defaultHighlightMetrics(devicePixelRatio: number, viewportCssWid
 /**
  * The window a list thumbnail or a phone-sized detail image shows: 16:10, centred on the highlight ring.
  * Width is the largest of 1.6 x the ring width, 0.3 x the image width and 360 x `dpr` image px (360 CSS px);
- * the height follows at 16:10 and grows only when the ring plus its tab does not fit. Clamped inside the
+ * the height follows at 16:10 (a wide ring widens it to the ring plus 24 CSS px on each side) and grows only when the ring plus its tab does not fit. Clamped inside the
  * image (shrunk, keeping the shape, if the image is too small). Whole pixels.
  */
 export function focusFrame(highlight: Rect, image: Size, scale = 1, dpr = 1): Rect {
@@ -160,7 +160,9 @@ export function focusFrame(highlight: Rect, image: Size, scale = 1, dpr = 1): Re
   const ringW = highlight.width + pad * 2;
   const ringH = highlight.height + pad * 2 + FLAG.tab.height * scale; // the tab grows out of the ring's top or bottom
   const cx = highlight.x + highlight.width / 2, cy = highlight.y + highlight.height / 2;
-  let w = Math.max(1.6 * ringW, 0.3 * image.width, 360 * (dpr > 0 ? dpr : 1));
+  const d = dpr > 0 ? dpr : 1;
+  // a wide ring is never cut off: at least the ring plus 24 CSS px each side, even if that zooms out
+  let w = Math.max(1.6 * ringW, 0.3 * image.width, 360 * d, ringW + 48 * d);
   let h = Math.max(w / 1.6, ringH + 8 * scale);
   if (w > image.width) { const r = image.width / w; w = image.width; h = Math.min(h * r, image.height); }
   if (h > image.height) { const r = image.height / h; h = image.height; w = Math.min(w * r, image.width); }

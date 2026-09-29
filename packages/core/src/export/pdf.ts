@@ -275,8 +275,8 @@ async function embedFaces(doc: PDFDocument, fonts: PdfFonts, text: string): Prom
  * its top-left at (ix, iyTop) in page points, `s` points per image pixel. Geometry comes from
  * `flagLayout`, the same numbers the pixel renderer uses.
  */
-function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean, corner?: TabCorner, labelRect?: Rect): void {
-  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}), ...(corner ? { corner } : {}), ...(labelRect ? { labelRect } : {}) });
+function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean, corner?: TabCorner, labelRect?: Rect, inputLike?: boolean): void {
+  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}), ...(corner ? { corner } : {}), ...(labelRect ? { labelRect } : {}), ...(inputLike ? { inputLike: true } : {}) });
   const white = rgb(1, 1, 1);
   const dim = FLAG.spotlightDim;
   const dimColor = rgb(dim[0] / 255, dim[1] / 255, dim[2] / 255);
@@ -491,7 +491,7 @@ export async function exportPdf(
       const iyBottom = y - imgH;
       page.drawImage(embedded, { x: ix, y: iyBottom, width: imgW, height: imgH });
       const hl = img.prepared.highlight;
-      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl", img.prepared.corner, img.prepared.labelRect);
+      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl", img.prepared.corner, img.prepared.labelRect, img.prepared.inputLike);
       page.drawRectangle({ x: ix, y: iyBottom, width: imgW, height: imgH, borderColor: col(HAIRLINE), borderWidth: 0.75 });
       y = iyBottom;
     }

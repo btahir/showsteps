@@ -112,7 +112,7 @@ Entries other than `guide.json` and `images/...` are ignored. Older schema versi
   "width": 2880, "height": 1800,          // image pixels (at least 1)
   "devicePixelRatio": 2,                  // greater than 0
   "viewport": { "width": 1440, "height": 900, "scrollX": 0, "scrollY": 0 },   // CSS px
-  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88, "corner": "top-right" },   // target box in image px, drawn at export, never baked in; `corner` (optional): where the recorder found the least text for the numbered tab; `labelRect` (optional): the box of a checkbox, radio or switch's `<label>`, so a control smaller than the minimum ring is ringed together with its label
+  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88, "corner": "top-right" },   // target box in image px, drawn at export, never baked in; `corner` (optional): where the recorder found the least text for the numbered tab; `labelRect` (optional): the box of a checkbox, radio or switch's `<label>`, so a control smaller than the minimum ring is ringed together with its label, and a label sitting right above a text field is kept clear of the ring
   "redactions": [ { "rect": { "x": 944, "y": 584, "width": 992, "height": 120 }, "style": "mask", "auto": true, "label": "Password" } ],   // style: blur | pixelate | solid | mask; label: what was covered
   "crop": { "x": 0, "y": 0, "width": 2880, "height": 1200 }   // optional export crop, image px
 }

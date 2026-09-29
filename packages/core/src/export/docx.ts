@@ -51,7 +51,7 @@ const ACCENT = toHex(ACCENT_COLOR);
 const FONT = "Arial";
 
 function runs(md: string, extra: { size?: number; color?: string } = {}): TextRun[] {
-  return parseInline(md).map((r) => new TextRun({ text: r.text, bold: r.bold, ...extra }));
+  return parseInline(md).map((r) => new TextRun({ text: r.text, bold: r.bold, font: FONT, ...extra }));
 }
 
 export async function exportDocx(
@@ -82,8 +82,8 @@ export async function exportDocx(
   body.push(
     new Paragraph({
       children: [
-        new TextRun({ text: metaLine(guide, steps.length), color: FAINT, size: 20 }),
-        ...(opts.branding === true ? [new TextRun({ text: "   ·   Made with Showsteps", color: FAINT, size: 18 })] : []),
+        new TextRun({ font: FONT, text: metaLine(guide, steps.length), color: FAINT, size: 20 }),
+        ...(opts.branding === true ? [new TextRun({ font: FONT, text: "   ·   Made with Showsteps", color: FAINT, size: 18 })] : []),
       ],
       spacing: { before: 60, after: 360 },
       border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "E0DCD6", space: 10 } },
@@ -154,8 +154,8 @@ export async function exportDocx(
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
                 children: [
-                  new TextRun({ text: `${title}   ·   `, color: FAINT, size: 16 }),
-                  new TextRun({ children: [PageNumber.CURRENT], color: FAINT, size: 16 }),
+                  new TextRun({ font: FONT, text: `${title}   ·   `, color: FAINT, size: 16 }),
+                  new TextRun({ font: FONT, children: [PageNumber.CURRENT], color: FAINT, size: 16 }),
                 ],
               }),
             ],
@@ -232,7 +232,7 @@ function stepParagraphs(
         keepNext: hasImage || blocks.length > 0,
         indent: { left: 567 },
         spacing: { after: 80 },
-        children: [new TextRun({ text: url, color: FAINT, size: 17 })],
+        children: [new TextRun({ font: FONT, text: url, color: FAINT, size: 17 })],
       }),
     );
   }
@@ -277,7 +277,7 @@ function stepParagraphs(
       }),
     );
   } else if (step.screenshot) {
-    out.push(new Paragraph({ children: [new TextRun({ text: "Screenshot unavailable", italics: true, color: FAINT, size: 18 })] }));
+    out.push(new Paragraph({ children: [new TextRun({ font: FONT, text: "Screenshot unavailable", italics: true, color: FAINT, size: 18 })] }));
   }
   return out;
 }

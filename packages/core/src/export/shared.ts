@@ -3,6 +3,16 @@ import { DEFAULT_HIGHLIGHT_COLOR, renderStepImage } from "../raster";
 import type { ImageSource } from "../types";
 
 /** Steps that appear in exports: everything not marked `skipped`. */
+/** A text input, select or textarea (not a checkbox, radio or button): the kinds whose label sits right above. */
+export function isInputLike(step: Pick<Step, "target">): boolean {
+  const t = step.target;
+  if (!t) return false;
+  const type = (t.inputType ?? "").toLowerCase();
+  if (["checkbox", "radio", "button", "submit", "reset", "image", "file", "color", "range"].includes(type)) return false;
+  const role = (t.role ?? "").toLowerCase();
+  return ["input", "select", "textarea"].includes(t.tag.toLowerCase()) || ["textbox", "searchbox", "combobox", "listbox"].includes(role);
+}
+
 export function visibleSteps(guide: Guide): Step[] {
   return guide.steps.filter((s) => !s.skipped);
 }
@@ -34,7 +44,7 @@ export function renderGuideImages(guide: Guide, images: ImageSource, opts: Image
     if (!shot) continue;
     const bytes = images[shot.image];
     if (!bytes) continue;
-    out[shot.image] = opts.imagesPrerendered ? bytes : renderStepImage(bytes, shot, { highlight: opts.highlight !== false, highlightColor: color, stepNumber: numbers.get(step.id) as number, rtl: step.page.dir === "rtl" });
+    out[shot.image] = opts.imagesPrerendered ? bytes : renderStepImage(bytes, shot, { highlight: opts.highlight !== false, highlightColor: color, stepNumber: numbers.get(step.id) as number, rtl: step.page.dir === "rtl", ...(isInputLike(step) ? { inputLike: true } : {}) });
   }
   return out;
 }

@@ -8,7 +8,7 @@ import { HTML_CSS, HTML_FONT_FACES } from "./html-css";
 import { focusFrame, highlightScale } from "../geometry";
 import { renderStepImage, DEFAULT_HIGHLIGHT_COLOR } from "../raster";
 import type { Step as StepT } from "../schema";
-import { displayUrl, formatDate, renderGuideImages, resolveIncludeUrls, sniffImageMime, visibleSteps, type ImageRenderOptions } from "./shared";
+import { displayUrl, formatDate, isInputLike, renderGuideImages, resolveIncludeUrls, sniffImageMime, visibleSteps, type ImageRenderOptions } from "./shared";
 
 export interface HtmlOptions extends ImageRenderOptions {
   /** Show the page URL under each screenshot. Default: `guide.settings.includeUrls`, else true. */
@@ -54,7 +54,7 @@ function detailImage(step: StepT, n: number, raw: Uint8Array | undefined, color:
   const frame = { x: f.x + bounds.x, y: f.y + bounds.y, width: f.width, height: f.height };
   const dpr = shot.devicePixelRatio > 0 ? shot.devicePixelRatio : 1;
   try {
-    const out = renderStepImage(raw, { ...shot, crop: frame, viewport: { ...shot.viewport, width: frame.width / dpr } }, { highlight: true, highlightColor: color, stepNumber: n, rtl: step.page.dir === "rtl" });
+    const out = renderStepImage(raw, { ...shot, crop: frame, viewport: { ...shot.viewport, width: frame.width / dpr } }, { highlight: true, highlightColor: color, stepNumber: n, rtl: step.page.dir === "rtl", ...(isInputLike(step) ? { inputLike: true } : {}) });
     return out === raw ? undefined : out;
   } catch {
     return undefined;

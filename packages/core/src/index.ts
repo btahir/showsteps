@@ -10,7 +10,7 @@ export * from "./raster";
 export { parseInline, plainTitle, escapeInline, typographicQuotes, type InlineRun } from "./text";
 export * from "./bundle";
 export { canonicalJson } from "./json";
-export { visibleSteps, renderGuideImages, resolveIncludeUrls, stepNumbers, displayUrl, formatDate, type ImageRenderOptions } from "./export/shared";
+export { visibleSteps, renderGuideImages, resolveIncludeUrls, stepNumbers, displayUrl, formatDate, isInputLike, type ImageRenderOptions } from "./export/shared";
 export { renderMarkdownHtml, renderInlineHtml } from "./markdown-html";
 export * from "./brand";
 export * from "./export/markdown";
