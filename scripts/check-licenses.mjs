@@ -211,8 +211,13 @@ for (const dir of fontDirs) {
   for (const [fam, ffiles] of families) {
     const famKey = fam.toLowerCase();
     // A licence file belongs to a family when its file name or its copyright line names it; a lone licence file covers the folder.
-    const match = texts.find((t) => basename(t.f).toLowerCase().replace(/[^a-z0-9]/g, "").includes(famKey) || t.text.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 400).includes(famKey))
-      ?? (texts.length === 1 ? texts[0] : null);
+    const squash = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const famKeys = [...families.keys()].map((k) => k.toLowerCase());
+    // 1) a licence file named after this family, 2) one whose copyright line names it, 3) a generic file (name mentions no family) covers the rest.
+    const generic = texts.filter((t) => !famKeys.some((k) => squash(basename(t.f)).includes(k)));
+    const match = texts.find((t) => squash(basename(t.f)).includes(famKey))
+      ?? texts.find((t) => squash(t.text).slice(0, 400).includes(famKey))
+      ?? (generic.length ? generic[0] : null);
     const kind = match ? kindOf(match.text) : "missing";
     fontReport.push({ dir, family: fam, files: ffiles.length, licenceFile: match?.f ?? null, licence: kind });
     if (kind === "missing" || kind === "unrecognised") failures.push({ name: `font ${fam} in ${dir}`, version: "", license: kind, why: `no recognisable licence text for ${ffiles.length} font file(s)`, workspaces: [] });

@@ -180,8 +180,12 @@ function walk(dir, out = []) {
   return out;
 }
 
-function launchChannel() {
-  return process.env.NN_CHANNEL || "chrome"; // Chromium engine; branded Chrome is what is installed
+function launchChannel(wantBundled) {
+  if (process.env.NN_CHANNEL) return process.env.NN_CHANNEL;
+  // Extensions need Playwright's bundled Chromium (branded Chrome 137+ ignores --load-extension).
+  const cache = path.join(os.homedir(), "Library", "Caches", "ms-playwright");
+  const haveBundled = fs.existsSync(cache) && fs.readdirSync(cache).some((d) => /^chromium-\d+$/.test(d));
+  return wantBundled && haveBundled ? "chromium" : "chrome";
 }
 
 function finish(result) {
@@ -302,8 +306,9 @@ function staticAudit(build) {
   const res = { ok: true, lines: [], urls: [], flagged: [] };
   const files = walk(build).filter((f) => /\.(js|html|css)$/.test(f));
   const NS = /^https?:\/\/(schemas\.(openxmlformats|microsoft)\.(org|com)|www\.w3\.org|purl\.org\/dc)\b/;
-  const APP = /^https:\/\/showsteps\.vercel\.app(\/support\/)?$|^https:\/\/github\.com\/btahir\/showsteps/;
-  const LIBDOC = /^https:\/\/(react\.dev\/errors\/|rolldown\.rs\/|answers\.microsoft\.com\/|github\.com\/(Hopding\/pdf-lib|ashtuchkin\/iconv-lite)|stuk\.github\.io\/jszip)/;
+  const APP = /^https:\/\/showsteps\.vercel\.app(\/support\/|\/schema\/steps\.schema\.json)?$|^https:\/\/github\.com\/btahir\/showsteps/;
+  // Documentation and issue-tracker links that libraries keep in comments and error strings. They are strings, never requested.
+  const LIBDOC = /^https:\/\/(react\.dev\/|reactjs\.org\/|rolldown\.rs\/|answers\.microsoft\.com\/|developer\.mozilla\.org\/|bugs\.(webkit|chromium)\.org\/|json-schema\.org\/|github\.com\/(Hopding\/pdf-lib|ashtuchkin\/iconv-lite|facebook\/react|tc39\/|WICG\/|whatwg\/)|stuk\.github\.io\/jszip|tc39\.es\/|html\.spec\.whatwg\.org\/|w3c\.github\.io\/)/;
   const urls = new Set();
   const flagged = [];
   for (const f of files) {
@@ -327,6 +332,26 @@ function staticAudit(build) {
   res.ok = flagged.length === 0;
   for (const f of flagged) res.lines.push(`  STATIC FLAG ${f}`);
   return res;
+}
+
+/** Drive the fixture flow with real mouse and keyboard input (same steps as apps/fixtures/flows/fixture-flow.json). */
+async function driveFlow(ctx, tabs, flow) {
+  for (const s of flow.steps) {
+    const tp = tabs[s.tab];
+    await tp.bringToFront();
+    const loc = tp.locator(s.selector);
+    if (s.do === "type") { await loc.click(); await tp.keyboard.type(s.value, { delay: 20 }); }
+    else if (s.do === "select") await loc.selectOption(s.value);
+    else if (s.do === "check") await loc.setChecked(!!s.checked);
+    else if (s.do === "click") {
+      if (s.then && s.then.opensTab) {
+        const [np] = await Promise.all([ctx.waitForEvent("page"), loc.click()]);
+        await np.waitForLoadState("load");
+        tabs[s.then.opensTab] = np;
+      } else await loc.click();
+    }
+    await tp.waitForTimeout(650); // capture scheduler spacing is 520 ms
+  }
 }
 
 async function extensionMode() {
@@ -360,7 +385,7 @@ async function extensionMode() {
   const pw = playwrightFrom(extDir);
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), "showsteps-nn-"));
   const netlog = path.join(userData, "netlog.json");
-  const channel = launchChannel();
+  const channel = launchChannel(true);
   const cleanup = () => { try { fixtureProc && fixtureProc.kill(); } catch {} try { fs.rmSync(userData, { recursive: true, force: true }); } catch {} };
   let ctx;
   const external = new Map();
@@ -417,22 +442,7 @@ async function extensionMode() {
       const started = await ext.evaluate(({ windowId, tabId }) => chrome.runtime.sendMessage({ type: "ctl:start", windowId, tabId }), { windowId, tabId: startTabId });
       lines.push(`ctl:start -> ${started && started.ok ? "ok" : JSON.stringify(started)}`);
       await page.bringToFront();
-      for (const s of flow.steps) {
-        const tp = tabs[s.tab];
-        await tp.bringToFront();
-        const loc = tp.locator(s.selector);
-        if (s.do === "type") { await loc.click(); await tp.keyboard.type(s.value, { delay: 20 }); }
-        else if (s.do === "select") await loc.selectOption(s.value);
-        else if (s.do === "check") await loc.setChecked(!!s.checked);
-        else if (s.do === "click") {
-          if (s.then && s.then.opensTab) {
-            const [np] = await Promise.all([ctx.waitForEvent("page"), loc.click()]);
-            await np.waitForLoadState("load");
-            tabs[s.then.opensTab] = np;
-          } else await loc.click();
-        }
-        await tp.waitForTimeout(650); // capture scheduler spacing is 520 ms
-      }
+      await driveFlow(ctx, tabs, flow);
       const stopped = await ext.evaluate(() => chrome.runtime.sendMessage({ type: "ctl:stop", openEditor: true }));
       recorded = stopped && stopped.ok;
       lines.push(`flow of ${flow.steps.length} steps driven, ctl:stop -> ${recorded ? "ok" : JSON.stringify(stopped)}`);
@@ -445,15 +455,40 @@ async function extensionMode() {
     ctx = undefined;
 
     // Net-log analysis.
+    if (flag("--keep-netlog")) fs.copyFileSync(netlog, flag("--keep-netlog"));
     const nl = analyseNetlog(netlog, extId);
     lines.push(`Playwright saw ${seen.requests} requests over ${seen.pages} page loads; ${external.size} non-local`);
     for (const k of external.keys()) lines.push(`  EXTERNAL (playwright) ${k}`);
+    if (nl.unreadable || nl.urlRequests === 0) { lines.push("net-log could not be read or holds no URL requests: the net-log part of this check is void"); external.set("net-log unreadable", 1); }
     lines.push(`net-log: ${nl.urlRequests} URL requests, ${nl.extensionRequests} initiated by the extension, ${nl.extensionNonLocal.length} of those non-loopback`);
     for (const r of nl.extensionNonLocal) lines.push(`  EXTERNAL (net-log, extension) ${r}`);
-    lines.push(`net-log: ${nl.dnsAttempts.length} host-resolution attempts for non-loopback hosts overall`);
-    for (const r of nl.dnsAttempts.slice(0, 10)) lines.push(`  dns ${r} (browser-internal unless it is an extension request above)`);
-    const ok = external.size === 0 && nl.extensionNonLocal.length === 0 && nl.extensionDns.length === 0;
-    finish({ mode: "extension", status: ok ? "pass" : "fail", build: path.relative(ROOT, build), recorded, netlog: nl, lines });
+    lines.push(`net-log: non-loopback hosts contacted by the whole browser: ${nl.nonLocalHosts.join(", ") || "none"}`);
+    lines.push(`net-log: host-resolution attempts for non-loopback hosts: ${nl.dnsAttempts.length}`);
+    // Proof that any browser-internal traffic is not ours: the same browser without the extension contacts the same hosts.
+    let baseline = null, onlyOurs = [];
+    if (nl.nonLocalHosts.length || nl.dnsAttempts.length) {
+      const bl = path.join(userData, "netlog-baseline.json");
+      const bctx = await pw.chromium.launchPersistentContext(fs.mkdtempSync(path.join(userData, "base-")), {
+        channel, headless: true,
+        args: [`--log-net-log=${bl}`, "--net-log-capture-mode=Default", "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1"],
+      });
+      const bp = await bctx.newPage();
+      for (const origin of [`http://127.0.0.1:${FIX}`, `http://localhost:${FIX}`]) for (const p2 of ["/index.html", "/help.html", "/settings.html", "/frame.html"]) await bp.goto(origin + p2, { waitUntil: "load" }).catch(() => {});
+      if (recorded !== null) {
+        // Same user actions (a password is typed), no extension: Chrome's own password leak check is triggered by the typing, not by us.
+        const flow = JSON.parse(fs.readFileSync(path.join(ROOT, "apps", "fixtures", "flows", "fixture-flow.json"), "utf8"));
+        await bp.goto(flow.baseUrl + flow.start, { waitUntil: "load" });
+        await driveFlow(bctx, { main: bp }, flow);
+      }
+      await bp.waitForTimeout(Number(flag("--idle-ms", "5000")));
+      await bctx.close();
+      baseline = analyseNetlog(bl, extId);
+      onlyOurs = [...new Set([...nl.nonLocalHosts.filter((h) => !baseline.nonLocalHosts.includes(h)), ...nl.dnsAttempts.filter((h) => !baseline.dnsAttempts.includes(h))])];
+      lines.push(`baseline (same Chromium, no extension): non-loopback hosts ${baseline.nonLocalHosts.join(", ") || "none"}`);
+      lines.push(`hosts contacted only when the extension is loaded: ${onlyOurs.join(", ") || "none"}`);
+    }
+    const ok = external.size === 0 && nl.extensionNonLocal.length === 0 && onlyOurs.length === 0;
+    finish({ mode: "extension", status: ok ? "pass" : "fail", build: path.relative(ROOT, build), recorded, netlog: nl, baseline, lines });
   } catch (e) {
     try { if (ctx) await ctx.close(); } catch {}
     lines.push(`error: ${e && e.stack || e}`);
@@ -464,12 +499,14 @@ async function extensionMode() {
 }
 
 function analyseNetlog(file, extId) {
-  const out = { urlRequests: 0, extensionRequests: 0, extensionNonLocal: [], dnsAttempts: [], extensionDns: [] };
-  if (!fs.existsSync(file)) return out;
-  let raw = fs.readFileSync(file, "utf8").trim();
-  if (!raw.endsWith("]}")) { raw = raw.replace(/,\s*$/, "") + "]}"; } // Chrome writes the closing bracket on clean exit only
+  const out = { urlRequests: 0, extensionRequests: 0, extensionNonLocal: [], nonLocalHosts: [], dnsAttempts: [], extensionDns: [], unreadable: false };
+  if (!fs.existsSync(file)) { out.unreadable = true; return out; }
+  const raw = fs.readFileSync(file, "utf8").trim();
   let j;
-  try { j = JSON.parse(raw); } catch { return out; }
+  try { j = JSON.parse(raw); } catch {
+    // Chrome writes the closing brackets only on a clean exit; repair a truncated log.
+    try { j = JSON.parse(raw.replace(/,\s*$/, "") + "]}"); } catch { out.unreadable = true; return out; }
+  }
   const typeName = Object.fromEntries(Object.entries(j.constants.logEventTypes).map(([k, v]) => [v, k]));
   const srcName = Object.fromEntries(Object.entries(j.constants.logSourceType).map(([k, v]) => [v, k]));
   const bySource = new Map();
@@ -478,22 +515,27 @@ function analyseNetlog(file, extId) {
     s.events.push({ name: typeName[ev.type], params: ev.params });
     bySource.set(ev.source.id, s);
   }
-  const dnsHosts = new Set();
+  const hosts = new Set(), dnsHosts = new Set();
   for (const s of bySource.values()) {
     if (s.type === "URL_REQUEST") {
       out.urlRequests++;
-      const start = s.events.find((e) => e.name === "URL_REQUEST_START_JOB");
-      const p = start && start.params;
+      const first = s.events.find((e) => e.params && e.params.url);
+      const p = first && first.params;
       if (!p) continue;
-      const fromExt = String(p.initiator || "").startsWith("chrome-extension://" + extId) || String(p.initiator || "").startsWith("chrome-extension://");
+      const fromExt = String(p.initiator || "").startsWith("chrome-extension://");
       if (fromExt) out.extensionRequests++;
-      if (nonLocalRequest(p.url) && fromExt) out.extensionNonLocal.push(`${p.method || "GET"} ${p.url} (initiator ${p.initiator})`);
-    } else if (s.type === "HOST_RESOLVER_IMPL_JOB") {
-      const st = s.events.find((e) => e.name === "HOST_RESOLVER_IMPL_JOB" && e.params && e.params.host);
-      const host = st && String(st.params.host).replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
-      if (host && !isLocalHost(host)) dnsHosts.add(host);
+      if (nonLocalRequest(p.url)) {
+        hosts.add(new URL(p.url).host);
+        if (fromExt) out.extensionNonLocal.push(`${p.method || "GET"} ${p.url} (initiator ${p.initiator})`);
+      }
+    } else if (s.type === "HOST_RESOLVER_IMPL_JOB" || s.type === "NETWORK_SERVICE_HOST_RESOLVER") {
+      for (const e of s.events) {
+        const h = e.params && (e.params.host || e.params.host_resolver_hostname);
+        if (h) { const host = String(h).replace(/:\d+$/, "").replace(/^\[|\]$/g, ""); if (!isLocalHost(host)) dnsHosts.add(host); }
+      }
     }
   }
+  out.nonLocalHosts = [...hosts].sort();
   out.dnsAttempts = [...dnsHosts].sort();
   return out;
 }
@@ -527,7 +569,7 @@ function selfTest() {
 
 /* ------------------------------------------------------------------------------------------------ */
 if (require.main === module) {
-  const cmd = args.find((a) => !a.startsWith("--") && !/^\d+$/.test(a) && a !== flag("--port") && a !== flag("--build") && a !== flag("--idle-ms"));
+  const cmd = args.find((a) => !a.startsWith("--") && !/^\d+$/.test(a) && a !== flag("--port") && a !== flag("--build") && a !== flag("--idle-ms") && a !== flag("--keep-netlog"));
   if (args.includes("--self-test")) selfTest();
   else if (cmd === "site") siteMode().catch((e) => { console.error(e); process.exit(1); });
   else if (cmd === "extension") extensionMode().catch((e) => { console.error(e); process.exit(1); });
