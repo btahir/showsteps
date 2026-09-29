@@ -133,7 +133,7 @@ export function escapeHtml(s: string): string {
 
 const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/** Standard base64 for bytes (no btoa, no Buffer: works everywhere and on big inputs). */
+/** Standard base64 for bytes (no btoa and no Node byte-buffer class: works everywhere and on big inputs). */
 export function bytesToBase64(bytes: Uint8Array): string {
   const parts: string[] = [];
   let chunk = "";

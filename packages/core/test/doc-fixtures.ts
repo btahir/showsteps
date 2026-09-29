@@ -1,6 +1,6 @@
 // Synthetic 4-step guide (+1 skipped) shared by pdf.test.ts and docx.test.ts. Tiny PNGs are
 // generated in code; nothing here depends on the core agent's fixtures.
-import { encodePng } from "../src/export/doc-shared";
+import { encodePng } from "../src/png";
 import type { Guide, Step } from "../src/schema";
 
 /** RGBA PNG from a per-pixel function. */

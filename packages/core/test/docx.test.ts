@@ -1,6 +1,6 @@
 import { unzipSync, strFromU8 } from "fflate";
 import { describe, expect, it } from "vitest";
-import { decodePng } from "../src/export/doc-shared";
+import { decodePng } from "../src/png";
 import { exportDocx } from "../src/export/docx";
 import type { Guide } from "../src/schema";
 import { MAGENTA, SECRET, makeGuide, makePng, makeStep } from "./doc-fixtures";
@@ -72,6 +72,7 @@ describe("exportDocx", () => {
 
   it("bakes redactions and the highlight ring into the embedded PNGs", async () => {
     const { guide, images } = makeGuide();
+    guide.steps[2]!.screenshot!.redactions![0]!.style = "solid";
     const { zip, documentXml, rels } = await open(guide, images);
     // Map rId -> media for step 3 (index 2 among image rels, in document order).
     const order = [...documentXml.matchAll(/<a:blip r:embed="(rId\d+)"/g)].map((m) => m[1]!);
@@ -79,7 +80,9 @@ describe("exportDocx", () => {
     const pngs = order.map((id) => decodePng(zip[`word/${target(id)}`]!)!);
     const step3 = pngs[2]!;
     const at = (r: typeof step3, x: number, y: number) => Array.from(r.data.subarray((y * r.width + x) * 4, (y * r.width + x) * 4 + 4));
-    expect(at(step3, 50, 60)).toEqual([0x1a, 0x1a, 0x1a, 255]); // redaction block
+    // redaction block: the brand solid colour, dimmed 16% by the spotlight because it is outside the ring
+    expect(at(step3, 90, 60).map((v, i) => Math.abs(v - [0x1f, 0x1c, 0x19, 255][i]!))).toEqual([expect.any(Number), expect.any(Number), expect.any(Number), 0]);
+    expect(Math.max(...at(step3, 90, 60).slice(0, 3).map((v, i) => Math.abs(v - [0x1f, 0x1c, 0x19][i]!)))).toBeLessThanOrEqual(6);
     for (const p of pngs) {
       // No sensitive magenta left anywhere.
       let found = false;

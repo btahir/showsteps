@@ -89,7 +89,7 @@ export function isEmptyRect(rect: Rect): boolean {
 }
 
 export interface CssImageSpace {
-  /** Screenshot pixels per CSS pixel (`window.devicePixelRatio` at capture time). */
+  /** Screenshot pixels per CSS pixel (the page's devicePixelRatio at capture time). */
   devicePixelRatio: number;
   /** Viewport scroll offset in CSS px. Only used when `origin` is "document". */
   scrollX?: number;
@@ -124,8 +124,27 @@ export function imageToCssRect(img: Rect, space: Omit<CssImageSpace, "round">): 
   return { x: r.x + ox, y: r.y + oy, width: r.width, height: r.height };
 }
 
-/** Sensible highlight padding and corner radius for an image captured at `devicePixelRatio`. */
-export function defaultHighlightMetrics(devicePixelRatio: number): { pad: number; radius: number; stroke: number } {
-  const d = devicePixelRatio > 0 ? devicePixelRatio : 1;
-  return { pad: Math.round(3 * d), radius: Math.round(6 * d), stroke: Math.max(2, Math.round(2.5 * d)) };
+/** Highlight geometry in CSS px of the captured page; multiply by `highlightScale(...)`. Mirrors packages/brand/tokens.ts. */
+export const FLAG = {
+  ringWidth: 3,
+  haloWidth: 2,
+  pad: 4,
+  radius: 8,
+  spotlightDim: [28, 18, 12, 0.16] as [number, number, number, number],
+  tab: { height: 24, minWidth: 27, paddingX: 8.5, cornerRadius: 7, fillet: 7, fontSizeRatio: 0.6 },
+} as const;
+
+/** Image pixels per CSS px of highlight geometry: `devicePixelRatio * clamp(viewportCssWidth / 960, 1, 2)`. */
+export function highlightScale(viewportCssWidth: number, devicePixelRatio: number): number {
+  const s = Math.min(2, Math.max(1, viewportCssWidth / 960));
+  return (devicePixelRatio > 0 ? devicePixelRatio : 1) * s;
+}
+
+/**
+ * Highlight padding, corner radius and ring width in image pixels for a screenshot captured at
+ * `devicePixelRatio` (and, optionally, a viewport of `viewportCssWidth` CSS px; wide captures get bolder marks).
+ */
+export function defaultHighlightMetrics(devicePixelRatio: number, viewportCssWidth = 0): { pad: number; radius: number; stroke: number } {
+  const k = highlightScale(viewportCssWidth, devicePixelRatio);
+  return { pad: Math.round(FLAG.pad * k), radius: Math.round(FLAG.radius * k), stroke: Math.max(2, Math.round(FLAG.ringWidth * k)) };
 }

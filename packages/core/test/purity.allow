@@ -1,0 +1,7 @@
+# Lines in packages/core/src that the purity check (test/purity.test.ts) lets through: they sit inside
+# generated strings (the replay script reads secrets from the environment when Playwright runs it), not in
+# code that runs in the extension, a page or Node.
+# format: <path relative to packages/core/src><TAB><exact text that must appear on the line>
+export/replay-plan.ts	fill(process.env.
+export/replay-plan.ts	selectOption(process.env.
+export/playwright.ts	test.skip(!process.env.

@@ -1,6 +1,11 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { ElementDescriptor, Guide, Step, StepAction } from "../src";
 import { formatKey, generateStepTitle, regenerateTitles } from "../src";
+import { sample11Guide } from "./fixtures/sample11";
+import { expectGolden } from "./golden";
 
 const el = (o: Partial<ElementDescriptor> & { tag: string }): ElementDescriptor => ({ locators: [{ kind: "css", value: o.tag }], ...o });
 const page = (title?: string, url = "https://app.acme.test/x"): Step["page"] => ({ url, ...(title ? { title } : {}) });
@@ -104,12 +109,178 @@ const CASES: Case[] = [
   ["note", { type: "note" }, undefined, "Note"],
 ];
 
+// Cases added for the acceptance spread (B-TITLES): long values, escaping, RTL/Unicode, non-http navigation.
+CASES.push(
+  ["long value 2", { type: "type", value: "x".repeat(120) }, el({ tag: "input", label: "Bio" }), `Type "${"x".repeat(49)}\u2026" in **Bio**`],
+  ["quotes in a value", { type: "type", value: 'say "hi" to _them_' }, el({ tag: "input", label: "Greeting" }), 'Type "say \"hi\" to \\_them\\_" in **Greeting**'.replace(/\\"/g, '"')],
+  ["Arabic button name", click, el({ tag: "button", role: "button", name: "\u062d\u0641\u0638" }), "Click **\u062d\u0641\u0638**"],
+  ["Japanese field and value", { type: "type", value: "\u3053\u3093\u306b\u3061\u306f" }, el({ tag: "input", label: "\u540d\u524d" }), 'Type "\u3053\u3093\u306b\u3061\u306f" in **\u540d\u524d**'],
+  ["navigate to a long URL without a title", { type: "navigate", url: `https://very-long-hostname.example.com/${"a".repeat(300)}?q=1` }, undefined, "Go to **very-long-hostname.example.com**", page()],
+  ["navigate to about:blank", { type: "navigate", url: "about:blank" }, undefined, "Go to **about:blank**", { url: "about:blank" }],
+  ["navigate to a chrome page with a title", { type: "navigate", url: "chrome://settings/" }, undefined, "Go to **Settings**", page("Settings", "chrome://settings/")],
+  ["note with a target is still a note", { type: "note" }, button("Save"), "Note"],
+  ["press Escape in a dialog", { type: "press", key: "Escape" }, undefined, "Press **Esc**"],
+);
+
+const tagsOf = (label: string, a: StepAction): string[] => {
+  const tags: string[] = [a.type];
+  if (/mask|password|never leaks/i.test(label) || (a.type === "type" && a.masked)) tags.push("masked");
+  if (/long|truncated/i.test(label)) tags.push("long");
+  if (/escap|quote|markdown/i.test(label)) tags.push("escaping");
+  if (/arabic|japanese|unicode|rtl/i.test(label)) tags.push("unicode");
+  if (/nameless|anonymous|no target|unnamed|symbol-only/i.test(label)) tags.push("no-name");
+  return tags;
+};
+
 describe("generateStepTitle golden cases", () => {
-  it("has at least 40 cases", () => {
+  it("has at least 40 cases with the required spread", () => {
     expect(CASES.length).toBeGreaterThanOrEqual(40);
+    const count = (tag: string): number => CASES.filter(([label, a]) => tagsOf(label, a).includes(tag)).length;
+    expect(count("click")).toBeGreaterThanOrEqual(10);
+    expect(count("type")).toBeGreaterThanOrEqual(8);
+    expect(CASES.filter(([, a]) => a.type === "type" && (a.masked || false)).length).toBeGreaterThanOrEqual(3);
+    expect(count("long")).toBeGreaterThanOrEqual(2);
+    expect(count("escaping")).toBeGreaterThanOrEqual(2);
+    expect(count("select")).toBeGreaterThanOrEqual(4);
+    expect(CASES.filter(([, a]) => a.type === "check" && a.checked).length).toBeGreaterThanOrEqual(2);
+    expect(CASES.filter(([, a]) => a.type === "check" && !a.checked).length).toBeGreaterThanOrEqual(2);
+    expect(count("press")).toBeGreaterThanOrEqual(4);
+    expect(count("navigate")).toBeGreaterThanOrEqual(4);
+    expect(count("note")).toBeGreaterThanOrEqual(2);
+    expect(count("unicode")).toBeGreaterThanOrEqual(2);
+    expect(count("no-name")).toBeGreaterThanOrEqual(3);
   });
+
   it.each(CASES)("%s", (_label, action, target, expected, p) => {
     expect(t(action, target, p ?? page())).toBe(expected);
+  });
+
+  it("the five BRIEF examples appear verbatim", () => {
+    const outs = new Set(CASES.map(([, a, tg, , p]) => t(a, tg, p ?? page())));
+    for (const ex of ["Click **Save**", 'Type "jane@example.com" in **Email**', "Select **Monthly** in **Billing period**", "Press **Enter**", "Go to **Settings \u2013 Acme**"]) expect(outs.has(ex), ex).toBe(true);
+  });
+
+  it("matches titles.golden.json (inputs and expected titles)", () => {
+    const json = JSON.stringify(
+      CASES.map(([name, action, target, expected, p]) => ({ name, tags: tagsOf(name, action), step: { action, ...(target ? { target } : {}), page: p ?? page() }, expected })),
+      null,
+      2,
+    );
+    expectGolden("titles.golden.json", json + "\n");
+    const parsed = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "golden/titles.golden.json"), "utf8")) as { step: Pick<Step, "action" | "target" | "page">; expected: string }[];
+    for (const c of parsed) expect(generateStepTitle(c.step)).toBe(c.expected);
+  });
+
+  it("is deterministic: 60 repeated calls give byte-identical strings", () => {
+    for (const [, a, tg, , p] of CASES) {
+      const first = t(a, tg, p ?? page());
+      for (let i = 0; i < 60; i++) expect(t(a, tg, p ?? page())).toBe(first);
+    }
+  });
+
+  it("no title contains a newline or exceeds 160 characters", () => {
+    for (const [, a, tg, , p] of CASES) {
+      const title = t(a, tg, p ?? page());
+      expect(title).not.toMatch(/[\r\n]/);
+      expect(title.length).toBeLessThanOrEqual(160);
+    }
+  });
+});
+
+// ---- property tests ----------------------------------------------------------------------------
+
+function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const NOISE = ["*", "_", "`", "[", "]", "<", "\\", "\n", "\r", "\t", "  ", "\u202e", "\u0000", '"', "'", "\u2028", "\u0645", "\u{1F600}"];
+
+describe("titles: property tests (seeded)", () => {
+  const rand = rng(20260928);
+  const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)] as T;
+  const word = (n: number): string => Array.from({ length: n }, () => ALPHABET[Math.floor(rand() * ALPHABET.length)]).join("");
+  const junk = (max: number): string => {
+    let out = "";
+    const len = Math.floor(rand() * max);
+    while (out.length < len) out += rand() < 0.3 ? pick(NOISE) : word(1 + Math.floor(rand() * 8)) + " ";
+    return out;
+  };
+
+  it("masked or sensitive steps never contain the typed value (500 random steps)", () => {
+    for (let i = 0; i < 500; i++) {
+      const value = word(12);
+      const variant = i % 5;
+      const target = el({
+        tag: "input",
+        inputType: variant === 0 ? "password" : "text",
+        role: variant === 3 ? "textbox" : undefined,
+        label: junk(30) || "Field",
+        name: rand() < 0.5 ? junk(30) : undefined,
+        placeholder: rand() < 0.3 ? junk(20) : undefined,
+        sensitive: variant === 1 || variant === 4 ? true : undefined,
+      });
+      const action: StepAction = { type: "type", value, ...(variant === 2 || variant === 3 ? { masked: true as const } : {}) };
+      const sensitiveOnly = variant === 4 ? true : variant <= 3;
+      expect(sensitiveOnly).toBe(true);
+      const title = t(action, target, page(junk(40) || "Home"));
+      expect(title.includes(value), `${JSON.stringify(title)} leaked ${value}`).toBe(false);
+    }
+  });
+
+  it("random elements and actions: one line, at most 160 characters, balanced bold markers, no throw (2000 cases)", () => {
+    const actions: (() => StepAction)[] = [
+      () => ({ type: "click", ...(rand() < 0.2 ? { double: true } : {}), ...(rand() < 0.2 ? { button: pick(["left", "right", "middle"] as const) } : {}) }),
+      () => ({ type: "type", value: junk(300) }),
+      () => ({ type: "select", value: junk(80), ...(rand() < 0.5 ? { optionText: junk(200) } : {}) }),
+      () => ({ type: "check", checked: rand() < 0.5 }),
+      () => ({ type: "press", key: pick(["Enter", "Escape", " ", "Control+K", "Meta+Shift+P", "ArrowDown", "a", junk(20)]) }),
+      () => ({ type: "scroll", x: Math.round((rand() - 0.5) * 800), y: Math.round((rand() - 0.5) * 800) }),
+      () => ({ type: "hover" }),
+      () => ({ type: "navigate", url: pick(["https://a.test/x", "about:blank", junk(400), "http://[bad"]) }),
+      () => ({ type: "note" }),
+    ];
+    for (let i = 0; i < 2000; i++) {
+      const target = rand() < 0.15 ? undefined : el({
+        tag: pick(["button", "a", "input", "textarea", "select", "div", "li", "svg"]),
+        role: rand() < 0.6 ? pick(["button", "link", "checkbox", "radio", "switch", "textbox", "searchbox", "combobox", "menuitem", "tab", "option", "img", "slider", "generic"]) : undefined,
+        inputType: rand() < 0.4 ? pick(["text", "email", "password", "checkbox", "radio", "search", "file", "range", "contenteditable"]) : undefined,
+        name: rand() < 0.7 ? junk(150) : undefined,
+        label: rand() < 0.4 ? junk(150) : undefined,
+        text: rand() < 0.4 ? junk(150) : undefined,
+        placeholder: rand() < 0.2 ? junk(80) : undefined,
+      });
+      const title = t(pick(actions)(), target, page(rand() < 0.6 ? junk(120) : undefined));
+      expect(title, "single line").not.toMatch(/[\r\n]/);
+      expect(title.length).toBeLessThanOrEqual(160);
+      expect(title.length).toBeGreaterThan(0);
+      // bold markers are balanced: an even number of unescaped **
+      const unescaped = title.replace(/\\./g, "");
+      expect((unescaped.match(/\*\*/g) ?? []).length % 2, JSON.stringify(title)).toBe(0);
+    }
+  });
+});
+
+describe("titles: expected-steps.json from the fixture site", () => {
+  const file = join(dirname(fileURLToPath(import.meta.url)), "../../../apps/fixtures/flows/expected-steps.json");
+  const exists = existsSync(file);
+  it.skipIf(!exists)("every expected title equals generateStepTitle on the matching descriptor", () => {
+    const e = JSON.parse(readFileSync(file, "utf8")) as { steps: { flowStep: string; title: string; action: Record<string, unknown>; target: ElementDescriptor; page: { path: string; title: string } }[] };
+    expect(e.steps).toHaveLength(10);
+    for (const es of e.steps) {
+      const action = (es.action.masked ? { ...es.action, value: "" } : es.action) as StepAction;
+      const target = { ...es.target, locators: [{ kind: "css" as const, value: "x" }] };
+      expect(generateStepTitle({ action, target, page: { url: `http://127.0.0.1:4517${es.page.path}`, title: es.page.title } }), es.flowStep).toBe(es.title);
+    }
+  });
+  it("the sample-11 guide's stored titles are what generateStepTitle produces", () => {
+    for (const s of sample11Guide().steps) expect(generateStepTitle(s), s.id).toBe(s.title);
   });
 });
 
@@ -175,6 +346,16 @@ describe("regenerateTitles", () => {
   it("regenerates stale titles, keeps edited titles and note titles", () => {
     const out = regenerateTitles(guide);
     expect(out.steps.map((s) => s.title)).toEqual(["Click **Save**", "My custom title", "Remember to breathe"]);
+  });
+  it("leaves all 5 titleEdited steps untouched and rewrites the others", () => {
+    const g = sample11Guide();
+    const edited = new Set(["s01", "s03", "s05", "s07", "s09"]);
+    const mangled: Guide = { ...g, steps: g.steps.map((s) => ({ ...s, title: `STALE ${s.id}`, ...(edited.has(s.id) ? { titleEdited: true } : {}) })) };
+    const out = regenerateTitles(mangled);
+    for (const s of out.steps) {
+      if (edited.has(s.id)) expect(s.title).toBe(`STALE ${s.id}`);
+      else expect(s.title).toBe(generateStepTitle(s));
+    }
   });
   it("does not mutate the input", () => {
     const before = JSON.stringify(guide);

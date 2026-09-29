@@ -4,7 +4,8 @@
 // and tell exporters so with `imagesPrerendered`.
 
 import type { Rect, Redaction, Step } from "./schema";
-import { clampRect, isEmptyRect, roundRectOut, scaleRect } from "./geometry";
+import { flagLayout, flagTabCenter } from "./flag";
+import { clampRect, FLAG, highlightScale, isEmptyRect, roundRectOut, scaleRect } from "./geometry";
 import { decodePng, encodePng, isPng, PngError, type RgbaImage } from "./png";
 
 export type Screenshot = NonNullable<Step["screenshot"]>;
@@ -144,22 +145,6 @@ export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style
 // The "Flag" highlight from packages/brand/tokens.ts, rasterised without a canvas: spotlight dim,
 // white halo, coloured ring whose one square corner grows into a numbered tab.
 
-/** Highlight geometry in CSS px of the captured page; multiply by `highlightScale(...)`. Mirrors brand tokens. */
-export const FLAG = {
-  ringWidth: 3,
-  haloWidth: 2,
-  pad: 4,
-  radius: 8,
-  spotlightDim: [28, 18, 12, 0.16] as [number, number, number, number],
-  tab: { height: 24, minWidth: 27, paddingX: 8.5, cornerRadius: 7, fillet: 7, fontSizeRatio: 0.6 },
-} as const;
-
-/** Image pixels per CSS px of highlight geometry: `devicePixelRatio * clamp(viewportCssWidth / 960, 1, 2)`. */
-export function highlightScale(viewportCssWidth: number, devicePixelRatio: number): number {
-  const s = Math.min(2, Math.max(1, viewportCssWidth / 960));
-  return (devicePixelRatio > 0 ? devicePixelRatio : 1) * s;
-}
-
 type Poly = [number, number][];
 
 function arcPoints(cx: number, cy: number, r: number, a0: number, a1: number, n = 10): Poly {
@@ -249,26 +234,12 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** Draw the Showsteps "Flag" highlight in place: spotlight dim, haloed ring, numbered tab. */
 export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
-  const k = o.scale;
-  const pad = FLAG.pad * k, sw = FLAG.ringWidth * k, halo = FLAG.haloWidth * k;
-  const x = o.target.x - pad, y = o.target.y - pad, w = o.target.width + pad * 2, h = o.target.height + pad * 2;
-  const rad = Math.min(FLAG.radius * k, h / 2, w / 2);
+  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}) });
+  const { x, y, w, h, radii } = layout.ring;
+  const { sw, halo } = layout;
   const cx = x + w / 2, cy = y + h / 2, hw = w / 2, hh = h / 2;
-  const T = FLAG.tab;
-  const th = T.height * k, fs = th * T.fontSizeRatio, rt = T.cornerRadius * k, f = T.fillet * k;
+  const t = layout.tab;
   const digits = o.n !== undefined ? String(Math.max(0, Math.floor(o.n))) : "";
-  const advance = fs * 0.6;
-  const tw = digits ? Math.max(T.minWidth * k, digits.length * advance + T.paddingX * 2 * k) : 0;
-
-  // corner for the tab (mirrors brand tabCorner)
-  const vertical = y - th < 0 ? "bottom" : "top";
-  let side: "left" | "right" = o.rtl ? "left" : "right";
-  if (side === "right" && x + w + tw * 0.25 > img.width) side = "left";
-  if (side === "left" && x - tw * 0.25 < 0) side = "right";
-  const top = vertical === "top", right = side === "right";
-  const radii: [number, number, number, number] = [rad, rad, rad, rad];
-  if (digits) radii[top ? (right ? 1 : 0) : right ? 2 : 3] = 0;
-
   const W = img.width, H = img.height;
   const pxIdx = (i: number, j: number): number => (j * W + i) * 4;
 
@@ -286,20 +257,17 @@ export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
     }
   }
 
-  // tab polygon (drawn for top-right, mirrored)
+  // tab polygon (arcs flattened), from the same layout the vector renderers use
   let tab: Poly | undefined;
   let tabBox: Rect | undefined;
-  if (digits) {
-    const sx = right ? 1 : -1, sy = top ? 1 : -1;
-    const ax = right ? x + w + sw / 2 : x - sw / 2;
-    const ay = top ? y + sw / 2 : y + h - sw / 2;
-    const P = (dx: number, dy: number): [number, number] => [ax + sx * dx, ay + sy * dy];
-    const pts: Poly = [P(0, 0), P(0, -(th - rt))];
-    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-rt + ux * rt, -(th - rt) - uy * rt)); // top-right corner
-    pts.push(P(-(tw - rt), -th));
-    for (const [ux, uy] of arcPoints(0, 0, 1, 90, 180, 8)) pts.push(P(-(tw - rt) + ux * rt, -(th - rt) - uy * rt)); // top-left corner
-    pts.push(P(-tw, -f));
-    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-(tw + f) + f * ux, -f + f * uy)); // concave fillet
+  if (t) {
+    const P = (dx: number, dy: number): [number, number] => [t.ax + t.sx * dx, t.ay + t.sy * dy];
+    const pts: Poly = [P(0, 0), P(0, -(t.th - t.rt))];
+    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-t.rt + ux * t.rt, -(t.th - t.rt) - uy * t.rt)); // top outer corner
+    pts.push(P(-(t.tw - t.rt), -t.th));
+    for (const [ux, uy] of arcPoints(0, 0, 1, 90, 180, 8)) pts.push(P(-(t.tw - t.rt) + ux * t.rt, -(t.th - t.rt) - uy * t.rt)); // top inner corner
+    pts.push(P(-t.tw, -t.f));
+    for (const [ux, uy] of arcPoints(0, 0, 1, 0, 90, 8)) pts.push(P(-(t.tw + t.f) + t.f * ux, -t.f + t.f * uy)); // concave fillet
     tab = pts;
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     tabBox = { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
@@ -322,22 +290,18 @@ export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
   if (tab && tbb) for (let j = tbb[1]; j < tbb[3]; j++) for (let i = tbb[0]; i < tbb[2]; i++) blend(img, pxIdx(i, j), o.color, clamp01(0.5 - polySd(i + 0.5, j + 0.5, tab)));
 
   // 4. numeral
-  if (digits && tabBox) {
+  const center = flagTabCenter(layout);
+  if (t && digits && center) {
     const lum = (0.2126 * o.color[0] + 0.7152 * o.color[1] + 0.0722 * o.color[2]) / 255;
     const ink: [number, number, number] = lum > 0.45 ? [26, 11, 5] : [255, 255, 255];
-    const gh = fs * 0.72; // digit height
-    const gw = gh / 1.6 * 1.12;
-    const half = fs * 0.075; // stroke half-width
-    // tab body centre: mid of the tab rectangle (excluding the fillet foot)
-    const sx = right ? 1 : -1, sy = top ? 1 : -1;
-    const ax = right ? x + w + sw / 2 : x - sw / 2;
-    const ay = top ? y + sw / 2 : y + h - sw / 2;
-    const ccx = ax + sx * (-tw / 2), ccy = ay + sy * (-th / 2);
-    const total = digits.length * advance;
+    const gh = t.fs * 0.72; // digit height
+    const gw = (gh / 1.6) * 1.12;
+    const half = t.fs * 0.075; // stroke half-width
+    const total = digits.length * t.advance;
     for (let di = 0; di < digits.length; di++) {
       const strokes = DIGITS[digits[di] as string] ?? [];
-      const ox = ccx - total / 2 + di * advance + (advance - gw) / 2;
-      const oy = ccy - gh / 2 + fs * 0.02;
+      const ox = center.x - total / 2 + di * t.advance + (t.advance - gw) / 2;
+      const oy = center.y - gh / 2 + t.fs * 0.02;
       const segs: [number, number, number, number][] = [];
       for (const pl of strokes) {
         for (let s = 0; s + 1 < pl.length; s++) {
@@ -372,6 +336,24 @@ function cropImage(img: RgbaImage, r: Rect): RgbaImage {
 }
 
 /**
+ * How a screenshot's rects map onto actual image bytes of size `imgW` x `imgH`: `fit` rescales a rect
+ * when the bytes differ in size from the metadata, `crop` is the export crop clamped to the image
+ * (whole pixels), if any. Shared by the pixel renderer and the vector renderers.
+ */
+export function imageSpace(shot: Screenshot, imgW: number, imgH: number): { fit: (r: Rect) => Rect; crop?: Rect } {
+  const sx = shot.width > 0 ? imgW / shot.width : 1;
+  const sy = shot.height > 0 ? imgH / shot.height : 1;
+  const same = Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001;
+  const fit = (r: Rect): Rect => (same ? r : scaleRect(r, sx, sy));
+  let crop: Rect | undefined;
+  if (shot.crop && !isEmptyRect(shot.crop)) {
+    const c = roundRectOut(clampRect(fit(shot.crop), { width: imgW, height: imgH }));
+    if (!isEmptyRect(c) && !(c.x === 0 && c.y === 0 && c.width === imgW && c.height === imgH)) crop = c;
+  }
+  return crop ? { fit, crop } : { fit };
+}
+
+/**
  * Render one screenshot: bake redactions, draw the highlight, apply the crop; returns PNG bytes.
  * Returns the input bytes untouched when there is nothing to do. When redactions are required but
  * the bytes cannot be decoded (not a supported PNG), throws `RenderError` rather than leaking pixels.
@@ -391,9 +373,9 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
     }
     return bytes; // only decoration was wanted; pass the image through untouched
   }
-  const sx = shot.width > 0 ? img.width / shot.width : 1;
-  const sy = shot.height > 0 ? img.height / shot.height : 1;
-  const fit = (r: Rect): Rect => (Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001 ? r : scaleRect(r, sx, sy));
+  const space = imageSpace(shot, img.width, img.height);
+  const fit = space.fit;
+  const metaScale = Math.max(shot.width > 0 ? img.width / shot.width : 1, shot.height > 0 ? img.height / shot.height : 1);
   const redactScale = shot.width > 0 && shot.viewport.width > 0 ? img.width / shot.viewport.width : shot.devicePixelRatio;
   if (wantRedact) for (const red of shot.redactions ?? []) redactRegion(img, fit(red.rect), red.style, redactScale);
   if (wantHighlight) {
@@ -401,12 +383,12 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
     drawFlagHighlight(img, {
       target: fit(shot.highlight as Rect),
       ...(opts.stepNumber !== undefined ? { n: opts.stepNumber } : {}),
-      scale: highlightScale(shot.viewport.width, shot.devicePixelRatio) * Math.max(sx, sy),
+      scale: highlightScale(shot.viewport.width, shot.devicePixelRatio) * metaScale,
       color,
       dim: opts.spotlight === false ? null : [...FLAG.spotlightDim],
       ...(opts.rtl ? { rtl: true } : {}),
     });
   }
-  if (wantCrop) img = cropImage(img, fit(shot.crop as Rect));
+  if (wantCrop && space.crop) img = cropImage(img, space.crop);
   return encodePng(img, 6);
 }

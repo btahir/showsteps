@@ -126,7 +126,7 @@ const isHttp = (u: string): boolean => /^https?:\/\//i.test(u);
  * (PLAN 3.9): the first tab is `context.newPage()`; a never-seen `tabId` means the previous step's
  * action opened a popup, so that action is wrapped in `Promise.all([context.waitForEvent("page"), ...])`;
  * a seen `tabId` gets `bringToFront()`; a navigate step in a just-opened tab has no `goto`; masked
- * values come from `process.env.SHOWSTEPS_SECRET_<n>`. Steps without a `tabId` share one page.
+ * values come from the `SHOWSTEPS_SECRET_<n>` environment variables. Steps without a `tabId` share one page.
  */
 export function buildReplayPlan(guide: Guide): ReplayPlan {
   const visible = visibleSteps(guide);

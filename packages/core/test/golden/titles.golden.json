@@ -1,0 +1,2239 @@
+[
+  {
+    "name": "button",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Save",
+        "text": "Save"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Save**"
+  },
+  {
+    "name": "button with text only",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "text": "Add member"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Add member**"
+  },
+  {
+    "name": "input submit",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "submit",
+        "name": "Sign in"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Sign in**"
+  },
+  {
+    "name": "link",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "a"
+          }
+        ],
+        "tag": "a",
+        "role": "link",
+        "name": "Pricing",
+        "href": "/pricing"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Pricing**"
+  },
+  {
+    "name": "icon-only button uses aria-label",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Open settings"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Open settings**"
+  },
+  {
+    "name": "icon-only button glyph x",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "×"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Close**"
+  },
+  {
+    "name": "icon-only button glyph kebab",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "text": "⋮"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **More options**"
+  },
+  {
+    "name": "nameless button",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the button"
+  },
+  {
+    "name": "nameless link",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "a"
+          }
+        ],
+        "tag": "a",
+        "role": "link"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the link"
+  },
+  {
+    "name": "symbol-only name is ignored",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "•••"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the button"
+  },
+  {
+    "name": "generic div with text",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "text": "Learn more"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Learn more**"
+  },
+  {
+    "name": "generic nameless",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the highlighted area"
+  },
+  {
+    "name": "no target at all",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the highlighted area"
+  },
+  {
+    "name": "name whitespace is collapsed",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "  Save \n  changes  ",
+        "text": "  Save \n  changes  "
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Save changes**"
+  },
+  {
+    "name": "long name is truncated on a word boundary",
+    "tags": [
+      "click",
+      "long"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Continue to the payment page and review your order details before confirming",
+        "text": "Continue to the payment page and review your order details before confirming"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Continue to the payment page and review your order details…**"
+  },
+  {
+    "name": "markdown in a name is escaped",
+    "tags": [
+      "click",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Save *all* [now]",
+        "text": "Save *all* [now]"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **Save \\*all\\* \\[now\\]**"
+  },
+  {
+    "name": "underscore inside a word is kept",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "export_csv",
+        "text": "export_csv"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **export_csv**"
+  },
+  {
+    "name": "click variants: double",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click",
+        "double": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Open",
+        "text": "Open"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Double-click **Open**"
+  },
+  {
+    "name": "click variants: right",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click",
+        "button": "right"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "text": "Row 3"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Right-click **Row 3**"
+  },
+  {
+    "name": "click variants: middle",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click",
+        "button": "middle"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "a"
+          }
+        ],
+        "tag": "a",
+        "role": "link",
+        "name": "Docs"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Middle-click **Docs**"
+  },
+  {
+    "name": "click text field",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "role": "textbox",
+        "inputType": "email",
+        "label": "Email"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Email** field"
+  },
+  {
+    "name": "click textarea",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "textarea"
+          }
+        ],
+        "tag": "textarea",
+        "role": "textbox",
+        "label": "Message"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Message** field"
+  },
+  {
+    "name": "click contenteditable",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "role": "textbox",
+        "name": "Note body",
+        "text": "secret draft text"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Note body** editor"
+  },
+  {
+    "name": "contenteditable never leaks its content",
+    "tags": [
+      "click",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "role": "textbox",
+        "text": "my private words"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the editor"
+  },
+  {
+    "name": "click checkbox",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "checkbox",
+        "label": "Remember me"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Remember me** checkbox"
+  },
+  {
+    "name": "click radio",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "radio",
+        "label": "Monthly"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Monthly**"
+  },
+  {
+    "name": "click select opens dropdown",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select",
+        "role": "combobox",
+        "label": "Billing period"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Open the **Billing period** dropdown"
+  },
+  {
+    "name": "click nameless select",
+    "tags": [
+      "click",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Open the dropdown"
+  },
+  {
+    "name": "click menu item",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "role": "menuitem",
+        "name": "Delete"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Delete** from the menu"
+  },
+  {
+    "name": "click tab",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "tab",
+        "name": "Billing"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Open the **Billing** tab"
+  },
+  {
+    "name": "click option",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "li"
+          }
+        ],
+        "tag": "li",
+        "role": "option",
+        "name": "Canada"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Canada**"
+  },
+  {
+    "name": "click switch",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "switch",
+        "name": "Dark mode"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Dark mode** toggle"
+  },
+  {
+    "name": "click search field",
+    "tags": [
+      "click"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "search",
+        "placeholder": "Search docs"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click the **Search docs** search field"
+  },
+  {
+    "name": "type email",
+    "tags": [
+      "type"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "jane@example.com"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "email",
+        "label": "Email"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"jane@example.com\" in **Email**"
+  },
+  {
+    "name": "type uses placeholder when no label",
+    "tags": [
+      "type"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "Acme"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "placeholder": "Company name"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"Acme\" in **Company name**"
+  },
+  {
+    "name": "type into nameless field",
+    "tags": [
+      "type",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "hello"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"hello\" in the text field"
+  },
+  {
+    "name": "type into nameless textarea",
+    "tags": [
+      "type",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "hello"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "textarea"
+          }
+        ],
+        "tag": "textarea"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"hello\" in the text area"
+  },
+  {
+    "name": "type clears field",
+    "tags": [
+      "type"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": ""
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "label": "Coupon"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Clear **Coupon**"
+  },
+  {
+    "name": "type long value truncated",
+    "tags": [
+      "type",
+      "long"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "textarea"
+          }
+        ],
+        "tag": "textarea",
+        "label": "Notes"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"Lorem ipsum dolor sit amet, consectetur…\" in **Notes**"
+  },
+  {
+    "name": "type multi-line value collapses",
+    "tags": [
+      "type"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "line one\nline two"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "textarea"
+          }
+        ],
+        "tag": "textarea",
+        "label": "Notes"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"line one line two\" in **Notes**"
+  },
+  {
+    "name": "type value with markdown is escaped",
+    "tags": [
+      "type",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "a*b*c"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "label": "Formula"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"a\\*b\\*c\" in **Formula**"
+  },
+  {
+    "name": "search input reads naturally",
+    "tags": [
+      "type"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "refund policy"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "search",
+        "label": "Search"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Search for \"refund policy\""
+  },
+  {
+    "name": "type masked password",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "•••",
+        "masked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "password",
+        "label": "Password",
+        "sensitive": true
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Enter your password"
+  },
+  {
+    "name": "type masked confirm password",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "",
+        "masked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "password",
+        "label": "Confirm password",
+        "sensitive": true
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Enter your password"
+  },
+  {
+    "name": "type masked password with odd label",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "",
+        "masked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "password",
+        "label": "Your secret word"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Enter your password in **Your secret word**"
+  },
+  {
+    "name": "type masked non-password field",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "",
+        "masked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "Card number",
+        "sensitive": true
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in **Card number**"
+  },
+  {
+    "name": "real value on a password input never leaks",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "hunter2"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "password",
+        "label": "Password"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Enter your password"
+  },
+  {
+    "name": "real value on a sensitive field never leaks",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "4242 4242 4242 4242"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "Card",
+        "sensitive": true
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in **Card**"
+  },
+  {
+    "name": "value in a field named like a secret never leaks",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "sk_live_abc"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "API key"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in **API key**"
+  },
+  {
+    "name": "bullet placeholder value never leaks",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "••••••"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "Code"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in **Code**"
+  },
+  {
+    "name": "card-number-shaped value never leaks",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "4111111111111111"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "Number"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in **Number**"
+  },
+  {
+    "name": "masked without any target",
+    "tags": [
+      "type",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "",
+        "masked": true
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Fill in the highlighted field"
+  },
+  {
+    "name": "select with option text",
+    "tags": [
+      "select"
+    ],
+    "step": {
+      "action": {
+        "type": "select",
+        "value": "monthly",
+        "optionText": "Monthly"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select",
+        "label": "Billing period"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Monthly** in **Billing period**"
+  },
+  {
+    "name": "select falls back to value",
+    "tags": [
+      "select"
+    ],
+    "step": {
+      "action": {
+        "type": "select",
+        "value": "CA"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select",
+        "label": "Country"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **CA** in **Country**"
+  },
+  {
+    "name": "select without label",
+    "tags": [
+      "select"
+    ],
+    "step": {
+      "action": {
+        "type": "select",
+        "value": "1",
+        "optionText": "Small"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Small** from the dropdown"
+  },
+  {
+    "name": "select with no option text",
+    "tags": [
+      "select"
+    ],
+    "step": {
+      "action": {
+        "type": "select",
+        "value": ""
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "select"
+          }
+        ],
+        "tag": "select",
+        "label": "Country"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Choose an option in **Country**"
+  },
+  {
+    "name": "check",
+    "tags": [
+      "check"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "checkbox",
+        "label": "Send me invoices by email"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Check **Send me invoices by email**"
+  },
+  {
+    "name": "uncheck",
+    "tags": [
+      "check"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": false
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "checkbox",
+        "label": "Remember me"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Uncheck **Remember me**"
+  },
+  {
+    "name": "check unnamed",
+    "tags": [
+      "check",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "checkbox"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Check the checkbox"
+  },
+  {
+    "name": "radio",
+    "tags": [
+      "check"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "radio",
+        "label": "Annual"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Select **Annual**"
+  },
+  {
+    "name": "switch on",
+    "tags": [
+      "check"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": true
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "switch",
+        "name": "Notifications"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Turn on **Notifications**"
+  },
+  {
+    "name": "switch off",
+    "tags": [
+      "check"
+    ],
+    "step": {
+      "action": {
+        "type": "check",
+        "checked": false
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "switch",
+        "name": "Notifications"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Turn off **Notifications**"
+  },
+  {
+    "name": "press Enter",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Enter**"
+  },
+  {
+    "name": "press Enter in a field",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "text",
+        "label": "Title"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Enter** in **Title**"
+  },
+  {
+    "name": "press Enter in search",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "search",
+        "label": "Search"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Enter** to search"
+  },
+  {
+    "name": "press shortcut",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Control+K"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Ctrl+K**"
+  },
+  {
+    "name": "press shortcut with Meta",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Meta+Shift+P"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Shift+Cmd+P**"
+  },
+  {
+    "name": "press Escape",
+    "tags": [
+      "press",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Escape"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Esc**"
+  },
+  {
+    "name": "press arrow",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "ArrowDown"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div",
+        "role": "menuitem",
+        "name": "Menu"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Down Arrow** on **Menu**"
+  },
+  {
+    "name": "press space key",
+    "tags": [
+      "press"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": " "
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Space**"
+  },
+  {
+    "name": "press never echoes a character typed into a password",
+    "tags": [
+      "press",
+      "masked"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "a"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "inputType": "password",
+        "label": "Password"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press a key in **Password**"
+  },
+  {
+    "name": "navigate uses page title",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://app.acme.test/settings"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Settings – Acme"
+      }
+    },
+    "expected": "Go to **Settings – Acme**"
+  },
+  {
+    "name": "navigate falls back to hostname",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://www.docs.acme.test/a/b?c=1"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Go to **docs.acme.test**"
+  },
+  {
+    "name": "navigate with unparsable url",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "not a url"
+      },
+      "page": {
+        "url": "also bad"
+      }
+    },
+    "expected": "Go to **not a url**"
+  },
+  {
+    "name": "navigate title is escaped",
+    "tags": [
+      "navigate",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://x.test"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Q1 [draft] report"
+      }
+    },
+    "expected": "Go to **Q1 \\[draft\\] report**"
+  },
+  {
+    "name": "scroll down",
+    "tags": [
+      "scroll"
+    ],
+    "step": {
+      "action": {
+        "type": "scroll",
+        "x": 0,
+        "y": 600
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Scroll down"
+  },
+  {
+    "name": "scroll up",
+    "tags": [
+      "scroll"
+    ],
+    "step": {
+      "action": {
+        "type": "scroll",
+        "x": 0,
+        "y": -200
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Scroll up"
+  },
+  {
+    "name": "scroll right",
+    "tags": [
+      "scroll"
+    ],
+    "step": {
+      "action": {
+        "type": "scroll",
+        "x": 300,
+        "y": 0
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Scroll right"
+  },
+  {
+    "name": "scroll nowhere",
+    "tags": [
+      "scroll"
+    ],
+    "step": {
+      "action": {
+        "type": "scroll",
+        "x": 0,
+        "y": 0
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Scroll the page"
+  },
+  {
+    "name": "hover",
+    "tags": [
+      "hover"
+    ],
+    "step": {
+      "action": {
+        "type": "hover"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "a"
+          }
+        ],
+        "tag": "a",
+        "role": "link",
+        "name": "Products"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Hover over **Products**"
+  },
+  {
+    "name": "hover unnamed",
+    "tags": [
+      "hover",
+      "no-name"
+    ],
+    "step": {
+      "action": {
+        "type": "hover"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "div"
+          }
+        ],
+        "tag": "div"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Hover over the highlighted area"
+  },
+  {
+    "name": "note",
+    "tags": [
+      "note"
+    ],
+    "step": {
+      "action": {
+        "type": "note"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Note"
+  },
+  {
+    "name": "long value 2",
+    "tags": [
+      "type",
+      "long"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "label": "Bio"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…\" in **Bio**"
+  },
+  {
+    "name": "quotes in a value",
+    "tags": [
+      "type",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "say \"hi\" to _them_"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "label": "Greeting"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"say \"hi\" to \\_them\\_\" in **Greeting**"
+  },
+  {
+    "name": "Arabic button name",
+    "tags": [
+      "click",
+      "unicode"
+    ],
+    "step": {
+      "action": {
+        "type": "click"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "حفظ"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Click **حفظ**"
+  },
+  {
+    "name": "Japanese field and value",
+    "tags": [
+      "type",
+      "unicode"
+    ],
+    "step": {
+      "action": {
+        "type": "type",
+        "value": "こんにちは"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "input"
+          }
+        ],
+        "tag": "input",
+        "label": "名前"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Type \"こんにちは\" in **名前**"
+  },
+  {
+    "name": "navigate to a long URL without a title",
+    "tags": [
+      "navigate",
+      "long"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://very-long-hostname.example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?q=1"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Go to **very-long-hostname.example.com**"
+  },
+  {
+    "name": "navigate to about:blank",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "about:blank"
+      },
+      "page": {
+        "url": "about:blank"
+      }
+    },
+    "expected": "Go to **about:blank**"
+  },
+  {
+    "name": "navigate to a chrome page with a title",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "chrome://settings/"
+      },
+      "page": {
+        "url": "chrome://settings/",
+        "title": "Settings"
+      }
+    },
+    "expected": "Go to **Settings**"
+  },
+  {
+    "name": "note with a target is still a note",
+    "tags": [
+      "note"
+    ],
+    "step": {
+      "action": {
+        "type": "note"
+      },
+      "target": {
+        "locators": [
+          {
+            "kind": "css",
+            "value": "button"
+          }
+        ],
+        "tag": "button",
+        "role": "button",
+        "name": "Save",
+        "text": "Save"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Note"
+  },
+  {
+    "name": "press Escape in a dialog",
+    "tags": [
+      "press",
+      "escaping"
+    ],
+    "step": {
+      "action": {
+        "type": "press",
+        "key": "Escape"
+      },
+      "page": {
+        "url": "https://app.acme.test/x"
+      }
+    },
+    "expected": "Press **Esc**"
+  }
+]

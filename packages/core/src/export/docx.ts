@@ -1,8 +1,8 @@
 // DOCX exporter (`docx`, MIT). Pure TS: runs in Node, browsers and extension workers.
 //
 // Word has no vector overlay we can rely on, so for PNG screenshots the exporter rewrites the
-// pixels: redaction blocks and the highlight ring are baked into the embedded image, and a `crop`
-// is applied. Redactions follow the same contract as the PDF exporter (see pdf.ts): unbaked
+// pixels: redactions and the highlight (spotlight, ring, numbered tab) are baked into the embedded
+// image, and a `crop` is applied. Redactions follow the same contract as the PDF exporter (see pdf.ts): unbaked
 // redactions on an image we cannot rewrite (JPEG, interlaced PNG) throw unless the caller passes
 // `redactionsBaked: true`. JPEG screenshots get no highlight ring and no crop.
 
@@ -19,13 +19,15 @@ import {
   Paragraph,
   TextRun,
 } from "docx";
+import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
 import type { Guide, Step } from "../schema";
 import {
   ACCENT_COLOR,
   activeSteps,
+  documentDates,
   metaLine,
   parseBlocks,
-  parseColor,
+  parseColorRgb,
   parseInline,
   prepareStepImage,
   stepUrl,
@@ -41,9 +43,9 @@ const PAGES = { A4: { width: 11906, height: 16838 }, Letter: { width: 12240, hei
 const MARGIN = 1080; // 0.75 in
 const px = (twips: number) => Math.round((twips / 20) * (96 / 72)); // twips -> CSS px (docx sizes images in px @96dpi)
 
-const INK = "1C1C22";
-const MUTED = "5F636E";
-const FAINT = "9A9DA6";
+const INK = "1F1C19";
+const MUTED = "57514B";
+const FAINT = "736B63";
 const ACCENT = toHex(ACCENT_COLOR);
 const FONT = "Calibri";
 
@@ -60,7 +62,7 @@ export async function exportDocx(
   const contentWpx = px(page.width - 2 * MARGIN);
   const maxHpx = Math.round(px(page.height - 2 * MARGIN) * 0.78);
   const steps = activeSteps(guide);
-  const highlightColor = parseColor(guide.settings?.highlightColor);
+  const highlightColor = parseColorRgb(guide.settings?.highlightColor);
   const title = stripInline(guide.title) || "Untitled guide";
 
   const body: Paragraph[] = [];
@@ -83,7 +85,7 @@ export async function exportDocx(
         ...(opts.branding !== false ? [new TextRun({ text: "   ·   Made with Showsteps", color: FAINT, size: 18 })] : []),
       ],
       spacing: { before: 60, after: 360 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "D9DBE1", space: 10 } },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "E0DCD6", space: 10 } },
     }),
   );
 
@@ -160,7 +162,28 @@ export async function exportDocx(
     ],
   });
 
-  return new Uint8Array(await Packer.toArrayBuffer(doc));
+  const raw = new Uint8Array(await Packer.toArrayBuffer(doc));
+  return reproducible(raw, documentDates(guide, opts));
+}
+
+// docx (via JSZip) stamps "now" into docProps/core.xml and into every zip entry. Rewrite both from the
+// injected clock and sort the entries, so the same guide always yields the same bytes.
+function reproducible(zip: Uint8Array, dates: { created: Date; modified: Date }): Uint8Array {
+  const files = unzipSync(zip);
+  const iso = (d: Date): string => d.toISOString().replace(/\.\d{3}Z$/, "Z");
+  const core = files["docProps/core.xml"];
+  if (core) {
+    const xml = strFromU8(core)
+      .replace(/(<dcterms:created[^>]*>)[^<]*(<\/dcterms:created>)/, `$1${iso(dates.created)}$2`)
+      .replace(/(<dcterms:modified[^>]*>)[^<]*(<\/dcterms:modified>)/, `$1${iso(dates.modified)}$2`);
+    files["docProps/core.xml"] = strToU8(xml);
+  }
+  // [Content_Types].xml first (Office convention), then the rest by name
+  const names = Object.keys(files).sort((a, b) => (a === "[Content_Types].xml" ? -1 : b === "[Content_Types].xml" ? 1 : a < b ? -1 : a > b ? 1 : 0));
+  const mtime = new Date(1980, 0, 1, 0, 0, 0);
+  const out: Zippable = {};
+  for (const name of names) out[name] = [files[name] as Uint8Array, { level: /\.(png|jpe?g)$/i.test(name) ? 0 : 6, mtime }];
+  return zipSync(out);
 }
 
 function stepParagraphs(
@@ -169,7 +192,7 @@ function stepParagraphs(
   n: number,
   images: Record<string, Uint8Array>,
   opts: DocxExportOptions,
-  g: { contentWpx: number; maxHpx: number; highlightColor: ReturnType<typeof parseColor> },
+  g: { contentWpx: number; maxHpx: number; highlightColor: ReturnType<typeof parseColorRgb> },
 ): Paragraph[] {
   const out: Paragraph[] = [];
   const plainTitle = stripInline(step.title) || `Step ${n}`;
@@ -215,9 +238,11 @@ function stepParagraphs(
   if (hasImage && bytes) {
     const prepared = prepareStepImage(step, bytes, {
       highlight: opts.highlight !== false,
-      bakeHighlight: true,
+      highlightMode: "bake",
+      n,
+      color: `#${toHex(g.highlightColor)}`,
       redactionsBaked: opts.redactionsBaked,
-      highlightColor: g.highlightColor,
+      imagesPrerendered: opts.imagesPrerendered,
     });
     // Fit to the page width (and a height cap); never enlarge more than 3x.
     const scale = Math.min(g.contentWpx / prepared.width, g.maxHpx / prepared.height, 3);

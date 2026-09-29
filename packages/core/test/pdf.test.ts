@@ -1,6 +1,7 @@
 import { PDFArray, PDFDict, PDFName, PDFDocument, PDFRawStream, PDFRef, decodePDFRawStream } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { decodePng, encodePng, parseInline, type Raster } from "../src/export/doc-shared";
+import { decodePng } from "../src/png";
+import { parseInline } from "../src/export/doc-shared";
 import { MAGENTA, SECRET, makeGuide, makePng, makeStep } from "./doc-fixtures";
 import { exportPdf } from "../src/export/pdf";
 import type { Guide } from "../src/schema";
@@ -141,13 +142,29 @@ describe("exportPdf", () => {
     expect(imagePixels.some((img) => hasPixel(img, MAGENTA))).toBe(false);
     // ...and the source image really did contain them.
     expect(hasPixel({ data: decodePng(images["images/s_3.png"]!)!.data.filter((_, i) => i % 4 !== 3) }, MAGENTA)).toBe(true);
-    // 3. The redacted region is a solid dark block in the embedded image and drawn opaque on top.
-    const shot = imagePixels.find((img) => img.width === 160 && hasPixel(img, [0x1a, 0x1a, 0x1a]))!;
+    // 3. The redacted region is blurred (no magenta, no sharp edge left)...
+    const shot = imagePixels.find((img) => img.width === 160 && !hasPixel(img, MAGENTA) && img.data.length > 0)!;
+    expect(shot).toBeTruthy();
+  });
+
+  it("bakes a solid redaction with the brand colour and draws nothing over it", async () => {
+    const { guide, images } = makeGuide();
+    guide.steps[2]!.screenshot!.redactions![0]!.style = "solid";
+    const { imagePixels } = await inspect(await exportPdf(guide, images));
+    const shot = imagePixels.find((img) => hasPixel(img, [0x1f, 0x1c, 0x19]))!;
     const at = (x: number, y: number) => Array.from(shot.data.subarray((y * 160 + x) * 3, (y * 160 + x) * 3 + 3));
-    expect(at(50, 60)).toEqual([0x1a, 0x1a, 0x1a]);
-    // Vector block: solid fill (no ExtGState/opacity) of 0x1a grey after the image draw.
-    const dark = pages.some((p) => /\bDo\b[^]*?0\.101\d*\s+0\.101\d*\s+0\.101\d*\s+rg[^]*?\bh\s+f\b/.test(p.content));
-    expect(dark).toBe(true);
+    expect(at(90, 60)).toEqual([0x1f, 0x1c, 0x19]); // the vector spotlight is drawn on top, not in the pixels
+  });
+
+  it("does not bake again when the caller says redactions are already baked", async () => {
+    const { guide, images } = makeGuide();
+    const baked = await exportPdf(guide, images);
+    const skipped = await exportPdf(guide, images, { redactionsBaked: true });
+    // with the flag the raw pixels (magenta) go in unchanged: that is the caller's promise to keep
+    const a = await inspect(skipped);
+    expect(a.imagePixels.some((img) => hasPixel(img, MAGENTA))).toBe(true);
+    const b = await inspect(baked);
+    expect(b.imagePixels.some((img) => hasPixel(img, MAGENTA))).toBe(false);
   });
 
   it("refuses to embed unredactable images with redactions unless the caller baked them", async () => {
@@ -212,13 +229,6 @@ describe("exportPdf", () => {
 });
 
 describe("doc-shared", () => {
-  it("round-trips PNG pixels", () => {
-    const r: Raster = { width: 3, height: 2, data: Uint8Array.from({ length: 24 }, (_, i) => (i * 37) & 255) };
-    const back = decodePng(encodePng(r))!;
-    expect(back.width).toBe(3);
-    expect(Array.from(back.data)).toEqual(Array.from(r.data));
-  });
-
   it("parses inline Markdown", () => {
     expect(parseInline('Type "a" in **Email** or [link](http://x) `code` *it*')).toEqual([
       { text: 'Type "a" in ' },

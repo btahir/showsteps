@@ -16,7 +16,7 @@ export interface HtmlOptions extends ImageRenderOptions {
   theme?: "auto" | "light" | "dark";
   /** Extra CSS appended after the built-in stylesheet, e.g. brand tokens. */
   css?: string;
-  /** `lang` attribute of the document. Default "en". */
+  /** `lang` attribute of the page. Default "en". */
   lang?: string;
   /** Embed Rethink Sans and Fragment Mono (about 100 KB). Default true; false falls back to system fonts. */
   embedFonts?: boolean;

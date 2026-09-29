@@ -25,8 +25,17 @@ type Kind =
   | "image"
   | "generic";
 
-const NAME_MAX = 60;
-const VALUE_MAX = 50;
+/** Character budgets; `generateStepTitle` retries with smaller ones if a title would pass MAX_TITLE. */
+interface Limits {
+  name: number;
+  value: number;
+}
+const DEFAULT_LIMITS: Limits = { name: 60, value: 50 };
+const TIGHT_LIMITS: Limits = { name: 32, value: 24 };
+const TINY_LIMITS: Limits = { name: 14, value: 10 };
+let LIM: Limits = DEFAULT_LIMITS;
+/** No generated title is longer than this many characters. */
+export const MAX_TITLE_LENGTH = 160;
 
 const SENSITIVE_NAME_RE =
   /pass(word|code|phrase)|\bpin\b|\bcvv\b|\bcvc\b|security code|\bssn\b|social security|secret|api[ _-]?key|token|one[- ]time|\botp\b|verification code|\b2fa\b|card number|credit card|iban/i;
@@ -114,7 +123,7 @@ function clean(s: string | undefined): string | undefined {
   if (glyph) return glyph;
   // A name made only of punctuation or symbols tells the reader nothing.
   if (!/[\p{L}\p{N}]/u.test(c)) return undefined;
-  c = truncate(c, NAME_MAX);
+  c = truncate(c, LIM.name);
   return c;
 }
 
@@ -297,7 +306,7 @@ function typeTitle(a: Extract<StepAction, { type: "type" }>, t: ElementDescripto
     return name ? `Fill in ${bold(name)}` : "Fill in the highlighted field";
   }
 
-  const value = truncate(collapse(a.value), VALUE_MAX);
+  const value = truncate(collapse(a.value), LIM.value);
   if (value === "") return name ? `Clear ${bold(name)}` : "Clear the field";
   const shown = escapeInline(value);
   if (kind === "search") return `Search for "${shown}"`;
@@ -333,7 +342,7 @@ function pressTitle(a: Extract<StepAction, { type: "press" }>, t: ElementDescrip
   // Never echo a character key pressed inside a secret field.
   const printable = Array.from(a.key).length === 1 && a.key !== " ";
   if (secret && printable) return name ? `Press a key in ${bold(name)}` : "Press a key";
-  const key = bold(formatKey(a.key));
+  const key = bold(formatKey(collapse(a.key) || a.key));
   if (kind === "search" && a.key.toLowerCase() === "enter") return `Press ${key} to search`;
   if (name && isTextKind(kind)) return `Press ${key} in ${bold(name)}`;
   if (name && kind && kind !== "generic") return `Press ${key} on ${bold(name)}`;
@@ -351,10 +360,10 @@ function navigateTitle(a: Extract<StepAction, { type: "navigate" }>, page: Step[
   const title = clean(page?.title);
   if (title) return `Go to ${bold(title)}`;
   const host = hostnameOf(a.url) ?? hostnameOf(page?.url ?? "") ?? clean(a.url);
-  return host ? `Go to ${bold(truncate(host, NAME_MAX))}` : "Go to the page";
+  return host ? `Go to ${bold(truncate(host, LIM.name))}` : "Go to the page";
 }
 
-export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">): string {
+function build(step: Pick<Step, "action" | "target" | "page">): string {
   const a = step.action;
   const t = step.target;
   switch (a.type) {
@@ -379,6 +388,25 @@ export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">
     }
     case "note":
       return "Note";
+  }
+}
+
+/**
+ * Title for a step: natural English, element names in Markdown bold, never a masked or sensitive
+ * value, one line, at most `MAX_TITLE_LENGTH` characters. Pure and deterministic.
+ */
+export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">): string {
+  const saved = LIM;
+  try {
+    for (const limits of [DEFAULT_LIMITS, TIGHT_LIMITS, TINY_LIMITS]) {
+      LIM = limits;
+      const title = build(step);
+      if (title.length <= MAX_TITLE_LENGTH) return title;
+    }
+    LIM = TINY_LIMITS;
+    return truncate(build(step), MAX_TITLE_LENGTH);
+  } finally {
+    LIM = saved;
   }
 }
 
