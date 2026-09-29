@@ -34,5 +34,5 @@ export function GET() {
     redactions,
     crop,
   }, { highlight: true, stepNumber: 1 });
-  return new Response(out, { headers: { "Content-Type": "image/png" } });
+  return new Response(new Uint8Array(out), { headers: { "Content-Type": "image/png" } });
 }

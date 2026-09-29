@@ -1203,3 +1203,8 @@ table.compare-4 {
     margin: 64px 0 0;
   }
 }
+
+/* consecutive code blocks (runnable command lists) need a gap; the figure carries an inline margin:0 */
+.codeblock + .codeblock {
+  margin-top: 12px !important;
+}

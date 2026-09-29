@@ -1,6 +1,17 @@
 ---
-interface Props { code: string; caption?: string; maxLines?: number }
-const { code, caption, maxLines } = Astro.props;
+/**
+ * run: shell example the verifier executes (ACCEPTANCE K18). Blocks run in page order in one empty temp dir, with `showsteps` = the CLI.
+ * file: block is not run; its text is written to this file name in that dir first.
+ * golden: name of a packages/cli/test/golden file that stdout must equal (temp dir path replaced by <TMP>).
+ * exit: expected exit code (default 0).
+ */
+interface Props { code: string; caption?: string; maxLines?: number; run?: boolean; file?: string; golden?: string; exit?: number }
+const { code, caption, maxLines, run, file, golden, exit } = Astro.props;
+const data: Record<string, string | boolean | number> = {};
+if (run) data["data-run"] = "";
+if (file) data["data-file"] = file;
+if (golden) data["data-golden"] = golden;
+if (exit !== undefined) data["data-exit"] = exit;
 const lines = code.replace(/\n$/, "").split("\n");
 const clipped = maxLines !== undefined && lines.length > maxLines;
 ---
@@ -15,6 +26,6 @@ const clipped = maxLines !== undefined && lines.length > maxLines;
       </details>
     </>
   ) : (
-    <pre tabindex="0"><code>{code}</code></pre>
+    <pre tabindex="0" {...data}><code>{code}</code></pre>
   )}
 </figure>

@@ -6,27 +6,19 @@ import { breadcrumbs, article } from "../../../data/jsonld";
 
 const desc = "Use Showsteps from an AI agent: the showsteps command line with JSON output and exit codes, the local showsteps-mcp server, file format, and worked examples.";
 
-const editExample = `showsteps info onboarding.showsteps --json
-showsteps steps onboarding.showsteps --json          # find the step ids
-showsteps edit-step onboarding.showsteps --id s4 \\
-  --title "Open **Billing** in the sidebar" \\
-  --description "You need the Admin role to see this." --out reviewed.showsteps
-showsteps export reviewed.showsteps --format md,pdf,skill --out ./out --json`;
-
 const stepsJson = `{
-  "title": "Reset your password",
+  "id": "g_from_steps",
+  "title": "Reset a password",
+  "description": "Written by an agent.",
   "steps": [
-    { "action": "navigate", "url": "https://app.example.com/login" },
+    { "action": "navigate", "url": "https://app.example.test/login", "page": { "url": "https://app.example.test/login", "title": "Sign in" } },
     { "action": "click", "target": "Forgot password" },
-    { "action": "type", "target": "Email", "value": "jane@example.com" },
+    { "action": "type", "target": "Email", "value": "jane@example.test" },
     { "action": "type", "target": "New password", "masked": true },
     { "action": "click", "target": "Reset password" },
-    { "action": "note", "title": "Check your inbox for the confirmation email." }
+    { "action": "note", "title": "Check your inbox for the confirmation email.", "description": "It arrives within a minute." }
   ]
 }`;
-
-const newExample = `showsteps new --from-steps steps.json --out reset-password.showsteps --json
-showsteps export reset-password.showsteps --format skill --out ./skill --json`;
 
 const mcpConfig = `{
   "mcpServers": {
@@ -116,13 +108,17 @@ const path = "/docs/agents/";
         </div>
         <p style="margin-top:1em"><code>--json</code> returns <code>{`{"ok": true, "files": ["/abs/path", ...]}`}</code>. Steps with <code>skipped: true</code> are left out of every export.</p>
 
-        <h3>Example: fix wording, then export</h3>
-        <Code code={editExample} caption="shell" />
+        <h2>Worked example</h2>
+        <p>
+          Every block below marked as runnable is executed by our checks, in this order, in an empty folder, and its output is compared
+          with the command line's own golden files. Run them yourself in an empty folder and you get the same results. Paths in the
+          output are absolute, so yours will differ.
+        </p>
 
-        <h3>Example: write a guide from scratch</h3>
+        <h3>1. Write a guide from scratch</h3>
         <p><code>steps.json</code> can be an array, or an object with a <code>title</code> and <code>steps</code>:</p>
-        <Code code={stepsJson} caption="steps.json" />
-        <Code code={newExample} caption="shell" />
+        <Code code={stepsJson} caption="steps.json" file="steps.json" />
+        <Code code={`showsteps new --from-steps steps.json --out made.showsteps --json`} caption="shell" run golden="new.json" />
         <p>
           Step fields: <code>action</code> (<code>navigate</code>, <code>click</code>, <code>type</code>, <code>select</code>, <code>check</code>,
           <code>press</code>, <code>scroll</code>, <code>hover</code>, <code>note</code>), <code>title</code> (generated when omitted, required for
@@ -131,6 +127,21 @@ const path = "/docs/agents/";
           hand-edited and survive <code>regen-titles</code>. Every problem in the file is reported at once, so fix them in one pass.
         </p>
         <p>Guides made this way have no screenshots. Exports still work, and a person can open the file in the extension to review it.</p>
+
+        <h3>2. Check and inspect it</h3>
+        <Code code={`showsteps validate made.showsteps --json`} caption="shell" run />
+        <Code code={`showsteps info made.showsteps --json`} caption="shell" run />
+        <Code code={`showsteps steps made.showsteps --json`} caption="shell: the step ids come from here" run />
+
+        <h3>3. Fix wording, then export</h3>
+        <Code code={`showsteps edit-step made.showsteps --id s3 --title "Enter your work email" --description "Use the address you signed up with." --out reviewed.showsteps --json`} caption="shell" run />
+        <Code code={`showsteps regen-titles reviewed.showsteps --out regenerated.showsteps --json`} caption="shell: the title you edited is kept" run />
+        <Code code={`showsteps export reviewed.showsteps --format md,skill --out out --json`} caption="shell: writes out/guide.md, out/images and out/skill" run />
+
+        <h3>4. What a failure looks like</h3>
+        <p>A steps file is not a guide, so validating it fails. Exit code 1, one JSON object on stdout, the reasons on stderr:</p>
+        <Code code={`showsteps validate steps.json --json`} caption="shell (exits 1)" run exit={1} />
+        <Code code={`showsteps --help`} caption="shell: every command and option" run golden="help.txt" />
 
         <h2>MCP server</h2>
         <p><code>showsteps-mcp</code> speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.</p>

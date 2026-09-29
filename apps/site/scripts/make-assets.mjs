@@ -4,7 +4,7 @@
 // All content is synthetic ("Acme Books" mock data). Needs `cwebp` and `unzip` on PATH.
 import { chromium } from "playwright-core";
 import { createServer } from "node:http";
-import { readFile, mkdir, copyFile, writeFile, mkdtemp } from "node:fs/promises";
+import { readFile, mkdir, writeFile, mkdtemp } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join, extname } from "node:path";
 import { tmpdir } from "node:os";
