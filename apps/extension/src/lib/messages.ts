@@ -24,12 +24,27 @@ export type ControlMessage =
   | { type: "ctl:stop"; openEditor?: boolean }
   | { type: "ctl:state" };
 
+/** What the in-page recording bar shows. */
+export interface BarState {
+  status: "idle" | "recording" | "paused" | "stopping";
+  stepCount: number;
+}
+
 /** Worker → content script */
-export type WorkerToTab = { type: "tab:state"; recording: boolean } | { type: "tab:flush" } | { type: "tab:scan" };
+export type WorkerToTab =
+  | { type: "tab:state"; recording: boolean }
+  | { type: "tab:flush" }
+  | { type: "tab:scan" }
+  | ({ type: "tab:bar" } & BarState)
+  /** Hide the recording bar and reply once a frame without it has been painted. */
+  | { type: "tab:bar-hide" }
+  | { type: "tab:bar-show" };
 
 export interface ScanReply {
   metrics: NonNullable<StepDraft["metrics"]>;
   sensitiveRects: NonNullable<StepDraft["sensitiveRects"]>;
+  sensitiveKinds?: string[];
+  scanIncomplete?: boolean;
 }
 
 /** Worker → pages (broadcast) */
@@ -41,6 +56,7 @@ export type AnyMessage = RecorderMessage | ControlMessage | WorkerToTab | Broadc
 
 export interface HelloReply {
   recording: boolean;
+  bar?: BarState;
 }
 
 export interface ControlReply {

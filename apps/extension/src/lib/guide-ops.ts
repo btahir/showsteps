@@ -22,6 +22,27 @@ export function appendStep(g: Guide, step: Step, now?: string): Guide {
   return touch(g, [...g.steps, step], now);
 }
 
+/**
+ * Later typing in the same field replaces the earlier typing step instead of adding one
+ * (PLAN §3.6): the new value, title and screenshot win; a title or description the person
+ * already edited is kept. Returns the guide unchanged when the step is gone (deleted meanwhile).
+ */
+export function amendStep(g: Guide, id: string, next: Step, now?: string): Guide {
+  const i = indexOfStep(g, id);
+  if (i < 0) return g;
+  const prev = g.steps[i]!;
+  const merged: Step = { ...next, id };
+  if (prev.titleEdited) {
+    merged.title = prev.title;
+    merged.titleEdited = true;
+  }
+  if (prev.description) merged.description = prev.description;
+  if (prev.skipped) merged.skipped = true;
+  const steps = g.steps.slice();
+  steps[i] = merged;
+  return touch(g, steps, now);
+}
+
 /** Move step `id` to position `to` (clamped). */
 export function moveStep(g: Guide, id: string, to: number, now?: string): Guide {
   const from = indexOfStep(g, id);
@@ -111,6 +132,17 @@ export function setHighlight(g: Guide, id: string, rect: Rect | undefined, now?:
 
 export function addRedaction(g: Guide, id: string, r: Redaction, now?: string): Guide {
   return withScreenshot(g, id, (sh) => ({ ...sh, redactions: [...(sh.redactions ?? []), r] }), now);
+}
+
+/** Drop the automatic (capture-time) redactions of a step: the person decided they are not secret. */
+export function removeAutoRedactions(g: Guide, id: string, now?: string): Guide {
+  return withScreenshot(g, id, (sh) => {
+    const keep = (sh.redactions ?? []).filter((r) => !r.auto);
+    const next = { ...sh };
+    if (keep.length) next.redactions = keep;
+    else delete next.redactions;
+    return next;
+  }, now);
 }
 
 export function removeRedaction(g: Guide, id: string, index: number, now?: string): Guide {

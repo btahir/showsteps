@@ -12,7 +12,14 @@ export interface ImageRecord {
   blob: Blob;
   /** Highlight as first recorded, so the editor can switch it back on after hiding it. */
   highlight?: Rect;
+  /** Text patterns the capture-time scan blurred ("card", "token", ...), for the editor's chip. */
+  kinds?: string[];
+  /** The capture-time redaction scan did not finish (time budget, silent frame): ask for a review. */
+  review?: boolean;
 }
+
+/** Per-image facts the editor shows next to a step (not part of the guide schema). */
+export type ImageMeta = Pick<ImageRecord, "kinds" | "review">;
 
 interface StepsnapDB extends DBSchema {
   guides: { key: string; value: Guide; indexes: { updatedAt: string } };
@@ -89,10 +96,26 @@ export async function deleteGuide(id: string): Promise<void> {
   await tx.done;
 }
 
-export async function putImage(guideId: string, path: string, blob: Blob, highlight?: Rect): Promise<void> {
+export async function putImage(guideId: string, path: string, blob: Blob, highlight?: Rect, meta: ImageMeta = {}): Promise<void> {
   const rec: ImageRecord = { key: imageKey(guideId, path), guideId, path, blob };
   if (highlight) rec.highlight = highlight;
+  if (meta.kinds?.length) rec.kinds = meta.kinds;
+  if (meta.review) rec.review = true;
   await (await db()).put("images", rec);
+}
+
+/** Replace only the pixels of a stored image (keeps highlight and meta). */
+export async function replaceImageBlob(guideId: string, path: string, blob: Blob): Promise<void> {
+  const d = await db();
+  const tx = d.transaction("images", "readwrite");
+  const rec = await tx.store.get(imageKey(guideId, path));
+  if (rec) await tx.store.put({ ...rec, blob });
+  await tx.done;
+}
+
+export async function getImageMeta(guideId: string): Promise<Record<string, ImageMeta>> {
+  const recs = await (await db()).getAllFromIndex("images", "guideId", guideId);
+  return Object.fromEntries(recs.map((r) => [r.path, { kinds: r.kinds, review: r.review }]));
 }
 
 export async function getImage(guideId: string, path: string): Promise<ImageRecord | undefined> {

@@ -1,6 +1,7 @@
 // Shared UI pieces: inline-Markdown titles, the export sheet with the post-export support
 // moment (SPEC §6, §8), and the edit toast.
 import { useEffect, useRef, useState } from "react";
+import { typographicQuotes } from "@stepsnap/core";
 import type { Guide } from "@stepsnap/core";
 import { FORMATS } from "../lib/formats";
 import type { ExportFormat } from "../lib/formats";
@@ -13,11 +14,17 @@ import type { EditToast } from "./useGuideEditor";
 /** Renders `**bold**` (the only inline Markdown step titles use) without HTML injection. */
 export function MdInline({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  // Titles are stored with straight quotes; show typographic ones (Rethink Sans slants the ASCII quote).
+  let prev = "";
   return (
     <>
-      {parts.map((p, i) =>
-        p.startsWith("**") && p.endsWith("**") && p.length > 4 ? <strong key={i}>{p.slice(2, -2)}</strong> : <span key={i}>{p}</span>,
-      )}
+      {parts.map((p, i) => {
+        const bold = p.startsWith("**") && p.endsWith("**") && p.length > 4;
+        const raw = bold ? p.slice(2, -2) : p;
+        const shown = typographicQuotes(raw, prev);
+        prev = raw;
+        return bold ? <strong key={i}>{shown}</strong> : <span key={i}>{shown}</span>;
+      })}
     </>
   );
 }

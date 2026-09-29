@@ -6,11 +6,13 @@ import type { SessionEvent, SessionState } from "../lib/session";
 import { CaptureQueue } from "../lib/capture-queue";
 import { buildStep, newGuide, titleFromPage } from "../lib/steps";
 import type { FrameInfo, StepDraft } from "../lib/steps";
-import { appendStep, newId } from "../lib/guide-ops";
+import { amendStep, appendStep, indexOfStep, newId } from "../lib/guide-ops";
 import { deleteGuide, getGuide, mutateGuide, putGuide, putImage } from "../lib/db";
 import { bakeRedactions } from "../lib/render";
 import { createNavTracker, forgetTab, isRecordableUrl, noteAction, shouldRecordNavigation } from "../lib/nav";
-import type { AnyMessage, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
+import { blobToBase64, OriginalStore, PORT_NAME } from "../lib/originals";
+import type { OriginalsPortMsg } from "../lib/originals";
+import type { AnyMessage, BarState, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
 
 const RECORDER_ID = "showsteps-recorder";
 const RECORDER_FILE = "recorder.js";
@@ -28,11 +30,16 @@ export default defineBackground(() => {
   const frames = new Map<string, { at: number; frame: Promise<Frame | null>; settled: boolean }>();
   // e2e builds log which capture rung each step used (PLAN §3.4), in storage.session["debug:capture"].
   const DEBUG = import.meta.env.MODE === "e2e";
-  const debugLog: { title: string; rung: string }[] = [];
+  const debugLog: { title: string; rung: string; amend?: boolean }[] = [];
   const nav = createNavTracker();
   const newTabs = new Set<number>();
   const pendingNav = new Map<number, { url: string; timer: ReturnType<typeof setTimeout> }>();
   let chain: Promise<unknown> = Promise.resolve();
+  /** Last step committed per tab and the recorder draft it came from (for typing amends). */
+  const lastByTab = new Map<number, { cid?: string; stepId: string }>();
+  /** Pre-blur captures of this recording, in memory only (auto-blur Undo). */
+  const originals = new OriginalStore();
+  const originalPorts = new Map<string, Set<chrome.runtime.Port>>();
 
   // ---- state ----------------------------------------------------------------------------------
 
@@ -48,11 +55,40 @@ export default defineBackground(() => {
   async function dispatch(e: SessionEvent): Promise<SessionState> {
     const next = reduceSession(state, e);
     if (next === state) return state;
+    const before = state.tabIds;
     state = next;
     await chrome.storage.session.set({ session: state }).catch(() => {});
     void updateBadge();
     broadcast({ type: "bc:session", state });
+    syncBars([...new Set([...before, ...state.tabIds])]);
     return state;
+  }
+
+  const barState = (): BarState => ({ status: state.status, stepCount: state.stepCount });
+
+  /** The in-page recording bar mirrors the session (top frame only). */
+  function syncBars(tabIds: number[]): void {
+    const msg: WorkerToTab = { type: "tab:bar", ...barState() };
+    for (const t of tabIds) chrome.tabs.sendMessage(t, msg, { frameId: 0 }).catch(() => {});
+  }
+
+  /**
+   * Hide the recording bar before a capture. Resolves true when the page confirmed a painted
+   * frame without it, or when no recorder runs there (so there is no bar); false when the page
+   * did not answer in time (then the capture is skipped rather than risk the bar in the image).
+   */
+  function hideBar(tabId: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 400);
+      chrome.tabs.sendMessage(tabId, { type: "tab:bar-hide" } satisfies WorkerToTab, { frameId: 0 }).then(
+        () => (clearTimeout(timer), resolve(true)),
+        () => (clearTimeout(timer), resolve(true)),
+      );
+    });
+  }
+
+  function showBar(tabId: number): void {
+    chrome.tabs.sendMessage(tabId, { type: "tab:bar-show" } satisfies WorkerToTab, { frameId: 0 }).catch(() => {});
   }
 
   function broadcast(msg: Broadcast): void {
@@ -110,7 +146,18 @@ export default defineBackground(() => {
   async function grab(tabId: number): Promise<Frame | null> {
     const tab = await chrome.tabs.get(tabId).catch(() => undefined);
     if (!tab?.active || tab.windowId === undefined) return null; // captureVisibleTab only sees the active tab
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    // The recording bar must never be in a screenshot: hide it, capture, show it again.
+    if (!(await hideBar(tabId))) {
+      showBar(tabId);
+      if (DEBUG) console.warn("Showsteps: bar did not hide in time, capture skipped");
+      return null;
+    }
+    let dataUrl: string;
+    try {
+      dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    } finally {
+      showBar(tabId);
+    }
     const blob = await (await fetch(dataUrl)).blob();
     const bmp = await createImageBitmap(blob);
     const frame = { blob, width: bmp.width, height: bmp.height, at: Date.now() };
@@ -161,29 +208,43 @@ export default defineBackground(() => {
       if (!guideId || !acceptsSteps(state) || state.guideId !== guideId) return;
       const shot = shotP ? await shotP : { frame: null, rung: "none" as Rung };
       const frame = shot.frame;
-      const id = newId("s");
-      const step = buildStep(id, { ...draft, page: { ...draft.page, tabId } }, frame ?? undefined);
+      // Typing that continues the previous step of this tab (nothing else committed in between)
+      // replaces that step instead of adding another (PLAN §3.6).
+      const last = lastByTab.get(tabId);
+      const amendId = draft.amends && last && last.cid === draft.amends ? last.stepId : undefined;
+      const id = amendId ?? newId("s");
+      const { amends: _a, cid: _c, sensitiveKinds, scanIncomplete, ...clean } = draft;
+      const step = buildStep(id, { ...clean, page: { ...draft.page, tabId } }, frame ?? undefined);
       if (frame && step.screenshot) {
         // Automatic redactions are burnt into the stored pixels now (auto: true = already burnt);
-        // the unredacted capture is never written anywhere.
+        // the unredacted capture is only kept in memory, for Undo in an open editor.
         let blob = frame.blob;
         if (step.screenshot.redactions?.length) {
           try {
             blob = await bakeRedactions(frame.blob, step);
+            rememberOriginal(guideId, id, frame.blob, step.timestamp);
           } catch (e) {
             console.warn("Showsteps: redaction failed, screenshot dropped", e);
             delete step.screenshot;
           }
         }
-        if (step.screenshot) await putImage(guideId, step.screenshot.image, blob, step.screenshot.highlight);
+        if (step.screenshot) await putImage(guideId, step.screenshot.image, blob, step.screenshot.highlight, { kinds: sensitiveKinds, review: scanIncomplete });
       }
       if (DEBUG) {
-        debugLog.push({ title: step.title, rung: shot.rung });
+        debugLog.push({ title: step.title, rung: shot.rung, ...(amendId ? { amend: true } : {}) });
         await chrome.storage.session.set({ "debug:capture": debugLog }).catch(() => {});
       }
-      const saved = await mutateGuide(guideId, (g) => appendStep(g, step));
+      let amended = false;
+      const saved = await mutateGuide(guideId, (g) => {
+        if (amendId && indexOfStep(g, amendId) >= 0) {
+          amended = true;
+          return amendStep(g, amendId, step);
+        }
+        return appendStep(g, step);
+      });
       if (!saved) return;
-      await dispatch({ type: "step-added" });
+      lastByTab.set(tabId, { cid: draft.cid, stepId: id });
+      if (!amended) await dispatch({ type: "step-added" });
       broadcast({ type: "bc:guide", guideId, stepId: id });
     };
     const next = chain.then(run, run);
@@ -209,9 +270,59 @@ export default defineBackground(() => {
       at: new Date().toISOString(),
       metrics: scan?.metrics ?? fallback,
       sensitiveRects: scan?.sensitiveRects,
+      sensitiveKinds: scan?.sensitiveKinds,
+      // No answer from the page: nothing was scanned, so ask for a review rather than pass it as clean.
+      scanIncomplete: scan ? !!scan.scanIncomplete : isRecordableUrl(url),
     };
     await addStep(tabId, draft, frameP.then((frame) => ({ frame, rung: frame ? "nav" : "none" })));
   }
+
+  function rememberOriginal(guideId: string, stepId: string, blob: Blob, token: string): void {
+    originals.set(guideId, stepId, { blob, token });
+    // Editors already open on this guide get it right away.
+    const ports = originalPorts.get(guideId);
+    if (ports?.size) void sendOriginal([...ports], guideId, stepId);
+  }
+
+  async function sendOriginal(ports: chrome.runtime.Port[], guideId: string, stepId: string): Promise<void> {
+    const o = originals.get(guideId, stepId);
+    if (!o) return;
+    const msg: OriginalsPortMsg = { type: "original", guideId, stepId, token: o.token, data: await blobToBase64(o.blob), mime: o.blob.type || "image/png" };
+    for (const p of ports) {
+      try {
+        p.postMessage(msg);
+      } catch {
+        /* closed */
+      }
+    }
+  }
+
+  // Editors claim the originals of the guide they show; when the last one closes they are dropped.
+  chrome.runtime.onConnect.addListener((port) => {
+    // Extension pages only (never a content script).
+    if (port.name !== PORT_NAME || port.sender?.id !== chrome.runtime.id || !port.sender?.url?.startsWith(chrome.runtime.getURL(""))) return;
+    let claimed: string | undefined;
+    port.onMessage.addListener((raw: OriginalsPortMsg) => {
+      if (raw?.type !== "claim" || typeof raw.guideId !== "string") return;
+      claimed = raw.guideId;
+      let set = originalPorts.get(claimed);
+      if (!set) originalPorts.set(claimed, (set = new Set()));
+      set.add(port);
+      void (async () => {
+        for (const [stepId] of originals.entries(raw.guideId)) await sendOriginal([port], raw.guideId, stepId);
+      })();
+    });
+    port.onDisconnect.addListener(() => {
+      if (!claimed) return;
+      const set = originalPorts.get(claimed);
+      set?.delete(port);
+      if (!set?.size) {
+        originalPorts.delete(claimed);
+        // Closing the last editor drops them, unless this guide is still being recorded.
+        if (!(isActive(state) && state.guideId === claimed)) originals.drop(claimed);
+      }
+    });
+  });
 
   function scheduleNavigate(tabId: number, url: string): void {
     const prev = pendingNav.get(tabId);
@@ -255,6 +366,9 @@ export default defineBackground(() => {
     }
     const tabIds = scoped.map((t) => t.id).filter((id): id is number => id !== undefined);
     for (const t of scoped) if (t.id !== undefined) nav.lastUrl.set(t.id, t.url ?? "");
+    // A new recording: originals of earlier ones are no longer needed by anyone new.
+    if (!originalPorts.size) originals.clear();
+    lastByTab.clear();
     await dispatch({ type: "start", guideId, windowId, tabIds, at: now.toISOString(), scope });
     await chrome.storage.session.set({ lastGuideId: guideId }).catch(() => {});
     if (allSites) await registerRecorder().catch((e) => console.warn("Showsteps: register failed", e));
@@ -334,7 +448,7 @@ export default defineBackground(() => {
         void ready.then(() => {
           const inSession = tabId !== undefined && isActive(state) && (state.tabIds.includes(tabId) || shouldJoin(state, { windowId: sender.tab?.windowId }));
           if (inSession && tabId !== undefined && !state.tabIds.includes(tabId)) void dispatch({ type: "tab-joined", tabId });
-          reply({ recording: inSession && acceptsSteps(state) } satisfies HelloReply);
+          reply({ recording: inSession && acceptsSteps(state), bar: inSession ? barState() : undefined } satisfies HelloReply);
         });
         return true;
       case "rec:capture":

@@ -300,3 +300,54 @@
 .tool-hint .btn {
   min-height: 28px;
 }
+
+/* auto-blur chip: "Password blurred · Undo" (SPEC §4) */
+.chip-ok {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.chip-link {
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ss-ink-2);
+  font: inherit;
+  font-weight: var(--ss-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.chip-link:hover {
+  color: var(--ss-ink);
+}
+.chip-link:focus-visible {
+  outline: none;
+  box-shadow: var(--ss-focus);
+}
+.chip-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  color: var(--ss-ink-2);
+  font-weight: var(--ss-weight-medium);
+}
+.chip-note .i {
+  width: 14px;
+  height: 14px;
+}
+.chip-warn {
+  justify-self: start;
+  padding: 6px 10px;
+  border-radius: var(--ss-radius-sm);
+  background: var(--ss-warn-soft);
+  color: var(--ss-ink);
+  font-size: var(--ss-text-sm);
+}
+.tool-hint-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}

@@ -11,16 +11,19 @@ import {
   mergeWithNext,
   moveStep,
   moveStepBy,
+  removeAutoRedactions,
   setCrop,
   setHighlight,
   toggleSkip,
   updateStep,
 } from "../lib/guide-ops";
 import type { GuideEditor } from "./useGuideEditor";
+import type { GuideAssets } from "./useGuideAssets";
+import { redactionChip, reviewChip } from "../lib/chip";
 import { StepImage } from "./StepImage";
 import type { DrawMode } from "./StepImage";
 import { MdInline, plain } from "./components";
-import { IconBlur, IconCheck, IconCrop, IconEye, IconEyeOff, IconGrip, IconHighlight, IconMerge, IconPlus, IconTrash } from "./icons";
+import { IconBlur, IconCheck, IconCrop, IconEye, IconEyeOff, IconGrip, IconHighlight, IconLock, IconMerge, IconPlus, IconTrash } from "./icons";
 
 type Layout = "panel" | "tab";
 type Tool = { stepId: string; mode: Exclude<DrawMode, "none"> } | null;
@@ -47,28 +50,51 @@ function domainOf(g: Guide): string | undefined {
   return undefined;
 }
 
-/** "Password blurred", "Card number blurred", or a count. */
-function redactionLabel(step: Step): string | undefined {
-  const auto = step.screenshot?.redactions?.filter((r) => r.auto) ?? [];
-  if (!auto.length) return undefined;
-  const name = step.target?.sensitive ? step.target.label ?? step.target.name : undefined;
-  if (name && auto.length === 1) return `${name} blurred`;
-  return auto.length === 1 ? "Sensitive field blurred" : `${auto.length} sensitive fields blurred`;
+/** The auto-blur chip ("Password blurred · Undo") and, when the scan did not finish, a review chip. */
+function RedactionChips({ step, assets, onUndo }: { step: Step; assets: GuideAssets; onUndo: () => void }) {
+  const facts = step.screenshot ? assets.meta[step.screenshot.image] : undefined;
+  const chip = redactionChip(step, facts, assets.hasOriginal(step));
+  const review = reviewChip(facts);
+  if (!chip && !review) return null;
+  return (
+    <>
+      {chip && (
+        <p className="chip-ok" data-testid="redaction-chip">
+          <IconCheck /> <span>{chip.text}</span>
+          {chip.canUndo ? (
+            <button type="button" className="chip-link" onClick={onUndo} aria-label={`Undo: ${chip.text.replace(/ blurred$/, "")} no longer blurred`}>
+              Undo
+            </button>
+          ) : (
+            <span className="chip-note" title="The unblurred screenshot was never saved, so this blur cannot be undone.">
+              <IconLock /> {chip.note}
+            </span>
+          )}
+        </p>
+      )}
+      {review && (
+        <p className="chip-warn" role="note">
+          {review}
+        </p>
+      )}
+    </>
+  );
 }
 
 export function GuideView({
   ed,
-  urls,
+  assets,
   layout,
   recording,
   header,
 }: {
   ed: GuideEditor;
-  urls: Record<string, string>;
+  assets: GuideAssets;
   layout: Layout;
   recording?: boolean;
   header?: ReactNode;
 }) {
+  const urls = assets.urls;
   const guide = ed.guide!;
   const steps = guide.steps;
   const [selected, setSelected] = useState<string | null>(null);
@@ -145,8 +171,15 @@ export function GuideView({
     if (!sh) return;
     if (sh.highlight) return ed.apply((g) => setHighlight(g, s.id, undefined), { announce: "Highlight hidden" });
     const rec = await getImage(guide.id, sh.image);
-    if (rec?.highlight) ed.apply((g) => setHighlight(g, s.id, rec.highlight), { announce: "Highlight shown" });
+    // The recorded box, or a centred one when the step never had a target.
+    const fallback = { x: Math.round(sh.width * 0.4), y: Math.round(sh.height * 0.42), width: Math.round(sh.width * 0.2), height: Math.round(sh.height * 0.08) };
+    ed.apply((g) => setHighlight(g, s.id, rec?.highlight ?? fallback), { announce: "Highlight shown" });
   };
+
+  const onHighlight = (s: Step, rect: Rect, via: "pointer" | "key") =>
+    ed.apply((g) => setHighlight(g, s.id, rect), { announce: via === "key" ? undefined : "Highlight moved", coalesce: via === "key" ? `hl-${s.id}` : undefined, toast: false });
+
+  const undoBlur = (s: Step) => ed.apply((g) => removeAutoRedactions(g, s.id), { announce: "Blur removed" });
 
   const onDraw = (s: Step, rect: Rect, mode: "blur" | "crop") => {
     if (mode === "blur") ed.apply((g) => addRedaction(g, s.id, { rect, style: "blur" }), { announce: "Area blurred" });
@@ -180,7 +213,7 @@ export function GuideView({
       tool={tool?.stepId === s.id ? tool.mode : "none"}
       layout={layout}
       canMerge={steps.findIndex((x) => x.id === s.id) < total - 1}
-      onHighlight={() => void toggleHighlight(s)}
+      onToggleHighlight={() => void toggleHighlight(s)}
       onTool={(m) => {
         if (m === "crop" && s.screenshot?.crop && tool?.mode !== "crop") {
           ed.apply((g) => setCrop(g, s.id, undefined), { announce: "Crop removed" });
@@ -207,7 +240,6 @@ export function GuideView({
         const isSel = s.id === selected;
         const label = labelOf(s);
         const activeTool = tool?.stepId === s.id ? tool.mode : "none";
-        const chip = redactionLabel(s);
         return (
           <li
             key={s.id}
@@ -286,13 +318,9 @@ export function GuideView({
             {layout === "panel" && isSel && (
               <div className="step-detail">
                 <DescriptionField ed={ed} step={s} label={label} />
-                {chip && (
-                  <p className="chip-ok">
-                    <IconCheck /> {chip}
-                  </p>
-                )}
+                <RedactionChips step={s} assets={assets} onUndo={() => undoBlur(s)} />
                 {tools(s)}
-                {activeTool !== "none" && <ToolHint mode={activeTool} onDone={() => setTool(null)} />}
+                {activeTool !== "none" && <ToolHint mode={activeTool} step={s} onToggleHighlight={() => void toggleHighlight(s)} onDone={() => setTool(null)} />}
               </div>
             )}
 
@@ -304,6 +332,7 @@ export function GuideView({
                   number={n}
                   mode={isSel ? activeTool : "none"}
                   onDraw={(r, m) => onDraw(s, r, m)}
+                  onHighlight={(r, via) => onHighlight(s, r, via)}
                   showRedactionOutlines={isSel}
                   color={guide.settings?.highlightColor}
                   alt={`Screenshot for ${label.toLowerCase()}`}
@@ -342,7 +371,6 @@ export function GuideView({
   }
 
   const activeTool = sel && tool?.stepId === sel.id ? tool.mode : "none";
-  const chip = sel && redactionLabel(sel);
   return (
     <div className="ed-columns">
       <aside className="ed-list" aria-label="Step list">
@@ -353,7 +381,7 @@ export function GuideView({
         {sel ? (
           <>
             <div className="ed-detail-bar">{tools(sel)}</div>
-            {activeTool !== "none" && <ToolHint mode={activeTool} onDone={() => setTool(null)} />}
+            {activeTool !== "none" && <ToolHint mode={activeTool} step={sel} onToggleHighlight={() => void toggleHighlight(sel)} onDone={() => setTool(null)} />}
             <div className="ed-detail-head">
               <span className={`flag flag-lg${sel.skipped ? " flag-skipped" : sel.action.type === "note" ? " flag-note" : ""}`} aria-hidden>
                 {numbers.get(sel.id) ?? "–"}
@@ -366,11 +394,7 @@ export function GuideView({
               />
             </div>
             <DescriptionField ed={ed} step={sel} label={labelOf(sel)} />
-            {chip && (
-              <p className="chip-ok">
-                <IconCheck /> {chip}
-              </p>
-            )}
+            <RedactionChips step={sel} assets={assets} onUndo={() => undoBlur(sel)} />
             {(sel.screenshot || sel.action.type !== "note") && (
               <StepImage
                 step={sel}
@@ -378,6 +402,7 @@ export function GuideView({
                 number={numbers.get(sel.id)}
                 mode={activeTool}
                 onDraw={(r, m) => onDraw(sel, r, m)}
+                onHighlight={(r, via) => onHighlight(sel, r, via)}
                 showRedactionOutlines
                 size="large"
                 color={guide.settings?.highlightColor}
@@ -401,7 +426,23 @@ export function GuideView({
   );
 }
 
-function ToolHint({ mode, onDone }: { mode: Exclude<DrawMode, "none">; onDone: () => void }) {
+function ToolHint({ mode, step, onToggleHighlight, onDone }: { mode: Exclude<DrawMode, "none">; step: Step; onToggleHighlight: () => void; onDone: () => void }) {
+  if (mode === "highlight") {
+    const shown = !!step.screenshot?.highlight;
+    return (
+      <p className="tool-hint" role="note">
+        <span>{shown ? "Drag the box or its corners. Arrow keys nudge the focused handle." : "This step has no highlight."}</span>
+        <span className="tool-hint-actions">
+          <button type="button" className="btn btn-ghost" onClick={onToggleHighlight}>
+            {shown ? "Hide highlight" : "Show highlight"}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onDone}>
+            Done
+          </button>
+        </span>
+      </p>
+    );
+  }
   return (
     <p className="tool-hint" role="note">
       {mode === "blur" ? "Drag over the screenshot to blur an area." : "Drag over the screenshot to keep only that area."}
@@ -436,7 +477,7 @@ function StepTools({
   tool,
   layout,
   canMerge,
-  onHighlight,
+  onToggleHighlight: _onToggleHighlight,
   onTool,
   onSkip,
   onDelete,
@@ -447,8 +488,8 @@ function StepTools({
   tool: DrawMode;
   layout: Layout;
   canMerge: boolean;
-  onHighlight: () => void;
-  onTool: (m: "blur" | "crop") => void;
+  onToggleHighlight: () => void;
+  onTool: (m: "blur" | "crop" | "highlight") => void;
   onSkip: () => void;
   onDelete: () => void;
   onMerge: () => void;
@@ -456,7 +497,7 @@ function StepTools({
   const shot = !!step.screenshot;
   return (
     <div className="seg" role="toolbar" aria-label={`${label} tools`}>
-      <button type="button" className="seg-btn" aria-pressed={!!step.screenshot?.highlight} disabled={!shot} onClick={onHighlight}>
+      <button type="button" className="seg-btn" aria-pressed={tool === "highlight"} disabled={!shot} onClick={() => onTool("highlight")}>
         <IconHighlight />
         <span>Highlight</span>
       </button>

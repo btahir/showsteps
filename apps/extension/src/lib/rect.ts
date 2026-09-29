@@ -81,3 +81,28 @@ export function toCropSpace(r: Rect, crop: Rect | undefined): Rect {
   if (!crop) return r;
   return { x: r.x - crop.x, y: r.y - crop.y, width: r.width, height: r.height };
 }
+
+export type Corner = "nw" | "ne" | "sw" | "se";
+
+/** Move `r` by (dx, dy), kept inside `bounds` (size unchanged). */
+export function moveRect(r: Rect, dx: number, dy: number, bounds: { width: number; height: number }): Rect {
+  const x = Math.round(Math.max(0, Math.min(bounds.width - r.width, r.x + dx)));
+  const y = Math.round(Math.max(0, Math.min(bounds.height - r.height, r.y + dy)));
+  return { x, y, width: r.width, height: r.height };
+}
+
+/**
+ * Drag one corner of `r` by (dx, dy). The opposite corner stays put; the box never gets smaller
+ * than `min` on either side and never leaves `bounds`.
+ */
+export function resizeRect(r: Rect, corner: Corner, dx: number, dy: number, bounds: { width: number; height: number }, min = 8): Rect {
+  let x1 = r.x;
+  let y1 = r.y;
+  let x2 = r.x + r.width;
+  let y2 = r.y + r.height;
+  if (corner === "nw" || corner === "sw") x1 = Math.max(0, Math.min(x2 - min, x1 + dx));
+  else x2 = Math.min(bounds.width, Math.max(x1 + min, x2 + dx));
+  if (corner === "nw" || corner === "ne") y1 = Math.max(0, Math.min(y2 - min, y1 + dy));
+  else y2 = Math.min(bounds.height, Math.max(y1 + min, y2 + dy));
+  return roundRect({ x: x1, y: y1, width: x2 - x1, height: y2 - y1 });
+}

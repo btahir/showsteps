@@ -3,11 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { deleteGuide, getImage } from "../../lib/db";
 import type { GuideSummary } from "../../lib/db";
 import { APP_NAME, PROJECT_EXT, SITE_URL, SUPPORT_URL } from "../../config";
-import { openEditor, send, useImageUrls, useLibrary, useSession, useToast } from "../../ui/hooks";
+import { openEditor, send, useLibrary, useSession, useToast } from "../../ui/hooks";
+import { useGuideAssets } from "../../ui/useGuideAssets";
 import { useGuideEditor } from "../../ui/useGuideEditor";
 import { GuideHeader, GuideView, relTime } from "../../ui/GuideView";
 import { EditToastView, ExportSheet, SimpleToast } from "../../ui/components";
 import { useTheme } from "../../ui/theme";
+import { loadRedactPrefs, saveRedactPrefs } from "../../lib/prefs";
+import type { RedactPrefs } from "../../lib/prefs";
 import type { ThemePref } from "../../ui/theme";
 import {
   BrandIcon,
@@ -225,7 +228,7 @@ function GuidePane({
   showToast: (m: string) => void;
 }) {
   const ed = useGuideEditor(guideId);
-  const urls = useImageUrls(guideId, ed.guide?.steps.length);
+  const assets = useGuideAssets(ed, guideId);
   const [exportOpen, setExportOpen] = useState(false);
   const isThis = session.guideId === guideId;
   const recording = isThis && (session.status === "recording" || session.status === "paused" || session.status === "stopping");
@@ -245,7 +248,7 @@ function GuidePane({
   return (
     <>
       <main className="guide-pane">
-        <GuideView ed={ed} urls={urls} layout="panel" recording={recording} header={<GuideHeader ed={ed} />} />
+        <GuideView ed={ed} assets={assets} layout="panel" recording={recording} header={<GuideHeader ed={ed} />} />
       </main>
       <footer className="panel-foot">
         {recording ? (
@@ -409,8 +412,10 @@ function Library({
 function Settings() {
   const [theme, setTheme] = useTheme();
   const [allSites, setAllSites] = useState<boolean>();
+  const [prefs, setPrefs] = useState<RedactPrefs>();
   useEffect(() => {
     void chrome.permissions.contains(ALL_URLS).then(setAllSites);
+    void loadRedactPrefs().then(setPrefs);
   }, []);
   const version = chrome.runtime.getManifest().version;
   return (
@@ -443,6 +448,28 @@ function Settings() {
             Revoke
           </button>
         )}
+      </div>
+      <div className="set-row">
+        <span>
+          <span id="blur-emails-label">Blur email addresses</span>
+          <span className="muted small block" id="blur-emails-hint">
+            Card numbers, bank accounts, social security numbers and access tokens are always blurred. Emails are off because guides often need them.
+          </span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          className="switch"
+          aria-labelledby="blur-emails-label"
+          aria-describedby="blur-emails-hint"
+          aria-checked={!!prefs?.emails}
+          disabled={!prefs}
+          onClick={async () => {
+            const next = { emails: !prefs?.emails };
+            setPrefs(next);
+            await saveRedactPrefs(next);
+          }}
+        />
       </div>
       <p className="privacy-line">
         <IconLock /> Screenshots and guides stay in this browser. {APP_NAME} makes no network requests and has no account.

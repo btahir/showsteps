@@ -2,7 +2,8 @@
 // left and the selected step's screenshot large on the right.
 import { useEffect, useState } from "react";
 import { APP_NAME } from "../../config";
-import { useImageUrls, useSession } from "../../ui/hooks";
+import { useSession } from "../../ui/hooks";
+import { useGuideAssets } from "../../ui/useGuideAssets";
 import { useGuideEditor } from "../../ui/useGuideEditor";
 import { GuideHeader, GuideView } from "../../ui/GuideView";
 import { EditToastView, ExportSheet } from "../../ui/components";
@@ -17,7 +18,7 @@ export function App() {
   useTheme();
   const ed = useGuideEditor(GUIDE_ID);
   const session = useSession();
-  const urls = useImageUrls(GUIDE_ID, ed.guide?.steps.length);
+  const assets = useGuideAssets(ed, GUIDE_ID);
   const [exportOpen, setExportOpen] = useState(OPEN_EXPORT);
   const recording = session.guideId === GUIDE_ID && (session.status === "recording" || session.status === "paused");
 
@@ -64,7 +65,7 @@ export function App() {
           Export <IconDownload />
         </button>
       </header>
-      <GuideView ed={ed} urls={urls} layout="tab" recording={recording} header={<GuideHeader ed={ed} />} />
+      <GuideView ed={ed} assets={assets} layout="tab" recording={recording} header={<GuideHeader ed={ed} />} />
       <ExportSheet open={exportOpen} guide={ed.guide} onClose={() => setExportOpen(false)} beforeExport={ed.save} />
       <EditToastView toast={ed.toast} onUndo={ed.undo} onDismiss={ed.dismissToast} />
     </div>

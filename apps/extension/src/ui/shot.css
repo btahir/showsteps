@@ -75,3 +75,48 @@
 .shot-drag-blur {
   backdrop-filter: blur(6px);
 }
+/* Highlight edit mode (SPEC §1 "Edit mode"): the ring is draggable, with 4 corner handles. */
+.shot-hl {
+  position: absolute;
+  touch-action: none;
+}
+.shot-hl-move {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: move;
+}
+.shot-hl-move:focus-visible {
+  outline: none;
+  box-shadow: var(--ss-focus);
+}
+.shot-hl-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  background: #fff;
+  border: 1.5px solid var(--ss-accent);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+/* A 24 px invisible hit area around each 10 px square. */
+.shot-hl-handle::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+}
+.shot-hl-handle:focus-visible {
+  outline: none;
+  box-shadow: var(--ss-focus);
+}
+.shot-hl-nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.shot-hl-ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.shot-hl-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.shot-hl-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.shot-editing-hl {
+  box-shadow: var(--ss-focus);
+}

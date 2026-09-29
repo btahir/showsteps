@@ -19,7 +19,7 @@ export const TAG = "__showsteps";
 
 export type FrameMsg =
   | { [TAG]: 1; kind: "scan"; id: string }
-  | { [TAG]: 1; kind: "scan-reply"; id: string; rects: Rect[] }
+  | { [TAG]: 1; kind: "scan-reply"; id: string; rects: Rect[]; kinds?: string[]; incomplete?: boolean }
   | { [TAG]: 1; kind: "offset"; id: string }
   | { [TAG]: 1; kind: "offset-reply"; id: string; x: number; y: number; metrics?: unknown };
 

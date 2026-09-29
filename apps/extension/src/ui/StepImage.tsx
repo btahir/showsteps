@@ -2,20 +2,24 @@
 // drawFlagHighlight on a canvas over the image (same geometry as exports); manual redactions and
 // the crop are overlays (real pixels are only rewritten at export; auto redactions are already
 // burnt into the stored image). In "blur" or "crop" mode the user drags a rectangle on the image.
+// In "highlight" mode the ring gets a move handle and four corner handles (mouse or arrow keys).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { PointerEvent as RPointerEvent } from "react";
+import type { KeyboardEvent as RKeyboardEvent, PointerEvent as RPointerEvent } from "react";
 import type { Rect, Step } from "@stepsnap/core";
 import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
-import { displayRectToImage } from "../lib/rect";
+import { displayRectToImage, moveRect, resizeRect } from "../lib/rect";
+import type { Corner } from "../lib/rect";
 
-export type DrawMode = "none" | "blur" | "crop";
+export type DrawMode = "none" | "blur" | "crop" | "highlight";
 
 interface Props {
   step: Step;
   src: string | undefined;
   number?: number;
   mode?: DrawMode;
-  onDraw?: (rect: Rect, mode: Exclude<DrawMode, "none">) => void;
+  onDraw?: (rect: Rect, mode: "blur" | "crop") => void;
+  /** Highlight moved or resized (image px). `coalesce` groups keyboard nudges into one undo step. */
+  onHighlight?: (rect: Rect, via: "pointer" | "key") => void;
   showRedactionOutlines?: boolean;
   /** "thumb": fixed-size flag for small previews (side panel); "large": export proportions. */
   size?: "thumb" | "large";
@@ -40,12 +44,15 @@ function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] 
   return [ref, w];
 }
 
-export function StepImage({ step, src, number, mode = "none", onDraw, showRedactionOutlines, size = "thumb", color, alt }: Props) {
+export function StepImage({ step, src, number, mode = "none", onDraw, onHighlight, showRedactionOutlines, size = "thumb", color, alt }: Props) {
   const sh = step.screenshot;
   const [wrap, width] = useWidth<HTMLDivElement>();
   const canvas = useRef<HTMLCanvasElement>(null);
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [fontsReady, setFontsReady] = useState(false);
+  // Highlight being dragged (image px), drawn live until the pointer is released.
+  const [hlDrag, setHlDrag] = useState<{ start: Rect; px: number; py: number; part: Corner | "move"; rect: Rect } | null>(null);
+  const liveHl = hlDrag?.rect ?? sh?.highlight;
 
   useEffect(() => {
     void document.fonts?.load('750 16px "Rethink Sans"').finally(() => setFontsReady(true));
@@ -63,9 +70,9 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
     const ctx = c.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, c.width, c.height);
-    if (!sh.highlight) return;
+    if (!liveHl) return;
     const s = c.width / view.width;
-    const target = { x: (sh.highlight.x - view.x) * s, y: (sh.highlight.y - view.y) * s, width: sh.highlight.width * s, height: sh.highlight.height * s };
+    const target = { x: (liveHl.x - view.x) * s, y: (liveHl.y - view.y) * s, width: liveHl.width * s, height: liveHl.height * s };
     const thumbScale = (2.5 / flag.ringWidth) * dpr;
     const exportScale = highlightScale(sh.viewport.width, sh.width / Math.max(1, sh.viewport.width)) * s;
     drawFlagHighlight(ctx as unknown as Parameters<typeof drawFlagHighlight>[0], {
@@ -77,7 +84,11 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
       color: color ?? flag.color,
       dim: size === "thumb" ? flag.spotlightDimThumb : flag.spotlightDim,
     });
-  }, [sh, width, number, size, color, fontsReady]);
+  }, [sh, liveHl, width, number, size, color, fontsReady]);
+
+  useEffect(() => {
+    if (mode !== "highlight") setHlDrag(null);
+  }, [mode]);
 
   if (!sh) {
     return (
@@ -88,7 +99,51 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
   }
 
   const view = mode === "crop" ? { x: 0, y: 0, width: sh.width, height: sh.height } : sh.crop ?? { x: 0, y: 0, width: sh.width, height: sh.height };
-  const drawing = mode !== "none";
+  const drawing = mode === "blur" || mode === "crop";
+  const bounds = { width: sh.width, height: sh.height };
+  /** Image px per display px (for pointer deltas and one-pixel keyboard nudges). */
+  const perPx = () => view.width / Math.max(1, wrap.current?.getBoundingClientRect().width ?? view.width);
+
+  const hlDown = (e: RPointerEvent, part: Corner | "move") => {
+    if (!sh.highlight || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    (e.currentTarget as HTMLElement).focus();
+    setHlDrag({ start: sh.highlight, px: e.clientX, py: e.clientY, part, rect: sh.highlight });
+  };
+  const hlMove = (e: RPointerEvent) => {
+    if (!hlDrag) return;
+    const k = perPx();
+    const dx = (e.clientX - hlDrag.px) * k;
+    const dy = (e.clientY - hlDrag.py) * k;
+    const rect = hlDrag.part === "move" ? moveRect(hlDrag.start, dx, dy, bounds) : resizeRect(hlDrag.start, hlDrag.part, dx, dy, bounds);
+    setHlDrag({ ...hlDrag, rect });
+  };
+  const hlUp = () => {
+    if (!hlDrag) return;
+    const r = hlDrag.rect;
+    setHlDrag(null);
+    const s0 = hlDrag.start;
+    if (r.x !== s0.x || r.y !== s0.y || r.width !== s0.width || r.height !== s0.height) onHighlight?.(r, "pointer");
+  };
+  const hlKey = (e: RKeyboardEvent, part: Corner | "move") => {
+    if (e.key === "Escape" && hlDrag) {
+      e.stopPropagation();
+      setHlDrag(null);
+      return;
+    }
+    const dirs: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const d = dirs[e.key];
+    if (!d || !sh.highlight) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const step = Math.max(1, Math.round(perPx())) * (e.shiftKey ? 10 : 1);
+    const [dx, dy] = [d[0] * step, d[1] * step];
+    // On the move handle, Alt+arrows resize from the bottom-right corner.
+    const r = part === "move" ? (e.altKey ? resizeRect(sh.highlight, "se", dx, dy, bounds) : moveRect(sh.highlight, dx, dy, bounds)) : resizeRect(sh.highlight, part, dx, dy, bounds);
+    onHighlight?.(r, "key");
+  };
 
   const local = (e: RPointerEvent) => {
     const b = wrap.current!.getBoundingClientRect();
@@ -111,7 +166,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
     const dw = wrap.current.getBoundingClientRect().width;
     const local = displayRectToImage({ x: drag.x0, y: drag.y0, width: drag.x1 - drag.x0, height: drag.y1 - drag.y0 }, dw, { width: view.width, height: view.height });
     setDrag(null);
-    if (local && local.width >= 4 && local.height >= 4 && mode !== "none") onDraw?.({ ...local, x: local.x + view.x, y: local.y + view.y }, mode);
+    if (local && local.width >= 4 && local.height >= 4 && (mode === "blur" || mode === "crop")) onDraw?.({ ...local, x: local.x + view.x, y: local.y + view.y }, mode);
   };
 
   const dragRect = drag && {
@@ -131,7 +186,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
   return (
     <div
       ref={wrap}
-      className={`shot shot-${size}${drawing ? ` shot-drawing shot-${mode}` : ""}`}
+      className={`shot shot-${size}${drawing ? ` shot-drawing shot-${mode}` : ""}${mode === "highlight" ? " shot-editing-hl" : ""}`}
       style={{ aspectRatio: `${view.width} / ${view.height}` }}
       onPointerDown={onDown}
       onPointerMove={onMove}
@@ -145,6 +200,27 @@ export function StepImage({ step, src, number, mode = "none", onDraw, showRedact
         ),
       )}
       {mode !== "crop" && <canvas ref={canvas} className="shot-flag" aria-hidden />}
+      {mode === "highlight" && liveHl && (
+        <div className="shot-hl" style={inView(liveHl)} onPointerMove={hlMove} onPointerUp={hlUp} onPointerCancel={() => setHlDrag(null)}>
+          <button
+            type="button"
+            className="shot-hl-move"
+            aria-label={`Move the highlight (${Math.round(liveHl.x)}, ${Math.round(liveHl.y)}). Arrow keys move it, Shift moves further, Alt with arrows resizes.`}
+            onPointerDown={(e) => hlDown(e, "move")}
+            onKeyDown={(e) => hlKey(e, "move")}
+          />
+          {(["nw", "ne", "sw", "se"] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`shot-hl-handle shot-hl-${c}`}
+              aria-label={`Resize the highlight from the ${{ nw: "top left", ne: "top right", sw: "bottom left", se: "bottom right" }[c]} corner. Use the arrow keys.`}
+              onPointerDown={(e) => hlDown(e, c)}
+              onKeyDown={(e) => hlKey(e, c)}
+            />
+          ))}
+        </div>
+      )}
       {mode === "crop" && sh.crop && <div className="shot-crop" style={inView(sh.crop)} aria-hidden />}
       {dragRect && <div className={`shot-drag shot-drag-${mode}`} style={dragRect} aria-hidden />}
     </div>

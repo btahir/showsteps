@@ -20,6 +20,14 @@ export interface StepDraft {
   rect?: Rect;
   /** Other sensitive fields visible at the same moment (CSS px), blurred automatically. */
   sensitiveRects?: Rect[];
+  /** What the text scan found among those rects ("card", "token", ...), for the editor's chip. */
+  sensitiveKinds?: string[];
+  /** The redaction scan ran out of time or a frame did not answer: the step needs a human look. */
+  scanIncomplete?: boolean;
+  /** Typing that continues the step this recorder sent as `cid` (PLAN §3.6 amend). */
+  amends?: string;
+  /** Recorder-side id of this draft, so a later typing flush can amend it. */
+  cid?: string;
   metrics?: PageMetricsLike;
   at: string;
 }

@@ -9,22 +9,34 @@
 import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@stepsnap/dom";
 import type { ElementDescriptor, Rect, StepAction } from "@stepsnap/core";
 import { TypingTracker } from "../lib/typing";
+import { RecBar } from "../lib/rec-bar";
 import { frameLooksSensitive, sameOriginFrames, scanSensitive } from "../lib/sensitive-scan";
+import { scanTextSecrets } from "../lib/text-scan";
+import type { PatternOptions } from "../lib/text-patterns";
+import { parseRedactPrefs, REDACT_PREFS_KEY } from "../lib/prefs";
 import { ask, contentBox, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
 import type { FrameMsg } from "../lib/frames";
-import type { HelloReply, RecorderMessage, ScanReply, WorkerToTab } from "../lib/messages";
+import type { ControlMessage, HelloReply, RecorderMessage, ScanReply, WorkerToTab } from "../lib/messages";
 import type { StepDraft } from "../lib/steps";
 
 interface FieldMeta {
   el: Element;
+  key?: string;
   /** Frame taken shortly after the last keystroke, used when the commit has no fresher one. */
   captureId?: string;
 }
 
+/** What the redaction scan found: rects to blur, which text patterns matched, and whether it finished. */
+interface ScanResult {
+  rects: Rect[];
+  kinds: string[];
+  incomplete: boolean;
+}
+
 /** Sensitive rects known now, plus those still being collected from cross-origin frames. */
 interface SensitiveScan {
-  local: Rect[];
-  remote: Promise<Rect[]> | null;
+  local: ScanResult;
+  remote: Promise<ScanResult> | null;
 }
 
 interface PendingPointer {
@@ -73,6 +85,25 @@ export default defineUnlistedScript(() => {
     }
   };
 
+  function control(msg: ControlMessage): void {
+    if (!alive()) return;
+    chrome.runtime.sendMessage(msg).catch(() => {});
+  }
+
+  // The in-page recording bar (top frame only). Open shadow root in e2e builds so tests can drive it.
+  const bar = isTop
+    ? new RecBar(
+        document,
+        {
+          pause: () => control({ type: "ctl:pause" }),
+          resume: () => control({ type: "ctl:resume" }),
+          stop: () => control({ type: "ctl:stop" }),
+          discard: () => control({ type: "ctl:discard" }),
+        },
+        { open: DEBUG },
+      )
+    : undefined;
+
   function send(msg: RecorderMessage): void {
     if (!alive()) return;
     chrome.runtime.sendMessage(msg).catch(() => {});
@@ -89,6 +120,8 @@ export default defineUnlistedScript(() => {
 
   function requestCapture(): string {
     const captureId = newCaptureId();
+    // Start hiding the recording bar now, so the worker's capture does not wait for a paint.
+    void bar?.hideForCapture();
     send({ type: "rec:capture", captureId });
     remember(captureId);
     return captureId;
@@ -181,41 +214,74 @@ export default defineUnlistedScript(() => {
    * answer in time is blurred whole when it looks like a payment or sign-in widget.
    */
   function collectSensitive(): SensitiveScan {
-    const local: Rect[] = [];
+    const rects: Rect[] = [];
     try {
-      local.push(...domSensitiveRects(document, { pad: 2 }));
+      rects.push(...domSensitiveRects(document, { pad: 2 }));
     } catch {
       /* our own scan below still runs */
     }
     const opaque: Element[] = [];
-    local.push(
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    rects.push(
       ...scanSensitive(document, {
         isSensitive,
         rectOf: (el) => rectOf(el),
-        viewport: { width: window.innerWidth, height: window.innerHeight },
+        viewport,
         shadowRootOf,
         opaqueFrames: opaque,
       }),
     );
+    // Secrets shown as text: card numbers, SSNs, IBANs, tokens (and emails when switched on).
+    let kinds: string[] = [];
+    let incomplete = false;
+    try {
+      const text = scanTextSecrets(document, { ...patternOpts, viewport, shadowRootOf, budgetMs: 40 });
+      rects.push(...text.rects);
+      kinds = text.kinds;
+      incomplete = text.incomplete;
+    } catch {
+      incomplete = true;
+    }
+    const local: ScanResult = { rects, kinds, incomplete };
     const visible = opaque.filter((f) => {
       const r = rectOf(f);
       return r.width > 0 && r.height > 0 && r.x < window.innerWidth && r.y < window.innerHeight && r.x + r.width > 0 && r.y + r.height > 0;
     });
     if (!visible.length) return { local, remote: null };
     const remote = Promise.all(
-      visible.map(async (f) => {
+      visible.map(async (f): Promise<ScanResult> => {
         const border = rectOf(f);
         const win = (f as HTMLIFrameElement).contentWindow;
         const reply = win ? await ask<Extract<FrameMsg, { kind: "scan-reply" }>>(win, { [TAG]: 1, kind: "scan", id: msgId() }, "scan-reply", 180) : undefined;
-        if (reply) return offsetInto(reply.rects, contentBox(f, border));
-        return frameLooksSensitive(f) ? [border] : [];
+        if (reply) return { rects: offsetInto(reply.rects, contentBox(f, border)), kinds: reply.kinds ?? [], incomplete: !!reply.incomplete };
+        // No answer (sandboxed frame, recorder not there yet): blur payment/sign-in widgets whole
+        // and flag the step for review either way. Never silently clean.
+        return { rects: frameLooksSensitive(f) ? [border] : [], kinds: [], incomplete: true };
       }),
-    ).then((all) => all.flat());
+    ).then(mergeScans);
     return { local, remote };
   }
 
-  async function allSensitive(scan: SensitiveScan): Promise<Rect[]> {
-    return [...scan.local, ...(scan.remote ? await scan.remote : [])];
+  function mergeScans(all: ScanResult[]): ScanResult {
+    return { rects: all.flatMap((a) => a.rects), kinds: [...new Set(all.flatMap((a) => a.kinds))], incomplete: all.some((a) => a.incomplete) };
+  }
+
+  async function allSensitive(scan: SensitiveScan): Promise<ScanResult> {
+    return scan.remote ? mergeScans([scan.local, await scan.remote]) : scan.local;
+  }
+
+  // Redaction presets (Settings). Emails are off by default.
+  let patternOpts: PatternOptions = { emails: false };
+  const readPrefs = (v: unknown) => {
+    patternOpts = parseRedactPrefs(v);
+  };
+  try {
+    void chrome.storage.local.get(REDACT_PREFS_KEY).then((r) => readPrefs(r[REDACT_PREFS_KEY]), () => {});
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes[REDACT_PREFS_KEY]) readPrefs(changes[REDACT_PREFS_KEY].newValue);
+    });
+  } catch {
+    /* storage unavailable: defaults */
   }
 
   /** Where this root's viewport sits in the top-level viewport, and the top page's metrics. */
@@ -245,8 +311,8 @@ export default defineUnlistedScript(() => {
     const msg = e.data;
     const source = e.source as Window;
     if (msg.kind === "scan" && source === window.parent && !isTop) {
-      const rects = await allSensitive(collectSensitive());
-      source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects } satisfies FrameMsg, "*");
+      const r = await allSensitive(collectSensitive());
+      source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects: r.rects, kinds: r.kinds, incomplete: r.incomplete } satisfies FrameMsg, "*");
     } else if (msg.kind === "offset") {
       const frame = frameElements().find((f) => (f as HTMLIFrameElement).contentWindow === source);
       if (!frame) return;
@@ -266,15 +332,22 @@ export default defineUnlistedScript(() => {
 
   let chain: Promise<void> = Promise.resolve();
   let chainDepth = 0;
+  /** The last step this recorder sent, and the field it typed into (typing amends need it). */
+  let lastSent: { cid: string; fieldKey?: string } | undefined;
 
-  function emit(action: StepAction, el: Element | undefined, captureId: string | undefined, snap?: PendingPointer): void {
+  function emit(action: StepAction, el: Element | undefined, captureId: string | undefined, snap?: PendingPointer, typing?: { fieldKey: string }): void {
     if (!recording) return;
+    const cid = newCaptureId();
     const draft: StepDraft = {
       action,
       page: snap?.page ?? page(),
       at: new Date().toISOString(),
       metrics: snap?.metrics ?? metrics(),
+      cid,
     };
+    // More typing in the field of the previous step (nothing else in between): amend that step.
+    if (typing && lastSent?.fieldKey === typing.fieldKey) draft.amends = lastSent.cid;
+    lastSent = { cid, fieldKey: typing?.fieldKey };
     if (el) {
       draft.target = snap?.target ?? describe(el);
       draft.rect = snap?.rect ?? rectOf(el);
@@ -282,19 +355,25 @@ export default defineUnlistedScript(() => {
     const scan = snap?.sensitive ?? collectSensitive();
     const fallbackCaptureId = knownFrames.filter((id) => id !== captureId).at(-1);
     // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.
+    const withScan = (r: ScanResult) => {
+      draft.sensitiveRects = r.rects;
+      if (r.kinds.length) draft.sensitiveKinds = r.kinds;
+      if (r.incomplete) draft.scanIncomplete = true;
+    };
     if (isTop && !scan.remote && chainDepth === 0) {
-      send({ type: "rec:step", captureId, fallbackCaptureId, draft: { ...draft, sensitiveRects: scan.local } });
+      withScan(scan.local);
+      send({ type: "rec:step", captureId, fallbackCaptureId, draft });
       return;
     }
     chainDepth++;
     chain = chain
       .then(async () => {
-        draft.sensitiveRects = await allSensitive(scan);
+        withScan(await allSensitive(scan));
         if (!isTop) {
           const off = await offsetInTop();
           const shift = (r: Rect): Rect => ({ ...r, x: r.x + off.x, y: r.y + off.y });
           if (draft.rect) draft.rect = shift(draft.rect);
-          draft.sensitiveRects = draft.sensitiveRects.map(shift);
+          draft.sensitiveRects = (draft.sensitiveRects ?? []).map(shift);
           // Unknown metrics are filled in by the worker from the tab.
           draft.metrics = off.metrics;
         }
@@ -311,7 +390,7 @@ export default defineUnlistedScript(() => {
   const tracker = new TypingTracker<FieldMeta>((entry) => {
     const captureId = commitCapture ?? entry.meta.captureId ?? requestCapture();
     const action: StepAction = entry.masked ? { type: "type", value: "", masked: true } : { type: "type", value: entry.value };
-    emit(action, entry.meta.el, captureId);
+    emit(action, entry.meta.el, captureId, undefined, { fieldKey: entry.key });
   }, 1500);
 
   function keyOf(el: Element): string {
@@ -391,7 +470,8 @@ export default defineUnlistedScript(() => {
   const opts = { capture: true, passive: true } as const;
   const handlers: [string, (e: any) => void][] = [];
   const on = <K extends keyof WindowEventMap>(type: K, fn: (e: WindowEventMap[K]) => void) => {
-    handlers.push([type, fn]);
+    // Clicks and keys on our own recording bar are never steps.
+    handlers.push([type, (e: Event) => !(bar && bar.owns(e)) && fn(e as WindowEventMap[K])]);
   };
 
   on(
@@ -617,10 +697,25 @@ export default defineUnlistedScript(() => {
     } else if (msg.type === "tab:flush") {
       flushTyping();
       reply({ ok: true });
+    } else if (msg.type === "tab:bar") {
+      if (!isTop) return false;
+      bar?.update({ status: msg.status, stepCount: msg.stepCount });
+      reply({ ok: true });
+    } else if (msg.type === "tab:bar-hide") {
+      if (!isTop) return false;
+      if (!bar) reply({ ok: true });
+      else void bar.hideForCapture().then(() => reply({ ok: true }));
+      return true;
+    } else if (msg.type === "tab:bar-show") {
+      if (!isTop) return false;
+      bar?.showAfterCapture();
+      reply({ ok: true });
     } else if (msg.type === "tab:scan") {
       // For worker-side steps (navigations): what the top page looks like right now.
       if (!isTop) return false;
-      void allSensitive(collectSensitive()).then((sensitiveRects) => reply({ metrics: metrics(), sensitiveRects } satisfies ScanReply));
+      void allSensitive(collectSensitive()).then((r) =>
+        reply({ metrics: metrics(), sensitiveRects: r.rects, sensitiveKinds: r.kinds, scanIncomplete: r.incomplete || undefined } satisfies ScanReply),
+      );
       return true;
     }
     return false;
@@ -632,6 +727,7 @@ export default defineUnlistedScript(() => {
       .sendMessage({ type: "rec:hello" } satisfies RecorderMessage)
       .then((r: HelloReply | undefined) => {
         recording = !!r?.recording;
+        if (r?.bar) bar?.update(r.bar);
       })
       .catch(() => {});
   }
