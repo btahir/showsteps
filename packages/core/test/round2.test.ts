@@ -1,7 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import { parse } from "parse5";
 import { describe, expect, it } from "vitest";
-import { exportAgentSkill, exportDocx, exportHtml, exportMarkdown, exportPdf, type Guide, type Step } from "../src";
+import { encodePng, exportAgentSkill, exportDocx, exportHtml, exportMarkdown, exportPdf, type Guide, type Step } from "../src";
 import { formatDate } from "../src/export/doc-shared";
 import { fixtureGuide, fixtureImages } from "./fixtures/guide";
 import { sample11Guide, sample11Images } from "./fixtures/sample11";
@@ -106,14 +106,15 @@ describe("HTML guide (items 20, 21, 34)", () => {
   });
 });
 
-describe("DOCX font table (item 35)", () => {
-  it("describes Calibri as a swiss sans with Arial as the stand-in", async () => {
+describe("DOCX font table (item 35, R2-9)", () => {
+  it("uses Arial as the base font and describes it as a swiss sans", async () => {
     const z = unzipSync(await exportDocx(guide, images));
     const xml = strFromU8(z["word/fontTable.xml"] as Uint8Array);
-    expect(xml).toContain('<w:font w:name="Calibri">');
-    expect(xml).toContain('<w:altName w:val="Arial"/>');
+    expect(xml).toContain('<w:font w:name="Arial">');
+    expect(strFromU8(z["word/styles.xml"] as Uint8Array)).toContain('w:ascii="Arial"');
+    expect(strFromU8(z["word/styles.xml"] as Uint8Array)).not.toContain("Calibri");
     expect(xml).toContain('<w:family w:val="swiss"/>');
-    expect(xml).toContain('<w:panose1 w:val="020F0502020204030204"/>');
+    expect(xml).toContain('<w:panose1 w:val="020B0604020202020204"/>');
     expect(xml.trim().endsWith("</w:fonts>")).toBe(true);
   });
   it("sets the meta line in ink-3, not the accent colour", async () => {
@@ -175,5 +176,47 @@ describe("exported HTML colour contrast (no axe needed)", () => {
   });
   it("the stylesheet really uses accent-strong for the flag", () => {
     expect(HTML_CSS).toMatch(/\.flag \{[^}]*background: var\(--ss-accent-strong\); color: var\(--ss-on-accent\)/);
+  });
+});
+
+describe("PDF pagination (R2-5)", () => {
+  const mk = (n: number, w: number, h: number): { g: Guide; imgs: Record<string, Uint8Array> } => {
+    const base = sample11Guide();
+    const steps: Step[] = Array.from({ length: n }, (_, i) => ({ ...(base.steps[3] as Step), id: `p${i}`, title: `Click **Item ${i + 1}**`, page: { url: `https://a.test/${i}`, title: `P${i}` }, screenshot: { image: `images/p${i}.png`, width: w, height: h, devicePixelRatio: 1, viewport: { width: w, height: h, scrollX: 0, scrollY: 0 } } }));
+    const png = fixtureImagesFor(w, h);
+    return { g: { ...base, steps }, imgs: Object.fromEntries(steps.map((s) => [s.screenshot!.image, png])) };
+  };
+  function fixtureImagesFor(w: number, h: number): Uint8Array {
+    const data = new Uint8Array(w * h * 4).fill(235);
+    return encodePng({ width: w, height: h, data }, 1);
+  }
+  it.each([["A4"], ["Letter"]] as const)("12 steps of 1280x800 at %s take 7 pages: two per page after the title block", async (size) => {
+    const { PDFDocument } = await import("pdf-lib");
+    const { g, imgs } = mk(12, 1280, 800);
+    const doc = await PDFDocument.load(await exportPdf(g, imgs, { pageSize: size }));
+    expect(doc.getPageCount()).toBeLessThanOrEqual(7);
+  });
+  it("prerendered images with the extension's options paginate the same as the default path", async () => {
+    const { PDFDocument } = await import("pdf-lib");
+    const { g, imgs } = mk(12, 1280, 800);
+    const a = (await PDFDocument.load(await exportPdf(g, imgs))).getPageCount();
+    const b = (await PDFDocument.load(await exportPdf(g, imgs, { redactionsBaked: true, highlight: false, imagesPrerendered: true }))).getPageCount();
+    expect(b).toBe(a);
+  });
+  it("portrait screenshots are still allowed to be tall", async () => {
+    const { PDFDocument } = await import("pdf-lib");
+    const { g, imgs } = mk(4, 600, 1000);
+    expect((await PDFDocument.load(await exportPdf(g, imgs))).getPageCount()).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("DOCX repeats no URL (R2-9)", () => {
+  it("shows a URL only when the page changes", async () => {
+    const g: Guide = { ...guide, steps: guide.steps.slice(0, 4) };
+    const xml = strFromU8(unzipSync(await exportDocx(g, images))["word/document.xml"] as Uint8Array);
+    const urls = [...xml.matchAll(/<w:t[^>]*>(https?:\/\/[^<]*)<\/w:t>/g)].map((m) => m[1]);
+    expect(urls.length).toBeGreaterThan(0);
+    for (let i = 1; i < urls.length; i++) expect(urls[i]).not.toBe(urls[i - 1]);
+    expect(new Set(urls).size).toBe(urls.length);
   });
 });

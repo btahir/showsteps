@@ -50,35 +50,90 @@ describe("flagLayout: small targets and stored corners", () => {
   });
 });
 
+describe("labels and small controls (R2-4)", () => {
+  // a 13 CSS px checkbox (26 px at dpr 2) with its label to the right
+  const checkbox: Rect = { x: 400, y: 300, width: 26, height: 26 };
+  const label: Rect = { x: 440, y: 298, width: 300, height: 30 };
+  const at = (extra: object) => flagLayout({ target: checkbox, n: 11, scale: k, imageWidth: 1440, imageHeight: 900, ...extra });
+
+  it("with a label rect, the ring goes around the control and its label together", () => {
+    const l = at({ labelRect: label });
+    expect(l.ring.x).toBeLessThanOrEqual(checkbox.x);
+    expect(l.ring.x + l.ring.w).toBeGreaterThanOrEqual(label.x + label.width);
+    const alone = at({});
+    expect(l.ring.w).toBeGreaterThan(alone.ring.w);
+  });
+
+  it("a big enough control ignores its label", () => {
+    const big: Rect = { x: 400, y: 300, width: 300, height: 60 };
+    expect(flagLayout({ target: big, n: 3, scale: k, imageWidth: 1440, imageHeight: 900, labelRect: { x: 720, y: 310, width: 100, height: 30 } }).ring)
+      .toEqual(flagLayout({ target: big, n: 3, scale: k, imageWidth: 1440, imageHeight: 900 }).ring);
+  });
+
+  it("without a label rect but with a stored corner, the ring grows toward the free side only", () => {
+    const right = at({ corner: "top-right" }).ring;
+    const left = at({ corner: "top-left" }).ring;
+    expect(right.x).toBeCloseTo(checkbox.x - 4 * k); // left edge stays at the control (plus padding)
+    expect(right.x + right.w).toBeGreaterThan(checkbox.x + checkbox.width + 4 * k);
+    expect(left.x + left.w).toBeCloseTo(checkbox.x + checkbox.width + 4 * k);
+    expect(left.x).toBeLessThan(checkbox.x - 4 * k);
+  });
+
+  it("the label rect follows a crop and renders", () => {
+    const W = 1440, H = 900;
+    const data = new Uint8Array(W * H * 4).fill(240);
+    const bytes = encodePng({ width: W, height: H, data }, 3);
+    const shot: Screenshot = { image: "i", width: W, height: H, devicePixelRatio: 2, viewport: { width: 720, height: 450, scrollX: 0, scrollY: 0 }, highlight: { ...checkbox, labelRect: label }, crop: { x: 300, y: 250, width: 700, height: 300 } };
+    const out = decodePng(renderStepImage(bytes, shot, { stepNumber: 11 }));
+    expect([out.width, out.height]).toEqual([700, 300]);
+    expectGoldenBytes("flag/checkbox-with-label.png", renderStepImage(bytes, { ...shot, crop: undefined }, { stepNumber: 11 }));
+  });
+});
+
 describe("focusFrame", () => {
   const image = { width: 2880, height: 1800 };
-  it("is 16:10, centred on the ring, at least 480 px and 0.4 x the image width", () => {
-    const f = focusFrame({ x: 1000, y: 800, width: 200, height: 60 }, image, 2);
-    expect(f.width).toBe(1152); // 0.4 x 2880
-    expect(f.height).toBe(720);
+  it("is 16:10 and centred on the ring; width = max(1.6 x ring, 0.3 x image, 360 CSS px)", () => {
+    const f = focusFrame({ x: 1000, y: 800, width: 200, height: 60 }, image, 2, 2);
+    expect(f.width).toBe(864); // 0.3 x 2880
+    expect(f.height).toBe(540);
     expect(f.x + f.width / 2).toBeCloseTo(1100, -1);
     expect(f.y + f.height / 2).toBeCloseTo(830, -1);
   });
-  it("grows to 3 x the ring width for wide targets", () => {
-    const f = focusFrame({ x: 400, y: 800, width: 700, height: 60 }, image, 2);
-    expect(f.width).toBe(Math.round(3 * (700 + 16)));
+  it("uses 360 CSS px on a big capture of a small target", () => {
+    expect(focusFrame({ x: 1000, y: 800, width: 20, height: 20 }, { width: 1000, height: 800 }, 1, 1).width).toBe(360); // 0.3 x 1000 = 300 < 360
+    expect(focusFrame({ x: 1000, y: 800, width: 20, height: 20 }, { width: 5000, height: 3000 }, 2, 2).width).toBe(1500);
+  });
+  it("grows to 1.6 x the ring width for wide targets", () => {
+    const f = focusFrame({ x: 400, y: 800, width: 700, height: 60 }, image, 2, 2);
+    expect(f.width).toBe(Math.round(1.6 * (700 + 16)));
+  });
+  it("a DPR 1 email field (360 px wide on a 1280 capture) gets a window well under the whole image", () => {
+    const f = focusFrame({ x: 460, y: 300, width: 360, height: 36 }, { width: 1280, height: 800 }, 1, 1);
+    expect(f.width / 1280).toBeLessThan(0.55);
+    expect(f.width).toBe(Math.round(1.6 * (360 + 8)));
+  });
+  it("grows the height only when the ring and its tab do not fit", () => {
+    const tall = focusFrame({ x: 1000, y: 400, width: 200, height: 500 }, image, 2, 2);
+    expect(tall.width).toBe(864);
+    expect(tall.height).toBeGreaterThan(540);
+    expect(tall.height).toBeGreaterThanOrEqual(500 + 16 + 48);
   });
   it("clamps inside the image at every edge", () => {
     for (const h of [{ x: 0, y: 0, width: 40, height: 40 }, { x: 2840, y: 0, width: 40, height: 40 }, { x: 0, y: 1760, width: 40, height: 40 }, { x: 2840, y: 1760, width: 40, height: 40 }]) {
-      const f = focusFrame(h, image, 2);
+      const f = focusFrame(h, image, 2, 2);
       expect(f.x).toBeGreaterThanOrEqual(0);
       expect(f.y).toBeGreaterThanOrEqual(0);
       expect(f.x + f.width).toBeLessThanOrEqual(image.width);
       expect(f.y + f.height).toBeLessThanOrEqual(image.height);
     }
   });
-  it("shrinks (keeping 16:10) for small images", () => {
-    const f = focusFrame({ x: 10, y: 10, width: 20, height: 20 }, { width: 300, height: 100 }, 1);
-    expect(f.height).toBe(100);
-    expect(f.width).toBe(160);
+  it("shrinks for small images", () => {
+    const f = focusFrame({ x: 10, y: 10, width: 20, height: 20 }, { width: 300, height: 100 }, 1, 1);
+    expect(f.height).toBeLessThanOrEqual(100);
+    expect(f.width).toBeLessThanOrEqual(300);
   });
   it("is deterministic and whole-pixel", () => {
-    const f = focusFrame({ x: 333.3, y: 444.4, width: 77.7, height: 12.2 }, image, 2);
+    const f = focusFrame({ x: 333.3, y: 444.4, width: 77.7, height: 12.2 }, image, 2, 2);
     for (const v of Object.values(f)) expect(Number.isInteger(v)).toBe(true);
   });
 });

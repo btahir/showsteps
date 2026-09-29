@@ -276,6 +276,7 @@ interface FlagOptions {
   dim?: [number, number, number, number] | null;
   rtl?: boolean;
   corner?: TabCorner;
+  labelRect?: Rect;
 }
 
 function blend(img: RgbaImage, p: number, rgb: readonly number[], a: number): void {
@@ -291,7 +292,7 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** Draw the Showsteps "Flag" highlight in place: spotlight dim, haloed ring, numbered tab. */
 export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
-  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}), ...(o.corner ? { corner: o.corner } : {}) });
+  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}), ...(o.corner ? { corner: o.corner } : {}), ...(o.labelRect ? { labelRect: o.labelRect } : {}) });
   const { x, y, w, h, radii } = layout.ring;
   const { sw, halo } = layout;
   const cx = x + w / 2, cy = y + h / 2, hw = w / 2, hh = h / 2;
@@ -454,6 +455,7 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
       dim: opts.spotlight === false ? null : [...FLAG.spotlightDim],
       ...(opts.rtl ? { rtl: true } : {}),
       ...((shot.highlight as { corner?: TabCorner }).corner ? { corner: (shot.highlight as { corner?: TabCorner }).corner as TabCorner } : {}),
+      ...(shot.highlight?.labelRect ? { labelRect: ((l) => ({ x: l.x - dx, y: l.y - dy, width: l.width, height: l.height }))(fit(shot.highlight.labelRect)) } : {}),
     });
   }
   return encodePng(img, 6);

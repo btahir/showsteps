@@ -281,6 +281,8 @@ export interface PreparedImage {
   highlight?: Rect;
   /** Corner the recorder stored for the tab, if any. */
   corner?: TabCorner;
+  /** The control's label box in prepared-image pixels, if the highlight carries one. */
+  labelRect?: Rect;
   /** Scale (image px per CSS px) for the highlight geometry, when `highlight` is set. */
   highlightScale?: number;
 }
@@ -330,6 +332,10 @@ export function prepareStepImage(step: Step, bytes: Uint8Array, opts: PrepareOpt
     prepared.highlight = hl;
     const stored = (shot.highlight as { corner?: TabCorner }).corner;
     if (stored) prepared.corner = stored;
+    if (shot.highlight?.labelRect) {
+      const l = space.fit(shot.highlight.labelRect);
+      prepared.labelRect = space.crop && out !== bytes && size.width === space.crop.width ? { x: l.x - space.crop.x, y: l.y - space.crop.y, width: l.width, height: l.height } : l;
+    }
     prepared.highlightScale = highlightScale(shot.viewport.width, shot.devicePixelRatio) * Math.max(shot.width > 0 ? info.width / shot.width : 1, shot.height > 0 ? info.height / shot.height : 1);
   }
   return prepared;

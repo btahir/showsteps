@@ -47,7 +47,8 @@ const INK = "1F1C19";
 const MUTED = "57514B";
 const FAINT = "736B63";
 const ACCENT = toHex(ACCENT_COLOR);
-const FONT = "Calibri";
+// Arial is on every desktop (Word, Pages, Quick Look, LibreOffice); Calibri fell back to Times without Office.
+const FONT = "Arial";
 
 function runs(md: string, extra: { size?: number; color?: string } = {}): TextRun[] {
   return parseInline(md).map((r) => new TextRun({ text: r.text, bold: r.bold, ...extra }));
@@ -91,9 +92,12 @@ export async function exportDocx(
 
   // Steps -----------------------------------------------------------------------------------
   let n = 0;
+  let lastUrl: string | undefined;
   for (const step of steps) {
     n++;
-    body.push(...stepParagraphs(guide, step, n, images, opts, { contentWpx, maxHpx, highlightColor }));
+    const u = stepUrl(guide, step);
+    body.push(...stepParagraphs(guide, step, n, images, opts, { contentWpx, maxHpx, highlightColor }, u && u !== lastUrl ? u : undefined)); // URL only when the page changes
+    if (u) lastUrl = u;
   }
 
   const doc = new Document({
@@ -178,14 +182,13 @@ function reproducible(zip: Uint8Array, dates: { created: Date; modified: Date })
       .replace(/(<dcterms:modified[^>]*>)[^<]*(<\/dcterms:modified>)/, `$1${iso(dates.modified)}$2`);
     files["docProps/core.xml"] = strToU8(xml);
   }
-  // The styles name Calibri but docx writes an empty font table, so viewers without Calibri (Quick Look, Pages)
-  // fell back to Times. Describe it as a swiss sans with Arial as the stand-in.
+  // docx writes an empty font table; describe Arial (a swiss sans) so viewers that read it pick the right family.
   const fonts = files["word/fontTable.xml"];
   if (fonts) {
     const xml = strFromU8(fonts);
     const entry =
-      '<w:font w:name="Calibri"><w:altName w:val="Arial"/><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>';
-    if (!xml.includes('w:name="Calibri"')) {
+      '<w:font w:name="Arial"><w:altName w:val="Helvetica"/><w:panose1 w:val="020B0604020202020204"/><w:charset w:val="00"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>';
+    if (!xml.includes('w:name="Arial"')) {
       files["word/fontTable.xml"] = strToU8(/\/>\s*$/.test(xml) ? xml.replace(/\/>\s*$/, `>${entry}</w:fonts>`) : xml.replace("</w:fonts>", `${entry}</w:fonts>`));
     }
   }
@@ -204,13 +207,13 @@ function stepParagraphs(
   images: Record<string, Uint8Array>,
   opts: DocxExportOptions,
   g: { contentWpx: number; maxHpx: number; highlightColor: ReturnType<typeof parseColorRgb> },
+  url: string | undefined,
 ): Paragraph[] {
   const out: Paragraph[] = [];
   const plainTitle = stripInline(step.title) || `Step ${n}`;
   const key = step.screenshot?.image;
   const bytes = key ? images[key] : undefined;
   const hasImage = !!(step.screenshot && bytes);
-  const url = stepUrl(guide, step);
   const blocks = parseBlocks(step.description);
 
   // Heading, URL and description keep with the next paragraph so the title never strands

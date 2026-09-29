@@ -81,7 +81,7 @@
   --ss-highlight-radius: 8px;
   --ss-highlight-tab-height: 24px;
   --ss-spotlight-dim: rgba(28, 18, 12, .12);       /* exports */
-  --ss-spotlight-dim-thumb: rgba(28, 18, 12, .24); /* small panel thumbnails */
+  --ss-spotlight-dim-thumb: rgba(28, 18, 12, .16); /* small panel thumbnails */
 
   /* ---------- colour: light ---------- */
   --ss-bg: #F4F2EE;         /* app/page ground: warm stone, not cream */
@@ -120,7 +120,7 @@
     --ss-shadow-1: 0 1px 0 rgba(0, 0, 0, .3);
     --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6);
     --ss-shadow-3: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 60px -16px rgba(0, 0, 0, .75);
-    --ss-spotlight-dim-thumb: rgba(8, 5, 3, .30);
+    --ss-spotlight-dim-thumb: rgba(8, 5, 3, .20);
     color-scheme: dark;
   }
 }
@@ -134,7 +134,7 @@
   --ss-shadow-1: 0 1px 0 rgba(0, 0, 0, .3);
   --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6);
   --ss-shadow-3: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 60px -16px rgba(0, 0, 0, .75);
-  --ss-spotlight-dim-thumb: rgba(8, 5, 3, .30);
+  --ss-spotlight-dim-thumb: rgba(8, 5, 3, .20);
   color-scheme: dark;
 }
 

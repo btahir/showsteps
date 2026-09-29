@@ -46,9 +46,9 @@ function detailImage(step: StepT, n: number, raw: Uint8Array | undefined, color:
   const shot = step.screenshot;
   if (!raw || !shot?.highlight) return undefined;
   const bounds = shot.crop ?? { x: 0, y: 0, width: shot.width, height: shot.height };
-  const scale = highlightScale(shot.viewport.width, shot.devicePixelRatio) * (shot.width > 0 ? 1 : 1);
+  const scale = highlightScale(shot.viewport.width, shot.devicePixelRatio);
   const local = { x: shot.highlight.x - bounds.x, y: shot.highlight.y - bounds.y, width: shot.highlight.width, height: shot.highlight.height };
-  const f = focusFrame(local, { width: bounds.width, height: bounds.height }, scale);
+  const f = focusFrame(local, { width: bounds.width, height: bounds.height }, scale, shot.devicePixelRatio);
   // no point when the window is (nearly) the whole picture
   if (f.width * f.height >= 0.8 * bounds.width * bounds.height) return undefined;
   const frame = { x: f.x + bounds.x, y: f.y + bounds.y, width: f.width, height: f.height };

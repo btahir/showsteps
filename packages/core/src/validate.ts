@@ -262,7 +262,10 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
   }
   if (o.highlight !== undefined) {
     c.rect(o.highlight, `${path}.highlight`, bounds);
-    if (isObj(o.highlight)) c.oneOf(o.highlight, "corner", `${path}.highlight`, TAB_CORNERS, true);
+    if (isObj(o.highlight)) {
+      c.oneOf(o.highlight, "corner", `${path}.highlight`, TAB_CORNERS, true);
+      if (o.highlight.labelRect !== undefined) c.rect(o.highlight.labelRect, `${path}.highlight.labelRect`, bounds);
+    }
   }
   if (o.crop !== undefined) c.rect(o.crop, `${path}.crop`, bounds);
   if (o.redactions !== undefined) {

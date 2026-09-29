@@ -73,7 +73,7 @@ export interface Step {
     height: number;
     devicePixelRatio: number;
     viewport: { width: number; height: number; scrollX: number; scrollY: number }; // CSS px
-    highlight?: Rect & { corner?: TabCorner }; // target box in image pixels; drawn at export time, never baked in. `corner`: where the recorder found the least text for the numbered tab
+    highlight?: Rect & { corner?: TabCorner; labelRect?: Rect }; // target box in image pixels; drawn at export time, never baked in. `corner`: where the recorder found the least text for the numbered tab; `labelRect`: box of the control's <label> (checkbox, radio, switch) so a small control is ringed together with its label
     redactions?: Redaction[];
     crop?: Rect; // optional export crop in image pixels
   };

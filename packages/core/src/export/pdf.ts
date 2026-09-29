@@ -275,8 +275,8 @@ async function embedFaces(doc: PDFDocument, fonts: PdfFonts, text: string): Prom
  * its top-left at (ix, iyTop) in page points, `s` points per image pixel. Geometry comes from
  * `flagLayout`, the same numbers the pixel renderer uses.
  */
-function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean, corner?: TabCorner): void {
-  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}), ...(corner ? { corner } : {}) });
+function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean, corner?: TabCorner, labelRect?: Rect): void {
+  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}), ...(corner ? { corner } : {}), ...(labelRect ? { labelRect } : {}) });
   const white = rgb(1, 1, 1);
   const dim = FLAG.spotlightDim;
   const dimColor = rgb(dim[0] / 255, dim[1] / 255, dim[2] / 255);
@@ -408,8 +408,8 @@ export async function exportPdf(
   const TITLE_LEAD = 20;
   const DESC_SIZE = 10.5;
   const DESC_LEAD = 15;
-  const GAP = 12;
-  const AFTER = 30;
+  const GAP = 10;
+  const AFTER = 22;
 
   let n = 0;
   let lastUrl: string | undefined;
@@ -436,7 +436,10 @@ export async function exportPdf(
     if (img) {
       embedded = img.prepared.format === "png" ? await doc.embedPng(img.prepared.bytes) : await doc.embedJpg(img.prepared.bytes);
       const fit = (maxH: number) => Math.min(contentW / img.prepared.width, maxH / img.prepared.height, 3);
-      const maxH = Math.min(contentH * 0.66, contentH - titleHeight - descHeight - GAP);
+      // A landscape screenshot (16:10 and wider) is capped at 40% of the page so two steps share a page;
+      // taller ones may use up to 66%.
+      const landscape = img.prepared.width / img.prepared.height >= 1.4;
+      const maxH = Math.min(contentH * (landscape ? 0.4 : 0.66), contentH - titleHeight - descHeight - GAP);
       if (maxH < contentH * 0.3) {
         // Very long description: put the image straight under the title, text after it.
         descAfter = true;
@@ -488,7 +491,7 @@ export async function exportPdf(
       const iyBottom = y - imgH;
       page.drawImage(embedded, { x: ix, y: iyBottom, width: imgW, height: imgH });
       const hl = img.prepared.highlight;
-      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl", img.prepared.corner);
+      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl", img.prepared.corner, img.prepared.labelRect);
       page.drawRectangle({ x: ix, y: iyBottom, width: imgW, height: imgH, borderColor: col(HAIRLINE), borderWidth: 0.75 });
       y = iyBottom;
     }

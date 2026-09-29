@@ -112,7 +112,7 @@ Entries other than `guide.json` and `images/...` are ignored. Older schema versi
   "width": 2880, "height": 1800,          // image pixels (at least 1)
   "devicePixelRatio": 2,                  // greater than 0
   "viewport": { "width": 1440, "height": 900, "scrollX": 0, "scrollY": 0 },   // CSS px
-  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88, "corner": "top-right" },   // target box in image px, drawn at export, never baked in; `corner` (optional): where the recorder found the least text for the numbered tab
+  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88, "corner": "top-right" },   // target box in image px, drawn at export, never baked in; `corner` (optional): where the recorder found the least text for the numbered tab; `labelRect` (optional): the box of a checkbox, radio or switch's `<label>`, so a control smaller than the minimum ring is ringed together with its label
   "redactions": [ { "rect": { "x": 944, "y": 584, "width": 992, "height": 120 }, "style": "mask", "auto": true, "label": "Password" } ],   // style: blur | pixelate | solid | mask; label: what was covered
   "crop": { "x": 0, "y": 0, "width": 2880, "height": 1200 }   // optional export crop, image px
 }
@@ -196,7 +196,7 @@ An idiomatic `@playwright/test` file. Replay semantics:
 |---|---|---|
 | Markdown | `guide.md`, `images/<id>.png` | `## N. Title`, description, image, page link. Skipped steps are left out and the rest renumbered. URLs are shown without query string or fragment. |
 | HTML | one `.html` | Images inlined as data URIs, brand fonts embedded, print CSS for a clean "Save as PDF", no scripts, no network requests. A sticky table of contents (over 8 steps, wide screens), a "That's it" end marker, and on phones a zoomed detail image per step (`<picture>`). The URL caption is shown only when the page changes. |
-| PDF | one `.pdf` | pdf-lib; no cover page (page 1 has the step count, the title, the description and step 1), the highlight drawn as vectors, Rethink Sans (static instances), Fragment Mono for URLs, Source Sans 3 for Cyrillic and Greek. |
+| PDF | one `.pdf` | pdf-lib; two landscape steps per page; no cover page (page 1 has the step count, the title, the description and step 1), the highlight drawn as vectors, Rethink Sans (static instances), Fragment Mono for URLs, Source Sans 3 for Cyrillic and Greek. |
 | DOCX | one `.docx` | `docx`; numbered headings, screenshots with the highlight baked in. |
 
 All of them render screenshots the same way: redactions burnt into the pixels (mask, solid, pixelate or blur), then the crop, then the click target highlighted with a persimmon ring, a white keyline and a numbered tab, everything else dimmed by 12 percent. A `mask` redaction replaces a form field with its own background colour, rounded like a field, with a row of eight dots. The ring grows if needed so the tab always fits on it (a 16 px checkbox), and the tab grows out of `highlight.corner` when present (otherwise top-right, top-left for right-to-left pages), staying inside the image. The Showsteps credit ("Made with Showsteps") is off by default in every export; pass `branding: true` to add it. Exports are deterministic: the same guide gives the same bytes. PDF and DOCX take their creation date from the guide's own dates unless the caller passes `now`.
