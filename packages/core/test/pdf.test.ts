@@ -67,8 +67,8 @@ async function inspect(bytes: Uint8Array) {
       const cs = obj.dict.get(PDFName.of("ColorSpace"));
       if (cs !== PDFName.of("DeviceRGB")) continue;
       imagePixels.push({
-        width: Number(obj.dict.lookup(PDFName.of("Width")).toString()),
-        height: Number(obj.dict.lookup(PDFName.of("Height")).toString()),
+        width: Number(obj.dict.lookup(PDFName.of("Width"))!.toString()),
+        height: Number(obj.dict.lookup(PDFName.of("Height"))!.toString()),
         data: decodePDFRawStream(obj).decode(),
       });
     }

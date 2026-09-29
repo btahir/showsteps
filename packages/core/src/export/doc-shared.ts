@@ -360,17 +360,28 @@ function chunk(type: string, body: Uint8Array): Uint8Array {
   return out;
 }
 
-/** Encode RGBA as an 8-bit RGBA PNG (Up filter, zlib). */
+/** Encode RGBA as an 8-bit PNG (Up filter, zlib). Fully opaque images are written as RGB. */
 export function encodePng(r: Raster): Uint8Array {
-  const stride = r.width * 4;
+  let opaque = true;
+  for (let i = 3; i < r.data.length; i += 4) {
+    if (r.data[i] !== 255) {
+      opaque = false;
+      break;
+    }
+  }
+  const ch = opaque ? 3 : 4;
+  const stride = r.width * ch;
   const raw = new Uint8Array((stride + 1) * r.height);
+  const px = (y: number, x: number): number => {
+    // x indexes bytes within the output row; map back to the RGBA source.
+    const p = Math.floor(x / ch);
+    return r.data[(y * r.width + p) * 4 + (x % ch)] as number;
+  };
   for (let y = 0; y < r.height; y++) {
     const o = y * (stride + 1);
     raw[o] = 2;
     for (let x = 0; x < stride; x++) {
-      const cur = r.data[y * stride + x] as number;
-      const up = y > 0 ? (r.data[(y - 1) * stride + x] as number) : 0;
-      raw[o + 1 + x] = (cur - up) & 0xff;
+      raw[o + 1 + x] = (px(y, x) - (y > 0 ? px(y - 1, x) : 0)) & 0xff;
     }
   }
   const ihdr = new Uint8Array(13);
@@ -378,7 +389,7 @@ export function encodePng(r: Raster): Uint8Array {
   dv.setUint32(0, r.width);
   dv.setUint32(4, r.height);
   ihdr[8] = 8;
-  ihdr[9] = 6;
+  ihdr[9] = opaque ? 2 : 6;
   const parts = [new Uint8Array(PNG_SIG), chunk("IHDR", ihdr), chunk("IDAT", zlibSync(raw, { level: 6 })), chunk("IEND", new Uint8Array(0))];
   return concat(parts);
 }
