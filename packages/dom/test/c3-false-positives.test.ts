@@ -23,3 +23,20 @@ for (const text of SENSITIVE) {
     }
   });
 }
+
+// A passport country or nationality field is not a secret; a passport number is.
+test("name and id: passport country, issuing country and nationality fields are not sensitive; passport number still is", () => {
+  for (const html of [
+    `<select name="passport_country"><option>Canada</option></select>`,
+    `<select id="passportCountry"><option>Canada</option></select>`,
+    `<select name="passport-issuing-country"><option>Canada</option></select>`,
+    `<input name="passport_nationality">`,
+  ]) {
+    mount(html);
+    expect(isSensitive(document.querySelector("select,input")!), html).toBe(false);
+  }
+  for (const html of [`<input name="passport">`, `<input name="passport_number">`, `<input id="passportNo">`, `<input name="passport_scan_id">`]) {
+    mount(html);
+    expect(isSensitive(document.querySelector("input")!), html).toBe(true);
+  }
+});

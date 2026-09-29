@@ -12,14 +12,24 @@ const CANDIDATES = [
   '[role="spinbutton"]', '[role="combobox"]', `[${SENSITIVE_ATTR}]`, `[${LEGACY_SENSITIVE_ATTR}]`,
 ].join(",");
 
+export interface FindSensitiveOptions {
+  /**
+   * How to get an element's shadow root. Default: `el.shadowRoot`, which is null for closed roots, so
+   * closed roots are invisible to this package. A content script passes `chrome.dom.openOrClosedShadowRoot`
+   * here (the extension's own walk does exactly that) to cover them.
+   */
+  shadowRootOf?: (el: Element) => ShadowRoot | null;
+}
+
 /** All sensitive elements under `root`, including inside open shadow roots and same-origin iframes. */
-export function findSensitiveElements(root: RootNode = document): Element[] {
+export function findSensitiveElements(root: RootNode = document, opts: FindSensitiveOptions = {}): Element[] {
+  const shadowOf = opts.shadowRootOf ?? ((el: Element) => (el as Element & { shadowRoot: ShadowRoot | null }).shadowRoot);
   const out: Element[] = [];
   const seen = new Set<Element>();
   const visit = (r: RootNode, depth: number) => {
     if (depth > 12) return;
     for (const el of Array.from(r.querySelectorAll("*"))) {
-      const sr = (el as Element & { shadowRoot: ShadowRoot | null }).shadowRoot;
+      const sr = shadowOf(el);
       if (sr) visit(sr, depth + 1);
       if ((el.localName === "iframe" || el.localName === "frame") && depth < 12) {
         try {
@@ -38,7 +48,7 @@ export function findSensitiveElements(root: RootNode = document): Element[] {
   return out;
 }
 
-export interface SensitiveRectOptions {
+export interface SensitiveRectOptions extends FindSensitiveOptions {
   /** Clip to the top-level viewport and drop rects fully outside it (default true). */
   clip?: boolean;
   /** Pad each rect by this many CSS px (default 0). */
@@ -50,7 +60,7 @@ export function sensitiveRects(root: RootNode = document, opts: SensitiveRectOpt
   const { clip = true, pad = 0 } = opts;
   const vp = pageMetrics().viewport;
   const rects: CssRect[] = [];
-  for (const el of findSensitiveElements(root)) {
+  for (const el of findSensitiveElements(root, { shadowRootOf: opts.shadowRootOf })) {
     if (!isElement(el) || isHidden(el, true)) continue;
     const r = rectOf(el);
     if (r.width <= 0 || r.height <= 0) continue;

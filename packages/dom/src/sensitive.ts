@@ -68,10 +68,14 @@ const PAIRS: Record<string, string[]> = {
   verification: ["code"],
 };
 
+/** "passport" marks a passport number, but these words next to it name public facts (which country issued it). */
+const PASSPORT_PUBLIC = new Set(["country", "nation", "nationality", "issuer", "issued", "issuing", "authority", "region", "state", "type", "place"]);
+
 function nameLooksSensitive(v: string | null): boolean {
   if (!v) return false;
   const t = tokens(v);
-  if (t.some((x) => NAME_TOKENS.has(x))) return true;
+  const publicPassport = t.includes("passport") && t.some((x) => PASSPORT_PUBLIC.has(x));
+  if (t.some((x) => NAME_TOKENS.has(x) && !(x === "passport" && publicPassport))) return true;
   for (let i = 0; i < t.length - 1; i++) {
     const nexts = PAIRS[t[i]!];
     if (nexts && nexts.includes(t[i + 1]!)) return true;
