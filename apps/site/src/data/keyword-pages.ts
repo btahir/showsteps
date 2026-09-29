@@ -15,7 +15,7 @@ export type Block =
   | { compare: true };
 
 export type Figure =
-  | { kind: "themed"; name: "editor" | "panel-guide" | "panel-recording" | "panel-export" | "panel-support"; alt: string; caption: string }
+  | { kind: "themed"; name: "panel-guide" | "panel-recording" | "panel-export" | "panel-support"; alt: string; caption: string }
   | { kind: "blur"; alt: string; caption: string }
   | { kind: "step"; name: "sample-step-email" | "sample-step-signin"; alt: string; caption: string };
 
@@ -50,7 +50,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     slug: "open-source-scribe-alternative",
     label: "Open-source Scribe alternative",
     kind: "Comparison",
-    figure: { kind: "themed", name: "editor", alt: "The Showsteps editor showing a recorded sign-in guide, with the password field blurred and the target of each step outlined.", caption: "The editor: numbered steps on the left, the selected step on the right. Mock data." },
+    figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel showing step 2 of a recorded guide: the Email field outlined with a numbered tab, and step 3 selected with its editing tools.", caption: "The side panel after you press Stop: each step is zoomed to its target. Mock data." },
     title: "Open-source Scribe alternative: free, local, and it exports for agents",
     h1: "An open-source Scribe alternative that also writes the agent skill",
     description:
@@ -279,7 +279,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     slug: "tango-alternative",
     label: "Tango alternative",
     kind: "Comparison",
-    figure: { kind: "themed", name: "editor", alt: "The Showsteps editor showing a recorded guide.", caption: "Recorded, edited and exported on your own machine. Mock data." },
+    figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel showing recorded steps with their targets outlined.", caption: "Recorded, edited and exported on your own machine. Mock data." },
     title: "A free Tango alternative: local, unlimited, no export paywall",
     h1: "A free Tango alternative with no workflow limit",
     description:

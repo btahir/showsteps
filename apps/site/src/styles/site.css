@@ -1144,6 +1144,12 @@ figcaption {
 }
 .shot-frame.narrow {
   max-width: 340px;
+  max-height: 500px;
+}
+.shot-frame.narrow img {
+  object-fit: cover;
+  object-position: top;
+  max-height: 500px;
 }
 .codeblock .more summary {
   cursor: pointer;
