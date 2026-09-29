@@ -1,11 +1,131 @@
 import type { Rect } from "./schema";
 
-export function highlightPath(_rect: Rect, _pad: number, _radius: number): string {
-  throw new Error("highlightPath: not implemented yet");
+/** Pure rectangle math for highlights, redactions and crops. Units are whatever the caller uses. */
+
+export interface Size {
+  width: number;
+  height: number;
 }
-export function scaleRect(_rect: Rect, _sx: number, _sy?: number): Rect {
-  throw new Error("scaleRect: not implemented yet");
+
+const num = (n: number): string => {
+  const r = Math.round(n * 100) / 100;
+  return Object.is(r, -0) ? "0" : String(r);
+};
+
+/**
+ * SVG path (`d` attribute) of a rounded rectangle around `rect`, grown by `pad` on every side.
+ * `radius` is clamped to half the shorter side. Usable with `new Path2D(d)` on a canvas.
+ */
+export function highlightPath(rect: Rect, pad: number, radius: number): string {
+  const x = rect.x - pad;
+  const y = rect.y - pad;
+  const w = Math.max(0, rect.width + pad * 2);
+  const h = Math.max(0, rect.height + pad * 2);
+  const r = Math.max(0, Math.min(radius, w / 2, h / 2));
+  const x2 = x + w;
+  const y2 = y + h;
+  if (r === 0) return `M${num(x)} ${num(y)}H${num(x2)}V${num(y2)}H${num(x)}Z`;
+  return (
+    `M${num(x + r)} ${num(y)}H${num(x2 - r)}A${num(r)} ${num(r)} 0 0 1 ${num(x2)} ${num(y + r)}` +
+    `V${num(y2 - r)}A${num(r)} ${num(r)} 0 0 1 ${num(x2 - r)} ${num(y2)}` +
+    `H${num(x + r)}A${num(r)} ${num(r)} 0 0 1 ${num(x)} ${num(y2 - r)}` +
+    `V${num(y + r)}A${num(r)} ${num(r)} 0 0 1 ${num(x + r)} ${num(y)}Z`
+  );
 }
-export function clampRect(_rect: Rect, _bounds: { width: number; height: number }): Rect {
-  throw new Error("clampRect: not implemented yet");
+
+/** Multiply a rect by `sx` (and `sy`, default `sx`). */
+export function scaleRect(rect: Rect, sx: number, sy: number = sx): Rect {
+  return { x: rect.x * sx, y: rect.y * sy, width: rect.width * sx, height: rect.height * sy };
+}
+
+/** Intersect `rect` with `[0, width] x [0, height]`. A rect fully outside becomes zero-sized at the nearest edge. */
+export function clampRect(rect: Rect, bounds: Size): Rect {
+  const x1 = Math.min(Math.max(rect.x, 0), bounds.width);
+  const y1 = Math.min(Math.max(rect.y, 0), bounds.height);
+  const x2 = Math.min(Math.max(rect.x + rect.width, 0), bounds.width);
+  const y2 = Math.min(Math.max(rect.y + rect.height, 0), bounds.height);
+  return { x: x1, y: y1, width: Math.max(0, x2 - x1), height: Math.max(0, y2 - y1) };
+}
+
+export function translateRect(rect: Rect, dx: number, dy: number): Rect {
+  return { x: rect.x + dx, y: rect.y + dy, width: rect.width, height: rect.height };
+}
+
+/** Grow (or shrink, if negative) a rect by `pad` on every side. */
+export function expandRect(rect: Rect, pad: number): Rect {
+  return { x: rect.x - pad, y: rect.y - pad, width: Math.max(0, rect.width + pad * 2), height: Math.max(0, rect.height + pad * 2) };
+}
+
+export function intersectRects(a: Rect, b: Rect): Rect | undefined {
+  const x1 = Math.max(a.x, b.x);
+  const y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.width, b.x + b.width);
+  const y2 = Math.min(a.y + a.height, b.y + b.height);
+  return x2 > x1 && y2 > y1 ? { x: x1, y: y1, width: x2 - x1, height: y2 - y1 } : undefined;
+}
+
+export function unionRects(a: Rect, b: Rect): Rect {
+  const x1 = Math.min(a.x, b.x);
+  const y1 = Math.min(a.y, b.y);
+  const x2 = Math.max(a.x + a.width, b.x + b.width);
+  const y2 = Math.max(a.y + a.height, b.y + b.height);
+  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+}
+
+/** True when `outer` fully covers `inner`. */
+export function rectContains(outer: Rect, inner: Rect): boolean {
+  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+}
+
+/** Round outward to whole pixels so the result always covers the original area. */
+export function roundRectOut(rect: Rect): Rect {
+  const x = Math.floor(rect.x);
+  const y = Math.floor(rect.y);
+  return { x, y, width: Math.ceil(rect.x + rect.width) - x, height: Math.ceil(rect.y + rect.height) - y };
+}
+
+export function isEmptyRect(rect: Rect): boolean {
+  return !(rect.width > 0 && rect.height > 0);
+}
+
+export interface CssImageSpace {
+  /** Screenshot pixels per CSS pixel (`window.devicePixelRatio` at capture time). */
+  devicePixelRatio: number;
+  /** Viewport scroll offset in CSS px. Only used when `origin` is "document". */
+  scrollX?: number;
+  scrollY?: number;
+  /**
+   * "viewport" (default): the CSS rect came from `getBoundingClientRect()`, so it is already
+   * relative to the captured viewport. "document": the rect is in page coordinates
+   * (`rect + scroll`), so the scroll offset is subtracted first.
+   */
+  origin?: "viewport" | "document";
+  /** Rounding of the result: "out" (default, whole pixels covering the target), "nearest", or "none". */
+  round?: "out" | "nearest" | "none";
+}
+
+/** CSS px rect (from the page) to image px rect (in the captured screenshot). */
+export function cssToImageRect(css: Rect, space: CssImageSpace): Rect {
+  const dpr = space.devicePixelRatio > 0 ? space.devicePixelRatio : 1;
+  const ox = space.origin === "document" ? (space.scrollX ?? 0) : 0;
+  const oy = space.origin === "document" ? (space.scrollY ?? 0) : 0;
+  const r = scaleRect({ x: css.x - ox, y: css.y - oy, width: css.width, height: css.height }, dpr);
+  if (space.round === "none") return r;
+  if (space.round === "nearest") return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+  return roundRectOut(r);
+}
+
+/** Inverse of `cssToImageRect` (never rounded). */
+export function imageToCssRect(img: Rect, space: Omit<CssImageSpace, "round">): Rect {
+  const dpr = space.devicePixelRatio > 0 ? space.devicePixelRatio : 1;
+  const r = scaleRect(img, 1 / dpr);
+  const ox = space.origin === "document" ? (space.scrollX ?? 0) : 0;
+  const oy = space.origin === "document" ? (space.scrollY ?? 0) : 0;
+  return { x: r.x + ox, y: r.y + oy, width: r.width, height: r.height };
+}
+
+/** Sensible highlight padding and corner radius for an image captured at `devicePixelRatio`. */
+export function defaultHighlightMetrics(devicePixelRatio: number): { pad: number; radius: number; stroke: number } {
+  const d = devicePixelRatio > 0 ? devicePixelRatio : 1;
+  return { pad: Math.round(3 * d), radius: Math.round(6 * d), stroke: Math.max(2, Math.round(2.5 * d)) };
 }

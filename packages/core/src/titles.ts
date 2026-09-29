@@ -145,6 +145,15 @@ function looksLikeCardNumber(v: string): boolean {
   return /^\d{13,19}$/.test(digits);
 }
 
+/** True when the step types into, or acts on, a password/card/OTP-like field, or its value is masked. */
+export function isSensitiveStep(step: Pick<Step, "action" | "target">): boolean {
+  const t = step.target;
+  if (t?.sensitive || (t?.inputType ?? "").toLowerCase() === "password") return true;
+  const a = step.action;
+  if (a.type === "type") return isSecretTyping(a, t, nameOf(t, kindOf(t)));
+  return false;
+}
+
 function isSecretTyping(a: Extract<StepAction, { type: "type" }>, t: ElementDescriptor | undefined, name: string | undefined): boolean {
   if (a.masked) return true;
   if (t?.sensitive) return true;

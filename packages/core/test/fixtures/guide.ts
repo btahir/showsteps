@@ -79,7 +79,7 @@ const SPECS: Spec[] = [
     tab: 1,
     highlight: { x: 20, y: 46, width: 120, height: 10 },
     targetColor: [34, 34, 34],
-    redactions: [{ rect: { x: 18, y: 44, width: 124, height: 14 }, style: "blur", auto: true }],
+    redactions: [{ rect: { x: 16, y: 42, width: 128, height: 18 }, style: "blur", auto: true }],
     step: {
       action: { type: "type", value: "", masked: true },
       target: {
