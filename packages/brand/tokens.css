@@ -1,0 +1,143 @@
+/* Showsteps brand tokens ("Flag" direction). Import once at the app root:
+ *   @import "@stepsnap/brand/tokens.css";
+ * Theme: follows prefers-color-scheme; force with <html data-theme="light|dark">.
+ * Prefix: --ss-. Keep canvas values in tokens.ts in sync with the highlight section below. */
+
+@font-face {
+  font-family: "Rethink Sans";
+  src: url("./fonts/RethinkSans-Variable-latin.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Rethink Sans";
+  src: url("./fonts/RethinkSans-Variable-latin-ext.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Fragment Mono";
+  src: url("./fonts/FragmentMono-Regular-latin.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fragment Mono";
+  src: url("./fonts/FragmentMono-Regular-latin-ext.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* ---------- type ---------- */
+  --ss-font-ui: "Rethink Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ss-font-mono: "Fragment Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* size / line-height pairs. Mono is only for URLs, keys, file names and counters. */
+  --ss-text-2xs: 11px;  --ss-lh-2xs: 14px;   /* chips, tab numerals in 16px contexts */
+  --ss-text-xs: 12px;   --ss-lh-xs: 16px;    /* meta, captions, mono URLs */
+  --ss-text-sm: 13px;   --ss-lh-sm: 18px;    /* buttons, secondary UI */
+  --ss-text-md: 14px;   --ss-lh-md: 20px;    /* side-panel body */
+  --ss-text-lg: 15px;   --ss-lh-lg: 21px;    /* step titles in the panel */
+  --ss-text-xl: 17px;   --ss-lh-xl: 26px;    /* guide body, lede in panel */
+  --ss-text-2xl: 22px;  --ss-lh-2xl: 28px;   /* panel guide title, guide step titles */
+  --ss-text-3xl: 30px;  --ss-lh-3xl: 34px;
+  --ss-text-4xl: 44px;  --ss-lh-4xl: 48px;   /* exported guide title */
+  --ss-text-5xl: 64px;  --ss-lh-5xl: 64px;   /* site hero */
+  --ss-weight-regular: 400; --ss-weight-medium: 500; --ss-weight-semibold: 600; --ss-weight-bold: 700; --ss-weight-heavy: 750;
+  --ss-tracking-tight: -0.02em;  /* 22px and up */
+  --ss-tracking-display: -0.03em; /* 44px and up */
+
+  /* ---------- space (4px grid) ---------- */
+  --ss-space-1: 4px; --ss-space-2: 8px; --ss-space-3: 12px; --ss-space-4: 16px; --ss-space-5: 20px;
+  --ss-space-6: 24px; --ss-space-8: 32px; --ss-space-10: 40px; --ss-space-12: 48px; --ss-space-16: 64px; --ss-space-24: 96px;
+  --ss-panel-gutter: 16px;       /* side-panel horizontal padding */
+  --ss-guide-measure: 760px;     /* exported guide content width */
+
+  /* ---------- radii ---------- */
+  --ss-radius-xs: 4px;   /* chips inside inputs, kbd */
+  --ss-radius-sm: 7px;   /* small buttons, toggles */
+  --ss-radius-md: 10px;  /* buttons, inputs, screenshot frames in the panel */
+  --ss-radius-lg: 14px;  /* selected step, popovers, dialogs */
+  --ss-radius-xl: 20px;  /* site-only large frames */
+  --ss-radius-flag: 7px 7px 7px 2px;       /* UI step marker: echoes the tab's squared foot */
+  --ss-radius-flag-lg: 9px 9px 9px 3px;
+
+  /* ---------- motion ---------- */
+  --ss-ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ss-ease-in-out: cubic-bezier(.6, 0, .3, 1);
+  --ss-ease-flag: cubic-bezier(.34, 1.4, .64, 1); /* slight overshoot: flag drops in once per new step */
+  --ss-dur-fast: 120ms;  /* hover, press */
+  --ss-dur-base: 180ms;  /* toggles, menus */
+  --ss-dur-slow: 280ms;  /* dialogs, step insert */
+  --ss-dur-flag: 420ms;  /* new-step flag drop; never loops */
+
+  /* ---------- highlight (the signature; see tokens.ts for canvas) ---------- */
+  --ss-highlight: #EB4E26;          /* ring + tab fill on screenshots, both themes */
+  --ss-highlight-on: #FFFFFF;       /* numeral on the tab */
+  --ss-highlight-halo: rgba(255, 255, 255, .96);
+  --ss-highlight-ring: 3px;         /* CSS px of the capture, x exportScale */
+  --ss-highlight-halo-width: 2px;
+  --ss-highlight-pad: 4px;
+  --ss-highlight-radius: 8px;
+  --ss-highlight-tab-height: 24px;
+  --ss-spotlight-dim: rgba(28, 18, 12, .16);       /* exports */
+  --ss-spotlight-dim-thumb: rgba(28, 18, 12, .24); /* small panel thumbnails */
+
+  /* ---------- colour: light ---------- */
+  --ss-bg: #F4F2EE;         /* app/page ground: warm stone, not cream */
+  --ss-surface: #FFFFFF;    /* selected step, dialogs, inputs */
+  --ss-surface-2: #ECE9E4;  /* segmented controls, wells */
+  --ss-sunk: #E7E3DD;
+  --ss-ink: #1F1C19;        /* primary text */
+  --ss-ink-2: #57514B;      /* secondary text */
+  --ss-ink-3: #736B63;      /* meta; 4.7:1 on bg */
+  --ss-line: #E0DCD6;       /* hairlines */
+  --ss-line-2: #D2CDC6;     /* control borders */
+  --ss-accent: #EB4E26;     /* marks, focus, icons; not for small text */
+  --ss-accent-strong: #D13F19; /* filled buttons with white text (4.7:1) */
+  --ss-accent-ink: #B63A14; /* accent-coloured text and links */
+  --ss-accent-soft: #FCE6DD;
+  --ss-on-accent: #FFFFFF;
+  --ss-ok: #217A4F; --ss-ok-soft: #E1F2E8;       /* "blurred automatically", saved */
+  --ss-warn: #8A5A00; --ss-warn-soft: #FFF1CC;   /* "might contain a secret" */
+  --ss-danger: #B42318; --ss-danger-soft: #FDE8E6;
+  --ss-rec: #E5341B;        /* recording dot only */
+  --ss-focus: 0 0 0 2px var(--ss-bg), 0 0 0 4px var(--ss-accent);
+  --ss-shadow-1: 0 1px 0 rgba(31, 28, 25, .04), 0 1px 2px rgba(31, 28, 25, .06);
+  --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
+  --ss-shadow-3: 0 2px 6px rgba(31, 28, 25, .08), 0 24px 60px -16px rgba(31, 28, 25, .28);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F; --ss-sunk: #100F0E;
+    --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+    --ss-line: #2F2B28; --ss-line-2: #3D3935;
+    --ss-accent: #FF6337; --ss-accent-strong: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+    --ss-ok: #5BC98C; --ss-ok-soft: #173024; --ss-warn: #F2C04D; --ss-warn-soft: #33270C; --ss-danger: #FF7B6B; --ss-danger-soft: #3A1714;
+    --ss-rec: #FF5A3F;
+    --ss-shadow-1: 0 1px 0 rgba(0, 0, 0, .3);
+    --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6);
+    --ss-shadow-3: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 60px -16px rgba(0, 0, 0, .75);
+    --ss-spotlight-dim-thumb: rgba(8, 5, 3, .30);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F; --ss-sunk: #100F0E;
+  --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
+  --ss-line: #2F2B28; --ss-line-2: #3D3935;
+  --ss-accent: #FF6337; --ss-accent-strong: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-ok: #5BC98C; --ss-ok-soft: #173024; --ss-warn: #F2C04D; --ss-warn-soft: #33270C; --ss-danger: #FF7B6B; --ss-danger-soft: #3A1714;
+  --ss-rec: #FF5A3F;
+  --ss-shadow-1: 0 1px 0 rgba(0, 0, 0, .3);
+  --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6);
+  --ss-shadow-3: 0 2px 6px rgba(0, 0, 0, .5), 0 24px 60px -16px rgba(0, 0, 0, .75);
+  --ss-spotlight-dim-thumb: rgba(8, 5, 3, .30);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --ss-dur-fast: 0ms; --ss-dur-base: 0ms; --ss-dur-slow: 0ms; --ss-dur-flag: 0ms; }
+}

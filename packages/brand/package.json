@@ -1,0 +1,24 @@
+{
+  "name": "@stepsnap/brand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./tokens.ts",
+  "types": "./tokens.ts",
+  "exports": {
+    ".": "./tokens.ts",
+    "./tokens.css": "./tokens.css",
+    "./logo.svg": "./logo.svg",
+    "./logo-on-dark.svg": "./logo-on-dark.svg",
+    "./icon.svg": "./icon.svg",
+    "./icon-16.svg": "./icon-16.svg",
+    "./icon-store.svg": "./icon-store.svg",
+    "./mark.svg": "./mark.svg",
+    "./fonts/*": "./fonts/*"
+  },
+  "files": ["tokens.css", "tokens.ts", "*.svg", "fonts", "README.md", "FONTS.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
