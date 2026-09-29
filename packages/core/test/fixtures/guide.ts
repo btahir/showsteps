@@ -251,7 +251,7 @@ export function fixtureGuide(): Guide {
     description: "Sign in, switch to **monthly** billing, and pay the open invoice.",
     createdAt: iso(0),
     updatedAt: iso(60),
-    app: { name: "stepsnap", version: "0.1.0" },
+    app: { name: "showsteps", version: "0.1.0" },
     steps,
     settings: { redactStyle: "blur", includeUrls: true },
   };

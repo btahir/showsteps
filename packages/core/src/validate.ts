@@ -271,7 +271,7 @@ export function validateGuide(x: unknown): ValidateResult {
   if (x.app !== undefined) {
     const app = c.obj(x.app, `${root}.app`);
     if (app) {
-      if (app.name !== "stepsnap") c.err(`${root}.app.name`, `expected "stepsnap", got ${describe(app.name)}`);
+      if (app.name !== "showsteps" && app.name !== "stepsnap") c.err(`${root}.app.name`, `expected "showsteps", got ${describe(app.name)}`);
       c.str(app, "version", `${root}.app`);
     }
   }

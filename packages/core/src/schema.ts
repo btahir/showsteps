@@ -1,4 +1,4 @@
-// Stepsnap guide file format, v1. This is the contract every package codes against.
+// Showsteps (formerly Stepsnap) guide file format, v1. This is the contract every package codes against.
 // A guide is saved as a folder or zip: `guide.json` (this schema) + `images/<stepId>.png`.
 // Change it only by adding optional fields; bump `schemaVersion` for breaking changes.
 
@@ -84,7 +84,7 @@ export interface Guide {
   description?: string; // Markdown
   createdAt: string; // ISO 8601
   updatedAt: string;
-  app?: { name: "stepsnap"; version: string };
+  app?: { name: "showsteps" | "stepsnap"; version: string }; // "stepsnap" = old name, still read
   steps: Step[];
   settings?: {
     highlightColor?: string; // CSS colour, default from brand
