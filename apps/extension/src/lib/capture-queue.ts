@@ -43,6 +43,7 @@ export class CaptureQueue {
   private readonly retries: number;
   private readonly clock: Clock;
   private starts: number[] = [];
+  private lastStart = -Infinity;
   private jobs: Job<unknown>[] = [];
   private draining = false;
 
@@ -77,6 +78,16 @@ export class CaptureQueue {
     return promise;
   }
 
+  /**
+   * Low-priority capture (a "settled frame" refresh): runs only when nothing is queued and the
+   * last capture started at least `gapMs` ago; otherwise resolves to null without capturing,
+   * so it never delays a capture a step is waiting for.
+   */
+  scheduleIdle<T>(key: string, run: () => Promise<T>, gapMs = 1000): Promise<T | null> {
+    if (this.jobs.length > 0 || this.clock.now() - this.lastStart < gapMs || this.delayUntilSlot() > 0) return Promise.resolve(null);
+    return this.schedule(key, run);
+  }
+
   /** Milliseconds to wait before another call may start (0 = now). */
   delayUntilSlot(now = this.clock.now()): number {
     this.starts = this.starts.filter((t) => now - t < this.windowMs);
@@ -96,7 +107,8 @@ export class CaptureQueue {
           const wait = this.delayUntilSlot();
           if (wait > 0) await this.clock.sleep(wait);
           job.started = true;
-          this.starts.push(this.clock.now());
+          this.lastStart = this.clock.now();
+          this.starts.push(this.lastStart);
           try {
             job.resolve(await job.run());
             break;

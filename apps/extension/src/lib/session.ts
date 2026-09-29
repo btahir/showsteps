@@ -10,6 +10,11 @@ export interface SessionState {
   windowId?: number;
   /** Tabs that belong to the session. */
   tabIds: number[];
+  /**
+   * "window": every tab of the window (and popups opened from it) joins; needs <all_urls>.
+   * "tab": fallback without host access, only the tab Record was pressed in (activeTab).
+   */
+  scope?: "window" | "tab";
   startedAt?: string;
   /** Steps accepted so far (live counter for the UI). */
   stepCount: number;
@@ -19,7 +24,7 @@ export interface SessionState {
 }
 
 export type SessionEvent =
-  | { type: "start"; guideId: string; windowId: number; tabIds: number[]; at: string }
+  | { type: "start"; guideId: string; windowId: number; tabIds: number[]; at: string; scope?: "window" | "tab" }
   | { type: "pause"; now: number }
   | { type: "resume"; now: number }
   | { type: "stop" }
@@ -42,6 +47,7 @@ export function reduceSession(s: SessionState, e: SessionEvent): SessionState {
         guideId: e.guideId,
         windowId: e.windowId,
         tabIds: [...new Set(e.tabIds)],
+        scope: e.scope ?? "window",
         startedAt: e.at,
         stepCount: 0,
         pausedMs: 0,
@@ -88,7 +94,7 @@ export function acceptsSteps(s: SessionState): boolean {
 
 /** Should a newly created tab join? Same window, or opened by a session tab (popup windows). */
 export function shouldJoin(s: SessionState, tab: { windowId?: number; openerTabId?: number }): boolean {
-  if (!isActive(s)) return false;
+  if (!isActive(s) || s.scope === "tab") return false;
   if (tab.windowId !== undefined && tab.windowId === s.windowId) return true;
   return tab.openerTabId !== undefined && s.tabIds.includes(tab.openerTabId);
 }

@@ -20,6 +20,11 @@ export interface ScanDeps {
   shadowRootOf?(el: Element): ShadowRoot | null;
   maxResults?: number;
   maxElements?: number;
+  /**
+   * Cross-origin frames found during the scan. When given, they are collected here (so the
+   * caller can ask the recorder inside them) instead of being judged by their attributes.
+   */
+  opaqueFrames?: Element[];
 }
 
 type Root = Document | ShadowRoot;
@@ -62,7 +67,7 @@ export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
     }
   };
 
-  while (roots.length && out.length < max && visited < maxEls) {
+  while (roots.length && visited < maxEls) {
     const root = roots.shift()!;
     if (seen.has(root)) continue;
     seen.add(root);
@@ -84,6 +89,7 @@ export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
       if (tag === "iframe" || tag === "frame") {
         const d = frameDocument(el);
         if (d) roots.push(d);
+        else if (deps.opaqueFrames) deps.opaqueFrames.push(el);
         else if (frameLooksSensitive(el)) push(el);
       }
     }

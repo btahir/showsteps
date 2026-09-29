@@ -1,18 +1,30 @@
-// In-page recorder. Injected into the tabs of the recording window (registered content
-// script for new pages, scripting.executeScript for pages already open). Listens in the
-// capture phase, asks the worker for a screenshot *before* the page reacts (pointerdown,
-// keydown), and reports one draft per step. It never stores or sends the value of a
-// sensitive field.
+// In-page recorder. Injected into every frame of the tabs in the recording window (registered
+// content script for new pages, scripting.executeScript for pages already open). Only "root"
+// frames record: the top frame and cross-origin frames; a root also listens inside its
+// same-origin child frames. It listens in the capture phase, asks the worker for a screenshot
+// *before* the page reacts (pointerdown, keydown), and reports one draft per step. It never
+// stores or sends the value of a sensitive field, and it reports every sensitive field on
+// screen (shadow DOM and frames included) so those pixels get redacted.
 
 import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@stepsnap/dom";
 import type { ElementDescriptor, Rect, StepAction } from "@stepsnap/core";
 import { TypingTracker } from "../lib/typing";
-import { sameOriginFrames, scanSensitive } from "../lib/sensitive-scan";
-import type { RecorderMessage, WorkerToTab, HelloReply } from "../lib/messages";
+import { frameLooksSensitive, sameOriginFrames, scanSensitive } from "../lib/sensitive-scan";
+import { ask, contentBox, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
+import type { FrameMsg } from "../lib/frames";
+import type { HelloReply, RecorderMessage, ScanReply, WorkerToTab } from "../lib/messages";
 import type { StepDraft } from "../lib/steps";
 
 interface FieldMeta {
   el: Element;
+  /** Frame taken shortly after the last keystroke, used when the commit has no fresher one. */
+  captureId?: string;
+}
+
+/** Sensitive rects known now, plus those still being collected from cross-origin frames. */
+interface SensitiveScan {
+  local: Rect[];
+  remote: Promise<Rect[]> | null;
 }
 
 interface PendingPointer {
@@ -20,8 +32,8 @@ interface PendingPointer {
   captureId: string;
   target: ElementDescriptor;
   rect: Rect;
-  metrics: StepDraft["metrics"];
-  sensitiveRects: Rect[];
+  metrics: NonNullable<StepDraft["metrics"]>;
+  sensitive: SensitiveScan;
   page: { url: string; title?: string };
   at: number;
 }
@@ -33,7 +45,9 @@ declare global {
 }
 
 export default defineUnlistedScript(() => {
-  if (window.top !== window) return;
+  // Same-origin child frames are handled by the root above them.
+  if (!isRootFrame()) return;
+  const isTop = window.top === window;
   if (window.__stepsnapRecorder) {
     window.__stepsnapRecorder.sync();
     return;
@@ -48,6 +62,7 @@ export default defineUnlistedScript(() => {
   const focusValues = new WeakMap<Element, string>();
   const fieldKeys = new WeakMap<Element, string>();
   let fieldSeq = 0;
+  let typingShot: ReturnType<typeof setTimeout> | undefined;
 
   const alive = () => {
     try {
@@ -62,15 +77,65 @@ export default defineUnlistedScript(() => {
     chrome.runtime.sendMessage(msg).catch(() => {});
   }
 
+  const newCaptureId = () => `c${Date.now().toString(36)}_${(captureSeq++).toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+
   function requestCapture(): string {
-    const captureId = `c${Date.now().toString(36)}_${(captureSeq++).toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const captureId = newCaptureId();
     send({ type: "rec:capture", captureId });
     return captureId;
   }
 
+  // ---- settled frame --------------------------------------------------------------------------
+  // While the user is active, keep a screenshot of the page as it is *before* the next action:
+  // after any change (DOM mutation, input, scroll, resize) and 250 ms of quiet, ask the worker
+  // for a low-priority capture. A pointerdown uses it when nothing changed since it was asked
+  // for (exact pre-action state, zero latency); otherwise it captures live.
+
+  let lastDirtyAt = 0;
+  let armedUntil = 0;
+  let settled: { captureId: string; sentAt: number; sig: string } | undefined;
+  let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function viewportSig(): string {
+    const vv = window.visualViewport;
+    return [scrollX, scrollY, innerWidth, innerHeight, devicePixelRatio, vv?.scale ?? 1, vv?.offsetLeft ?? 0, vv?.offsetTop ?? 0].map((n) => Math.round(n * 100)).join(",");
+  }
+
+  function scheduleSettle(): void {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(settleCheck, 260);
+  }
+
+  function markDirty(): void {
+    lastDirtyAt = Date.now();
+    if (recording && isTop) scheduleSettle();
+  }
+
+  function arm(): void {
+    const wasArmed = Date.now() < armedUntil;
+    armedUntil = Date.now() + 5000;
+    if (!wasArmed && recording && isTop) scheduleSettle();
+  }
+
+  function settleCheck(): void {
+    const now = Date.now();
+    if (!recording || !isTop || document.hidden || now > armedUntil) return;
+    if (now - lastDirtyAt < 250) return scheduleSettle();
+    if (settled && settled.sentAt > lastDirtyAt && settled.sig === viewportSig()) return;
+    const captureId = newCaptureId();
+    send({ type: "rec:capture", captureId, settled: true });
+    settled = { captureId, sentAt: now, sig: viewportSig() };
+  }
+
+  /** The settled frame if the page has not changed since it was requested, else a live capture. */
+  function preActionCapture(): string {
+    if (isTop && settled && lastDirtyAt + 80 <= settled.sentAt && settled.sig === viewportSig()) return settled.captureId;
+    return requestCapture();
+  }
+
   const page = () => ({ url: location.href, title: document.title || undefined });
 
-  function metrics(): StepDraft["metrics"] {
+  function metrics(): NonNullable<StepDraft["metrics"]> {
     const m = pageMetrics(window);
     return { devicePixelRatio: m.devicePixelRatio, viewport: m.viewport };
   }
@@ -85,21 +150,86 @@ export default defineUnlistedScript(() => {
     }
   }
 
-  /** Every sensitive form field currently on screen (shadow DOM and same-origin frames included), in viewport CSS px. */
-  function sensitiveRects(): Rect[] {
-    let fromDom: Rect[] = [];
+  /**
+   * Every sensitive field on screen, in this root's viewport CSS px: our document, open and
+   * closed shadow roots, same-origin frames (via @stepsnap/dom and our own walk), and
+   * cross-origin frames, whose recorders are asked over postMessage. A frame that does not
+   * answer in time is blurred whole when it looks like a payment or sign-in widget.
+   */
+  function collectSensitive(): SensitiveScan {
+    const local: Rect[] = [];
     try {
-      fromDom = domSensitiveRects(document, { pad: 2 });
+      local.push(...domSensitiveRects(document, { pad: 2 }));
     } catch {
-      /* fall back to our own scan below */
+      /* our own scan below still runs */
     }
-    // Our scan adds closed shadow roots and payment/sign-in widgets in cross-origin frames.
-    return [...fromDom, ...scanSensitive(document, {
-      isSensitive,
-      rectOf: (el) => rectOf(el),
-      viewport: { width: window.innerWidth, height: window.innerHeight },
-      shadowRootOf,
-    })];
+    const opaque: Element[] = [];
+    local.push(
+      ...scanSensitive(document, {
+        isSensitive,
+        rectOf: (el) => rectOf(el),
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        shadowRootOf,
+        opaqueFrames: opaque,
+      }),
+    );
+    const visible = opaque.filter((f) => {
+      const r = rectOf(f);
+      return r.width > 0 && r.height > 0 && r.x < window.innerWidth && r.y < window.innerHeight && r.x + r.width > 0 && r.y + r.height > 0;
+    });
+    if (!visible.length) return { local, remote: null };
+    const remote = Promise.all(
+      visible.map(async (f) => {
+        const border = rectOf(f);
+        const win = (f as HTMLIFrameElement).contentWindow;
+        const reply = win ? await ask<Extract<FrameMsg, { kind: "scan-reply" }>>(win, { [TAG]: 1, kind: "scan", id: msgId() }, "scan-reply", 180) : undefined;
+        if (reply) return offsetInto(reply.rects, contentBox(f, border));
+        return frameLooksSensitive(f) ? [border] : [];
+      }),
+    ).then((all) => all.flat());
+    return { local, remote };
+  }
+
+  async function allSensitive(scan: SensitiveScan): Promise<Rect[]> {
+    return [...scan.local, ...(scan.remote ? await scan.remote : [])];
+  }
+
+  /** Where this root's viewport sits in the top-level viewport, and the top page's metrics. */
+  async function offsetInTop(): Promise<{ x: number; y: number; metrics?: StepDraft["metrics"] }> {
+    if (isTop) return { x: 0, y: 0, metrics: metrics() };
+    const r = await ask<Extract<FrameMsg, { kind: "offset-reply" }>>(window.parent, { [TAG]: 1, kind: "offset", id: msgId() }, "offset-reply", 400);
+    return r ? { x: r.x, y: r.y, metrics: r.metrics as StepDraft["metrics"] } : { x: 0, y: 0 };
+  }
+
+  /** Every frame element in the documents this root manages (its own and same-origin frames). */
+  function frameElements(): Element[] {
+    const docs = [document, ...sameOriginFrames(document, shadowRootOf)];
+    const out: Element[] = [];
+    for (const d of docs) {
+      out.push(...Array.from(d.querySelectorAll("iframe, frame")));
+      for (const el of Array.from(d.querySelectorAll("*"))) {
+        const sr = shadowRootOf(el);
+        if (sr) out.push(...Array.from(sr.querySelectorAll("iframe, frame")));
+      }
+    }
+    return out;
+  }
+
+  /** Answers child frames (offset) and the parent frame (scan). */
+  async function onFrameMessage(e: MessageEvent): Promise<void> {
+    if (!isFrameMsg(e.data) || !e.source) return;
+    const msg = e.data;
+    const source = e.source as Window;
+    if (msg.kind === "scan" && source === window.parent && !isTop) {
+      const rects = await allSensitive(collectSensitive());
+      source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects } satisfies FrameMsg, "*");
+    } else if (msg.kind === "offset") {
+      const frame = frameElements().find((f) => (f as HTMLIFrameElement).contentWindow === source);
+      if (!frame) return;
+      const box = contentBox(frame, rectOf(frame));
+      const mine = await offsetInTop();
+      source.postMessage({ [TAG]: 1, kind: "offset-reply", id: msg.id, x: mine.x + box.x, y: mine.y + box.y, metrics: mine.metrics } satisfies FrameMsg, "*");
+    }
   }
 
   function describe(el: Element): ElementDescriptor {
@@ -110,34 +240,51 @@ export default defineUnlistedScript(() => {
     }
   }
 
-  function draftFor(action: StepAction, el: Element | undefined, captureId: string | undefined, snap?: PendingPointer) {
-    const draft: RecorderMessage & { type: "rec:step" } = {
-      type: "rec:step",
-      captureId,
-      draft: {
-        action,
-        page: snap?.page ?? page(),
-        at: new Date().toISOString(),
-        metrics: snap?.metrics ?? metrics(),
-        sensitiveRects: snap?.sensitiveRects ?? sensitiveRects(),
-      },
-    };
-    if (el) {
-      draft.draft.target = snap?.target ?? describe(el);
-      draft.draft.rect = snap?.rect ?? rectOf(el);
-    }
-    return draft;
-  }
+  let chain: Promise<void> = Promise.resolve();
+  let chainDepth = 0;
 
   function emit(action: StepAction, el: Element | undefined, captureId: string | undefined, snap?: PendingPointer): void {
     if (!recording) return;
-    send(draftFor(action, el, captureId, snap));
+    const draft: StepDraft = {
+      action,
+      page: snap?.page ?? page(),
+      at: new Date().toISOString(),
+      metrics: snap?.metrics ?? metrics(),
+    };
+    if (el) {
+      draft.target = snap?.target ?? describe(el);
+      draft.rect = snap?.rect ?? rectOf(el);
+    }
+    const scan = snap?.sensitive ?? collectSensitive();
+    // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.
+    if (isTop && !scan.remote && chainDepth === 0) {
+      send({ type: "rec:step", captureId, draft: { ...draft, sensitiveRects: scan.local } });
+      return;
+    }
+    chainDepth++;
+    chain = chain
+      .then(async () => {
+        draft.sensitiveRects = await allSensitive(scan);
+        if (!isTop) {
+          const off = await offsetInTop();
+          const shift = (r: Rect): Rect => ({ ...r, x: r.x + off.x, y: r.y + off.y });
+          if (draft.rect) draft.rect = shift(draft.rect);
+          draft.sensitiveRects = draft.sensitiveRects.map(shift);
+          // Unknown metrics are filled in by the worker from the tab.
+          draft.metrics = off.metrics;
+        }
+        send({ type: "rec:step", captureId, draft });
+      })
+      .catch(() => {})
+      .finally(() => {
+        chainDepth--;
+      });
   }
 
   // ---- typing -------------------------------------------------------------------------------
 
   const tracker = new TypingTracker<FieldMeta>((entry) => {
-    const captureId = commitCapture ?? requestCapture();
+    const captureId = commitCapture ?? entry.meta.captureId ?? requestCapture();
     const action: StepAction = entry.masked ? { type: "type", value: "", masked: true } : { type: "type", value: entry.value };
     emit(action, entry.meta.el, captureId);
   }, 1500);
@@ -228,7 +375,8 @@ export default defineUnlistedScript(() => {
       if (!recording || !e.isTrusted || e.button !== 0) return;
       const el = safeTarget(e);
       if (!el) return;
-      const captureId = requestCapture();
+      const captureId = preActionCapture();
+      queueMicrotask(markDirty);
       const field = tracker.pendingKey;
       // A click anywhere but the field being typed in ends that field's step; both share the frame.
       if (field !== undefined && !(isTextField(el) && keyOf(el) === field)) flushTyping(captureId);
@@ -238,7 +386,7 @@ export default defineUnlistedScript(() => {
         target: describe(el),
         rect: rectOf(el),
         metrics: metrics(),
-        sensitiveRects: sensitiveRects(),
+        sensitive: collectSensitive(),
         page: page(),
         at: Date.now(),
       };
@@ -294,21 +442,31 @@ export default defineUnlistedScript(() => {
       const el = o && fieldOf(o);
       if (!el || !isTextField(el)) return;
       const sensitive = isSensitive(el);
-      tracker.input(keyOf(el), sensitive ? "" : valueOf(el), {
+      const key = keyOf(el);
+      tracker.input(key, sensitive ? "" : valueOf(el), {
         sensitive,
         now: Date.now(),
         startValue: focusValues.get(el) ?? "",
         meta: { el },
       });
+      // Take the step's frame shortly after the last keystroke, while this tab is still in front
+      // (the commit itself may come later, e.g. after switching tabs).
+      clearTimeout(typingShot);
+      typingShot = setTimeout(() => {
+        if (recording && tracker.pendingKey === key) tracker.touch(key, { el, captureId: requestCapture() });
+      }, 350);
     },
   );
 
   on(
     "change",
     (e) => {
-      if (!recording || !e.isTrusted) return;
+      if (!recording) return;
       const o = origin(e);
       if (!o) return;
+      // Native select popups (and automation such as Playwright's selectOption) report the
+      // change through a synthetic event; everything else must come from the user.
+      if (!e.isTrusted && !tagIs(o, "select")) return;
       const now = Date.now();
       const snapFor = (el: Element) => {
         if (!pending || now - pending.at > 10_000) return undefined;
@@ -376,7 +534,7 @@ export default defineUnlistedScript(() => {
         key = comboOf(e);
       }
       if (!key) return;
-      const captureId = requestCapture();
+      const captureId = preActionCapture();
       flushTyping(captureId);
       const el = o && !tagIs(o, "body") && !tagIs(o, "html") ? (field ?? o) : undefined;
       emit({ type: "press", key }, el, captureId);
@@ -395,6 +553,16 @@ export default defineUnlistedScript(() => {
 
   on("submit", () => recording && flushTyping());
   on("pagehide", () => recording && flushTyping());
+  // Leaving the tab or window ends the field being typed in (with the frame taken after the last key).
+  on("blur", (e) => recording && (e.target as unknown) === window && flushTyping());
+  document.addEventListener("visibilitychange", () => recording && document.hidden && flushTyping(), true);
+
+  for (const t of ["pointermove", "wheel", "touchstart"] as const) on(t, () => recording && arm());
+  for (const t of ["input", "change", "keydown", "scroll", "resize", "transitionend", "animationend"] as const) on(t, () => recording && markDirty());
+  on("keydown", () => recording && arm());
+  if (isTop) {
+    new MutationObserver(() => recording && markDirty()).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+  }
 
   // Attach to the top window and every same-origin iframe (their events do not reach us otherwise).
   const attached = new WeakSet<Document>();
@@ -403,6 +571,7 @@ export default defineUnlistedScript(() => {
     attached.add(doc);
     const target = doc.defaultView ?? doc;
     for (const [type, fn] of handlers) target.addEventListener(type, fn as EventListener, opts);
+    target.addEventListener("message", (e) => void onFrameMessage(e as MessageEvent), true);
     // Frames that load (or navigate) later get attached when their load event reaches us.
     doc.addEventListener("load", (e) => { if (isEl(e.target) && (e.target.localName === "iframe" || e.target.localName === "frame")) attachFrames(); }, true);
   }
@@ -423,6 +592,11 @@ export default defineUnlistedScript(() => {
     } else if (msg.type === "tab:flush") {
       flushTyping();
       reply({ ok: true });
+    } else if (msg.type === "tab:scan") {
+      // For worker-side steps (navigations): what the top page looks like right now.
+      if (!isTop) return false;
+      void allSensitive(collectSensitive()).then((sensitiveRects) => reply({ metrics: metrics(), sensitiveRects } satisfies ScanReply));
+      return true;
     }
     return false;
   });

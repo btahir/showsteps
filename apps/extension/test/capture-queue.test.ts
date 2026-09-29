@@ -97,6 +97,31 @@ describe("CaptureQueue", () => {
     expect(isQuotaError("Cannot access contents of url")).toBe(false);
   });
 
+  it("spaces captures 520 ms apart in the one-at-a-time configuration", async () => {
+    const clock = fakeClock();
+    const q = new CaptureQueue({ clock, maxCalls: 1, windowMs: 520, marginMs: 0 });
+    const starts: number[] = [];
+    await Promise.all([0, 1, 2].map((i) => q.schedule(`k${i}`, async () => void starts.push(clock.now()))));
+    expect(starts).toEqual([0, 520, 1040]);
+  });
+
+  it("runs idle (settled-frame) captures only when the queue is quiet", async () => {
+    const clock = fakeClock();
+    const q = new CaptureQueue({ clock, maxCalls: 1, windowMs: 520, marginMs: 0 });
+    expect(await q.scheduleIdle("w", async () => "first")).toBe("first");
+    // Too soon after the last capture: skipped, nothing runs.
+    let ran = false;
+    expect(await q.scheduleIdle("w", async () => ((ran = true), "x"))).toBeNull();
+    expect(ran).toBe(false);
+    clock.t += 1000;
+    // Something queued: skipped so the real capture is not delayed.
+    const real = q.schedule("w", async () => "real");
+    expect(await q.scheduleIdle("w2", async () => "idle")).toBeNull();
+    expect(await real).toBe("real");
+    clock.t += 1000;
+    expect(await q.scheduleIdle("w", async () => "later")).toBe("later");
+  });
+
   it("reports the delay until the next free slot", () => {
     const clock = fakeClock();
     const q = new CaptureQueue({ clock, marginMs: 0 });

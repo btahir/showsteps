@@ -8,8 +8,9 @@ import { buildStep, newGuide, titleFromPage } from "../lib/steps";
 import type { FrameInfo, StepDraft } from "../lib/steps";
 import { appendStep, newId } from "../lib/guide-ops";
 import { mutateGuide, putGuide, putImage } from "../lib/db";
+import { bakeRedactions } from "../lib/render";
 import { createNavTracker, forgetTab, isRecordableUrl, noteAction, shouldRecordNavigation } from "../lib/nav";
-import type { AnyMessage, Broadcast, ControlReply, HelloReply, WorkerToTab } from "../lib/messages";
+import type { AnyMessage, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
 
 const RECORDER_ID = "showsteps-recorder";
 const RECORDER_FILE = "recorder.js";
@@ -22,7 +23,8 @@ interface Frame extends FrameInfo {
 
 export default defineBackground(() => {
   let state: SessionState = IDLE;
-  const queue = new CaptureQueue();
+  // One capture at a time, at least 520 ms apart: inside Chrome's 2-per-second quota.
+  const queue = new CaptureQueue({ maxCalls: 1, windowMs: 520, marginMs: 0 });
   const frames = new Map<string, { at: number; frame: Promise<Frame | null> }>();
   const nav = createNavTracker();
   const newTabs = new Set<number>();
@@ -55,7 +57,7 @@ export default defineBackground(() => {
   }
 
   async function updateBadge(): Promise<void> {
-    const text = state.status === "recording" ? "REC" : state.status === "paused" ? "II" : "";
+    const text = state.status === "recording" ? String(state.stepCount || "REC") : state.status === "paused" ? "II" : "";
     await chrome.action.setBadgeText({ text }).catch(() => {});
     if (text) await chrome.action.setBadgeBackgroundColor({ color: state.status === "recording" ? "#d93a16" : "#6b6258" }).catch(() => {});
     await chrome.action
@@ -75,7 +77,15 @@ export default defineBackground(() => {
   async function registerRecorder(): Promise<void> {
     await unregisterRecorder();
     await chrome.scripting.registerContentScripts([
-      { id: RECORDER_ID, js: [RECORDER_FILE], matches: ["<all_urls>"], runAt: "document_start", allFrames: false, persistAcrossSessions: false },
+      {
+        id: RECORDER_ID,
+        js: [RECORDER_FILE],
+        matches: ["<all_urls>"],
+        runAt: "document_start",
+        allFrames: true,
+        matchOriginAsFallback: true,
+        persistAcrossSessions: false,
+      },
     ]);
   }
 
@@ -84,7 +94,7 @@ export default defineBackground(() => {
   }
 
   async function inject(tabId: number): Promise<void> {
-    await chrome.scripting.executeScript({ target: { tabId }, files: [RECORDER_FILE] }).catch(() => {});
+    await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: [RECORDER_FILE] }).catch(() => {});
   }
 
   // ---- capture ------------------------------------------------------------------------------
@@ -105,13 +115,28 @@ export default defineBackground(() => {
     return frame;
   }
 
-  function requestCapture(captureId: string, tabId: number, windowId: number | undefined): void {
+  /**
+   * Live capture (for a step) or, with `settled`, a low-priority refresh of the page's
+   * "settled frame" that is skipped when it would get in the way of a real capture.
+   */
+  function requestCapture(captureId: string, tabId: number, windowId: number | undefined, settled = false): void {
     pruneFrames();
-    const frame = queue.schedule(`w${windowId ?? tabId}`, () => grab(tabId)).catch((e) => {
+    const key = `w${windowId ?? tabId}`;
+    const job = settled ? queue.scheduleIdle(key, () => grab(tabId)) : queue.schedule(key, () => grab(tabId));
+    const frame = job.catch((e) => {
       console.warn("Showsteps: capture failed", e);
       return null;
     });
     frames.set(captureId, { at: Date.now(), frame });
+  }
+
+  /** The frame a step asked for, or a live capture when that one never happened. */
+  async function frameFor(captureId: string | undefined, tabId: number, windowId: number | undefined): Promise<Frame | null> {
+    const f = captureId ? await frames.get(captureId)?.frame : null;
+    if (f) return f;
+    const fallback = `fallback_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    requestCapture(fallback, tabId, windowId);
+    return (await frames.get(fallback)?.frame) ?? null;
   }
 
   // ---- steps --------------------------------------------------------------------------------
@@ -123,7 +148,20 @@ export default defineBackground(() => {
       const frame = frameP ? await frameP : null;
       const id = newId("s");
       const step = buildStep(id, { ...draft, page: { ...draft.page, tabId } }, frame ?? undefined);
-      if (frame && step.screenshot) await putImage(guideId, step.screenshot.image, frame.blob, step.screenshot.highlight);
+      if (frame && step.screenshot) {
+        // Automatic redactions are burnt into the stored pixels now (auto: true = already burnt);
+        // the unredacted capture is never written anywhere.
+        let blob = frame.blob;
+        if (step.screenshot.redactions?.length) {
+          try {
+            blob = await bakeRedactions(frame.blob, step);
+          } catch (e) {
+            console.warn("Showsteps: redaction failed, screenshot dropped", e);
+            delete step.screenshot;
+          }
+        }
+        if (step.screenshot) await putImage(guideId, step.screenshot.image, blob, step.screenshot.highlight);
+      }
       const saved = await mutateGuide(guideId, (g) => appendStep(g, step));
       if (!saved) return;
       await dispatch({ type: "step-added" });
@@ -140,14 +178,18 @@ export default defineBackground(() => {
     const captureId = `nav_${tabId}_${Date.now()}`;
     requestCapture(captureId, tabId, tab.windowId);
     const frameP = frames.get(captureId)!.frame;
+    // Ask the page for its metrics and sensitive fields so the screenshot is redacted like any other.
+    const scan = (await sendToTab(tabId, { type: "tab:scan" }, 600)) as ScanReply | undefined;
     const frame = await frameP;
     const vw = tab.width ?? frame?.width ?? 0;
     const vh = tab.height ?? frame?.height ?? 0;
+    const fallback = frame ? { devicePixelRatio: vw ? frame.width / vw : 1, viewport: { width: vw, height: vh, scrollX: 0, scrollY: 0 } } : undefined;
     const draft: StepDraft = {
       action: { type: "navigate", url },
       page: { url, title: tab.title || undefined },
       at: new Date().toISOString(),
-      metrics: frame ? { devicePixelRatio: vw ? frame.width / vw : 1, viewport: { width: vw, height: vh, scrollX: 0, scrollY: 0 } } : undefined,
+      metrics: scan?.metrics ?? fallback,
+      sensitiveRects: scan?.sensitiveRects,
     };
     await addStep(tabId, draft, frameP);
   }
@@ -171,30 +213,38 @@ export default defineBackground(() => {
 
   // ---- session control ----------------------------------------------------------------------
 
+  /** The side panel shrinks the page (and can flip it to a mobile layout): hide it while recording. */
+  async function closePanel(windowId: number): Promise<void> {
+    const sp = chrome.sidePanel as typeof chrome.sidePanel & { close?: (o: { windowId: number }) => Promise<void> };
+    await sp.close?.({ windowId }).catch(() => {});
+  }
+
   async function start(windowId: number, tabId?: number): Promise<ControlReply> {
     await ready;
     if (state.status !== "idle") return { ok: false, state, error: "Already recording" };
-    if (!(await chrome.permissions.contains(ALL_URLS))) {
-      return { ok: false, state, error: "Showsteps needs permission to see the pages you record." };
-    }
+    const allSites = await chrome.permissions.contains(ALL_URLS);
     const tabs = await chrome.tabs.query({ windowId });
     const active = tabs.find((t) => (tabId !== undefined ? t.id === tabId : t.active)) ?? tabs.find((t) => t.active);
+    // Without <all_urls> we can still record the tab Record was pressed for, through activeTab.
+    const scope = allSites ? "window" : "tab";
+    const scoped = allSites ? tabs : tabs.filter((t) => t.id === active?.id);
     const now = new Date();
     const guideId = newId("g");
     const guide = newGuide(guideId, now.toISOString(), chrome.runtime.getManifest().version, titleFromPage(active && { url: active.url ?? "", title: active.title }, now));
     await putGuide(guide);
-    const tabIds = tabs.map((t) => t.id).filter((id): id is number => id !== undefined);
-    for (const t of tabs) if (t.id !== undefined) nav.lastUrl.set(t.id, t.url ?? "");
-    await dispatch({ type: "start", guideId, windowId, tabIds, at: now.toISOString() });
+    const tabIds = scoped.map((t) => t.id).filter((id): id is number => id !== undefined);
+    for (const t of scoped) if (t.id !== undefined) nav.lastUrl.set(t.id, t.url ?? "");
+    await dispatch({ type: "start", guideId, windowId, tabIds, at: now.toISOString(), scope });
     await chrome.storage.session.set({ lastGuideId: guideId }).catch(() => {});
-    await registerRecorder().catch((e) => console.warn("Showsteps: register failed", e));
-    await Promise.all(tabs.filter((t) => t.id !== undefined && isRecordableUrl(t.url)).map((t) => inject(t.id!)));
+    if (allSites) await registerRecorder().catch((e) => console.warn("Showsteps: register failed", e));
+    await Promise.all(scoped.filter((t) => t.id !== undefined && isRecordableUrl(t.url)).map((t) => inject(t.id!)));
+    await closePanel(windowId);
     // First step: where the task starts.
     if (active?.id !== undefined && isRecordableUrl(active.url)) await navigateStep(active.id, active.url);
     return { ok: true, state };
   }
 
-  async function stop(): Promise<ControlReply> {
+  async function stop(opts: { openEditor?: boolean } = {}): Promise<ControlReply> {
     await ready;
     if (!isActive(state)) return { ok: false, state, error: "Not recording" };
     const tabIds = state.tabIds.slice();
@@ -212,7 +262,13 @@ export default defineBackground(() => {
     for (const t of tabIds) forgetTab(nav, t);
     newTabs.clear();
     frames.clear();
+    const guideId = state.guideId;
+    const windowId = state.windowId;
     await dispatch({ type: "stopped" });
+    // Straight to the editor, where the guide gets reviewed.
+    if (guideId && opts.openEditor !== false) {
+      await chrome.tabs.create({ url: chrome.runtime.getURL(`/editor.html?guide=${encodeURIComponent(guideId)}`), windowId }).catch(() => {});
+    }
     return { ok: true, state };
   }
 
@@ -262,9 +318,9 @@ export default defineBackground(() => {
         return true;
       case "rec:capture":
         if (tabId === undefined) return false;
-        noteAction(nav, tabId, Date.now());
+        if (!msg.settled) noteAction(nav, tabId, Date.now());
         void ready.then(() => {
-          if (acceptsSteps(state) && state.tabIds.includes(tabId)) requestCapture(msg.captureId, tabId, sender.tab?.windowId);
+          if (acceptsSteps(state) && state.tabIds.includes(tabId)) requestCapture(msg.captureId, tabId, sender.tab?.windowId, msg.settled);
         });
         return false;
       case "rec:step":
@@ -272,15 +328,22 @@ export default defineBackground(() => {
         noteAction(nav, tabId, Date.now());
         void ready.then(() => {
           if (!acceptsSteps(state) || !state.tabIds.includes(tabId)) return;
-          const f = msg.captureId ? frames.get(msg.captureId)?.frame : undefined;
-          void addStep(tabId, msg.draft as StepDraft, f);
+          const draft = { ...(msg.draft as StepDraft) };
+          if (sender.frameId) {
+            // Steps from a cross-origin frame: the page is the tab's top document.
+            draft.page = { url: sender.tab?.url ?? draft.page.url, title: sender.tab?.title || undefined };
+            if (!draft.metrics && sender.tab?.width && sender.tab.height) {
+              draft.metrics = { devicePixelRatio: 1, viewport: { width: sender.tab.width, height: sender.tab.height, scrollX: 0, scrollY: 0 } };
+            }
+          }
+          void addStep(tabId, draft, frameFor(msg.captureId, tabId, sender.tab?.windowId));
         });
         return false;
       case "ctl:start":
         void start(msg.windowId, msg.tabId).then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
         return true;
       case "ctl:stop":
-        void stop().then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
+        void stop({ openEditor: msg.openEditor }).then(reply, (e) => reply({ ok: false, state, error: String(e?.message ?? e) }));
         return true;
       case "ctl:pause":
         void pause().then(reply);
@@ -326,13 +389,28 @@ export default defineBackground(() => {
       forgetTab(nav, tabId);
       if (!state.tabIds.includes(tabId)) return;
       await dispatch({ type: "tab-closed", tabId });
-      if (info.isWindowClosing && info.windowId === state.windowId) await stop();
+      if (info.isWindowClosing && info.windowId === state.windowId) await stop({ openEditor: false });
     });
   });
 
   chrome.windows.onRemoved.addListener((windowId) => {
     void ready.then(() => {
-      if (isActive(state) && state.windowId === windowId) void stop();
+      if (isActive(state) && state.windowId === windowId) void stop({ openEditor: false });
+    });
+  });
+
+  // Keyboard shortcuts work while the side panel is closed.
+  chrome.commands?.onCommand.addListener((command) => {
+    void ready.then(() => {
+      if (command === "toggle-pause") void (state.status === "paused" ? resume() : pause());
+      else if (command === "stop-recording") void stop();
+    });
+  });
+
+  // Access withdrawn mid-recording (Settings, or the user's site-access menu): stop cleanly.
+  chrome.permissions.onRemoved.addListener((p) => {
+    void ready.then(() => {
+      if (isActive(state) && state.scope === "window" && p.origins?.includes("<all_urls>")) void stop();
     });
   });
 

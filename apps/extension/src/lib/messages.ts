@@ -6,7 +6,7 @@ import type { StepDraft } from "./steps";
 /** Content script → worker */
 export type RecorderMessage =
   | { type: "rec:hello" }
-  | { type: "rec:capture"; captureId: string }
+  | { type: "rec:capture"; captureId: string; settled?: boolean }
   | { type: "rec:step"; draft: Omit<StepDraft, "page"> & { page: { url: string; title?: string } }; captureId?: string };
 
 /** Extension pages → worker */
@@ -14,11 +14,16 @@ export type ControlMessage =
   | { type: "ctl:start"; windowId: number; tabId?: number }
   | { type: "ctl:pause" }
   | { type: "ctl:resume" }
-  | { type: "ctl:stop" }
+  | { type: "ctl:stop"; openEditor?: boolean }
   | { type: "ctl:state" };
 
 /** Worker → content script */
-export type WorkerToTab = { type: "tab:state"; recording: boolean } | { type: "tab:flush" };
+export type WorkerToTab = { type: "tab:state"; recording: boolean } | { type: "tab:flush" } | { type: "tab:scan" };
+
+export interface ScanReply {
+  metrics: NonNullable<StepDraft["metrics"]>;
+  sensitiveRects: NonNullable<StepDraft["sensitiveRects"]>;
+}
 
 /** Worker → pages (broadcast) */
 export type Broadcast =

@@ -26,7 +26,11 @@ export default defineConfig({
     permissions: ["activeTab", "scripting", "storage", "sidePanel", "unlimitedStorage"],
     ...(mode === "e2e" ? { host_permissions: ["<all_urls>"] } : { optional_host_permissions: ["<all_urls>"] }),
     action: { default_title: "Showsteps" },
-    minimum_chrome_version: "116",
+    commands: {
+      "toggle-pause": { suggested_key: { default: "Alt+Shift+P" }, description: "Pause or resume recording" },
+      "stop-recording": { suggested_key: { default: "Alt+Shift+S" }, description: "Stop recording" },
+    },
+    minimum_chrome_version: "120",
   }),
   webExt: { disabled: true },
 });

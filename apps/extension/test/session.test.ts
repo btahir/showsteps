@@ -75,6 +75,12 @@ describe("session state machine", () => {
     expect(reduceSession(IDLE, { type: "step-added" })).toBe(IDLE);
   });
 
+  it("single-tab fallback never adds tabs", () => {
+    const s = reduceSession(IDLE, { type: "start", guideId: "g", windowId: 7, tabIds: [1], at: "", scope: "tab" });
+    expect(s.scope).toBe("tab");
+    expect(shouldJoin(s, { windowId: 7 })).toBe(false);
+  });
+
   it("new tabs join by window or by opener", () => {
     const s = started();
     expect(shouldJoin(s, { windowId: 7 })).toBe(true);
