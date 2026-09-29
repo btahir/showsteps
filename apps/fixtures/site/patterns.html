@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account details – Acme Books</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+  <style>
+    .facts { display: grid; grid-template-columns: 11rem 1fr; gap: .6rem 1rem; margin: 0 0 1.2rem; }
+    .facts dt { color: #5b5b5b; }
+    .facts dd { margin: 0; font-family: ui-monospace, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <!-- Secrets shown as page text (mock data only). Used by the extension's text-pattern redaction e2e.
+       Flagged: card (Stripe test number), SSN, IBAN, Stripe-style key, JWT, and the card pasted into the notes field.
+       Not flagged: order number (Luhn fails), epoch ms, date, UUID, fictional phone, and the email unless its preset is on.
+       The token row is injected 600 ms after load, like text that arrives from an XHR. -->
+  <header class="topbar">
+    <a class="brand" href="/patterns.html">Acme Books</a>
+  </header>
+  <main>
+    <h1>Account details</h1>
+    <div class="card">
+      <dl class="facts" id="secrets">
+        <dt>Card on file</dt><dd id="card">4242 4242 4242 4242</dd>
+        <dt>Tax ID (SSN)</dt><dd id="ssn">123-45-6789</dd>
+        <dt>Payout IBAN</dt><dd id="iban">GB82 WEST 1234 5698 7654 32</dd>
+        <dt>Session</dt><dd id="jwt">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U</dd>
+      </dl>
+      <dl class="facts" id="neutral">
+        <dt>Order number</dt><dd id="order">1234 5678 9012 3456</dd>
+        <dt>Created (ms)</dt><dd id="epoch">1727539200000</dd>
+        <dt>Renewal date</dt><dd id="date">2026-09-28</dd>
+        <dt>Request id</dt><dd id="uuid">123e4567-e89b-12d3-a456-426614174000</dd>
+        <dt>Support line</dt><dd id="phone">555-01-0199</dd>
+        <dt>Billing email</dt><dd id="email">jane@example.com</dd>
+      </dl>
+      <label for="notes">Notes</label>
+      <input id="notes" type="text" value="Backup card 5555 5555 5555 4444" autocomplete="off">
+      <button id="refresh" class="btn" type="button">Refresh details</button>
+      <p id="status" role="status"></p>
+    </div>
+  </main>
+  <script>
+    setTimeout(() => {
+      const dt = document.createElement("dt");
+      dt.textContent = "API key";
+      const dd = document.createElement("dd");
+      dd.id = "token";
+      dd.textContent = "sk_live_51HxxxxxxxxxxxxxxxxxxxxxxxxxxTEST";
+      document.getElementById("secrets").append(dt, dd);
+    }, 600);
+    document.getElementById("refresh").addEventListener("click", () => {
+      document.getElementById("status").textContent = "Details are up to date.";
+    });
+  </script>
+</body>
+</html>

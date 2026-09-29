@@ -18,6 +18,7 @@ import type { Guide, ImageSource, Step } from "@stepsnap/core";
 import { zipSync, strToU8 } from "fflate";
 import { bakeRedactions, renderAnnotated } from "./render";
 import { visibleSteps } from "./guide-ops";
+import { loadExportPrefs } from "./prefs";
 import { PROJECT_EXT } from "../config";
 
 import type { ExportFormat } from "./formats";
@@ -58,6 +59,10 @@ export interface ExportOptions {
   includeHidden?: boolean;
   /** Progress while screenshots are rendered. */
   onProgress?: (done: number, total: number) => void;
+  /** Add the small "Made with Showsteps" credit (default: the Settings choice, which is off). */
+  branding?: boolean;
+  /** PDF paper size. */
+  pageSize?: "A4" | "Letter";
 }
 
 /** Wait for the brand font so the flag numerals are drawn in Rethink Sans. */
@@ -121,7 +126,8 @@ function optionalExporter(name: "exportPdf" | "exportDocx"): PdfFn {
 
 export async function markdownText(guide: Guide): Promise<string> {
   // Clipboard copy: text only (image links would point at files that are not there).
-  const { files } = exportMarkdown(guide, { imageLinks: false } as Parameters<typeof exportMarkdown>[1]);
+  const { credit } = await loadExportPrefs();
+  const { files } = exportMarkdown(guide, { imageLinks: false, branding: credit } as Parameters<typeof exportMarkdown>[1]);
   const md = Object.entries(files).find(([p]) => p.endsWith(".md"))?.[1];
   if (md === undefined) throw new Error("Markdown exporter returned no .md file");
   return typeof md === "string" ? md : new TextDecoder().decode(md);
@@ -129,13 +135,14 @@ export async function markdownText(guide: Guide): Promise<string> {
 
 export async function exportGuide(format: ExportFormat, source: Guide, blobs: Record<string, Blob>, opts: ExportOptions = {}): Promise<ExportFile> {
   const base = slugify(source.title);
+  const branding = opts.branding ?? (await loadExportPrefs()).credit;
   const includeUrls = opts.includeUrls ?? source.settings?.includeUrls ?? true;
   let guide: Guide = { ...source, settings: { ...source.settings, includeUrls, ...(opts.color ? { highlightColor: opts.color } : {}) } };
   if (opts.includeHidden) guide = { ...guide, steps: guide.steps.map((s) => (s.skipped ? { ...s, skipped: false } : s)) };
   switch (format) {
     case "markdown": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const { files } = exportMarkdown(g, { images, imagesPrerendered: true, includeUrls } as Parameters<typeof exportMarkdown>[1]);
+      const { files } = exportMarkdown(g, { images, imagesPrerendered: true, includeUrls, branding } as Parameters<typeof exportMarkdown>[1]);
       const all: Record<string, Uint8Array> = {};
       for (const [p, v] of Object.entries(files)) all[p] = toU8(v);
       // Include referenced images if the exporter left them to us.
@@ -144,24 +151,24 @@ export async function exportGuide(format: ExportFormat, source: Guide, blobs: Re
     }
     case "html": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const html = exportHtml(g, images, { includeUrls, imagesPrerendered: true } as Parameters<typeof exportHtml>[2]);
+      const html = exportHtml(g, images, { includeUrls, imagesPrerendered: true, branding } as Parameters<typeof exportHtml>[2]);
       return { filename: `${base}.html`, blob: new Blob([html], { type: "text/html" }) };
     }
     case "pdf": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const bytes = await optionalExporter("exportPdf")(g, images, { redactionsBaked: true, highlight: false });
+      const bytes = await optionalExporter("exportPdf")(g, images, { redactionsBaked: true, highlight: false, branding, pageSize: opts.pageSize ?? "A4" });
       return { filename: `${base}.pdf`, blob: new Blob([bytes as BlobPart], { type: "application/pdf" }) };
     }
     case "docx": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const bytes = await optionalExporter("exportDocx")(g, images, { redactionsBaked: true, highlight: false });
+      const bytes = await optionalExporter("exportDocx")(g, images, { redactionsBaked: true, highlight: false, branding });
       return {
         filename: `${base}.docx`,
         blob: new Blob([bytes as BlobPart], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
       };
     }
     case "skill": {
-      const { files } = exportAgentSkill(guide);
+      const { files } = exportAgentSkill(guide, { branding } as Parameters<typeof exportAgentSkill>[1]);
       const all: Record<string, Uint8Array> = {};
       for (const [p, v] of Object.entries(files)) all[`${base}/${p}`] = toU8(v);
       return { filename: `${base}-skill.zip`, blob: new Blob([zipSync(all, { level: 6 }) as BlobPart], { type: "application/zip" }) };

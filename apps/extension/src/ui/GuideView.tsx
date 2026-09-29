@@ -1,5 +1,6 @@
 // The guide editor used by both the side panel (one column) and the full-tab editor (list on
 // the left, the selected step large on the right). Spec: docs/design/SPEC.md §2, §4, §5.
+import { localIso } from "../lib/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent as RKeyboardEvent, ReactNode } from "react";
 import type { Guide, Rect, Step } from "@stepsnap/core";
@@ -263,7 +264,7 @@ export function GuideView({
             )}
             <div className="step-row">
               <span className={`flag${s.skipped ? " flag-skipped" : s.action.type === "note" ? " flag-note" : ""}${ed.fresh.has(s.id) ? " flag-new" : ""}`} aria-hidden>
-                {n ?? "–"}
+                {s.skipped ? <IconEyeOff /> : n}
               </span>
               {isSel ? (
                 <TitleEditor step={s} label={label} onCommit={(title) => ed.apply((g) => updateStep(g, s.id, { title }), { announce: "Title changed", toast: false })} />
@@ -282,11 +283,6 @@ export function GuideView({
                   onKeyDown={(e) => onListKey(e, s)}
                 >
                   <MdInline text={s.title} />
-                </button>
-              )}
-              {s.skipped && (
-                <button type="button" className="icon-btn" aria-label={`Show ${label.toLowerCase()} in exports`} title="Show in exports" onClick={() => ed.apply((g) => toggleSkip(g, s.id), { announce: "Step shown in exports" })}>
-                  <IconEyeOff />
                 </button>
               )}
               <button
@@ -331,6 +327,7 @@ export function GuideView({
                   src={s.screenshot ? urls[s.screenshot.image] : undefined}
                   number={n}
                   mode={isSel ? activeTool : "none"}
+                  frame={isSel ? "full" : "focus"}
                   onDraw={(r, m) => onDraw(s, r, m)}
                   onHighlight={(r, via) => onHighlight(s, r, via)}
                   showRedactionOutlines={isSel}
@@ -342,7 +339,7 @@ export function GuideView({
             {layout === "panel" && s.action.type === "note" && !isSel && s.description && <p className="note-body">{s.description}</p>}
             {layout === "tab" && s.screenshot && (
               <div className="step-thumb step-thumb-small" onClick={() => setSelected(s.id)} aria-hidden>
-                <StepImage step={s} src={urls[s.screenshot.image]} number={n} alt="" color={guide.settings?.highlightColor} />
+                <StepImage step={s} src={urls[s.screenshot.image]} number={n} alt="" frame="focus" color={guide.settings?.highlightColor} />
               </div>
             )}
           </li>
@@ -384,7 +381,7 @@ export function GuideView({
             {activeTool !== "none" && <ToolHint mode={activeTool} step={sel} onToggleHighlight={() => void toggleHighlight(sel)} onDone={() => setTool(null)} />}
             <div className="ed-detail-head">
               <span className={`flag flag-lg${sel.skipped ? " flag-skipped" : sel.action.type === "note" ? " flag-note" : ""}`} aria-hidden>
-                {numbers.get(sel.id) ?? "–"}
+                {sel.skipped ? <IconEyeOff /> : numbers.get(sel.id)}
               </span>
               <TitleEditor
                 step={sel}
@@ -516,7 +513,7 @@ function StepTools({
           <span>Merge</span>
         </button>
       )}
-      <button type="button" className="seg-btn" aria-pressed={!!step.skipped} onClick={onSkip}>
+      <button type="button" className="seg-btn seg-state" aria-pressed={!!step.skipped} onClick={onSkip}>
         {step.skipped ? <IconEye /> : <IconEyeOff />}
         <span>{step.skipped ? "Show" : "Skip"}</span>
       </button>
@@ -592,7 +589,7 @@ export function GuideHeader({ ed, extra }: { ed: GuideEditor; extra?: ReactNode 
   const commit = () => {
     setEditing(false);
     const t = draft.trim();
-    if (t && t !== g.title) ed.apply((x) => ({ ...x, title: t, updatedAt: new Date().toISOString() }), { announce: "Title changed", toast: false });
+    if (t && t !== g.title) ed.apply((x) => ({ ...x, title: t, updatedAt: localIso() }), { announce: "Title changed", toast: false });
   };
   return (
     <header className="guide-head">

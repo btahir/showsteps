@@ -6,11 +6,13 @@
 // stores or sends the value of a sensitive field, and it reports every sensitive field on
 // screen (shadow DOM and frames included) so those pixels get redacted.
 
+import { localIso } from "../lib/time";
 import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@stepsnap/dom";
-import type { ElementDescriptor, Rect, StepAction } from "@stepsnap/core";
+import type { ElementDescriptor, Rect, StepAction, TabCorner } from "@stepsnap/core";
 import { TypingTracker } from "../lib/typing";
 import { RecBar } from "../lib/rec-bar";
-import { frameLooksSensitive, sameOriginFrames, scanSensitive } from "../lib/sensitive-scan";
+import { pickCorner, tabCandidates, textRectsNear } from "../lib/tab-corner";
+import { frameLooksSensitive, sameOriginFrames, scanSensitiveLabeled } from "../lib/sensitive-scan";
 import { scanTextSecrets } from "../lib/text-scan";
 import type { PatternOptions } from "../lib/text-patterns";
 import { parseRedactPrefs, REDACT_PREFS_KEY } from "../lib/prefs";
@@ -29,6 +31,8 @@ interface FieldMeta {
 /** What the redaction scan found: rects to blur, which text patterns matched, and whether it finished. */
 interface ScanResult {
   rects: Rect[];
+  /** Parallel to `rects` (may be shorter: missing entries have no label). */
+  labels: (string | null)[];
   kinds: string[];
   incomplete: boolean;
 }
@@ -46,7 +50,8 @@ interface PendingPointer {
   rect: Rect;
   metrics: NonNullable<StepDraft["metrics"]>;
   sensitive: SensitiveScan;
-  page: { url: string; title?: string };
+  page: StepDraft["page"];
+  corner?: TabCorner;
   at: number;
 }
 
@@ -120,8 +125,6 @@ export default defineUnlistedScript(() => {
 
   function requestCapture(): string {
     const captureId = newCaptureId();
-    // Start hiding the recording bar now, so the worker's capture does not wait for a paint.
-    void bar?.hideForCapture();
     send({ type: "rec:capture", captureId });
     remember(captureId);
     return captureId;
@@ -190,7 +193,26 @@ export default defineUnlistedScript(() => {
     return requestCapture();
   }
 
-  const page = () => ({ url: location.href, title: document.title || undefined });
+  const isRtl = () => {
+    try {
+      return (document.dir || getComputedStyle(document.documentElement).direction) === "rtl";
+    } catch {
+      return false;
+    }
+  };
+  const page = (): StepDraft["page"] => ({ url: location.href, title: document.title || undefined, ...(isRtl() ? { dir: "rtl" as const } : {}) });
+
+  /** The highlight tab's corner with the least page text under it (undefined = the default is fine). */
+  function cornerFor(el: Element, rect: Rect): TabCorner | undefined {
+    if (el.ownerDocument !== document) return undefined;
+    try {
+      const cands = tabCandidates(rect, innerWidth);
+      const text = textRectsNear(document, Object.values(cands), (e) => e.localName === "showsteps-recording-bar" || e === el || el.contains(e));
+      return pickCorner(cands, text, { width: innerWidth, height: innerHeight }, isRtl());
+    } catch {
+      return undefined;
+    }
+  }
 
   function metrics(): NonNullable<StepDraft["metrics"]> {
     const m = pageMetrics(window);
@@ -215,34 +237,36 @@ export default defineUnlistedScript(() => {
    */
   function collectSensitive(): SensitiveScan {
     const rects: Rect[] = [];
-    try {
-      rects.push(...domSensitiveRects(document, { pad: 2 }));
-    } catch {
-      /* our own scan below still runs */
-    }
+    const labels: (string | null)[] = [];
     const opaque: Element[] = [];
     const viewport = { width: window.innerWidth, height: window.innerHeight };
-    rects.push(
-      ...scanSensitive(document, {
-        isSensitive,
-        rectOf: (el) => rectOf(el),
-        viewport,
-        shadowRootOf,
-        opaqueFrames: opaque,
-      }),
-    );
+    // Our own walk first: it knows each field's name for the "Password blurred" chip.
+    for (const r of scanSensitiveLabeled(document, { isSensitive, rectOf: (el) => rectOf(el), viewport, shadowRootOf, opaqueFrames: opaque })) {
+      rects.push(r.rect);
+      labels.push(r.label ?? null);
+    }
+    try {
+      // @stepsnap/dom's scan as a second opinion (duplicates are merged when the step is built).
+      for (const r of domSensitiveRects(document, { pad: 2 })) {
+        rects.push(r);
+        labels.push(null);
+      }
+    } catch {
+      /* our own scan above still ran */
+    }
     // Secrets shown as text: card numbers, SSNs, IBANs, tokens (and emails when switched on).
     let kinds: string[] = [];
     let incomplete = false;
     try {
       const text = scanTextSecrets(document, { ...patternOpts, viewport, shadowRootOf, budgetMs: 40 });
       rects.push(...text.rects);
+      labels.push(...text.labels);
       kinds = text.kinds;
       incomplete = text.incomplete;
     } catch {
       incomplete = true;
     }
-    const local: ScanResult = { rects, kinds, incomplete };
+    const local: ScanResult = { rects, labels, kinds, incomplete };
     const visible = opaque.filter((f) => {
       const r = rectOf(f);
       return r.width > 0 && r.height > 0 && r.x < window.innerWidth && r.y < window.innerHeight && r.x + r.width > 0 && r.y + r.height > 0;
@@ -253,17 +277,28 @@ export default defineUnlistedScript(() => {
         const border = rectOf(f);
         const win = (f as HTMLIFrameElement).contentWindow;
         const reply = win ? await ask<Extract<FrameMsg, { kind: "scan-reply" }>>(win, { [TAG]: 1, kind: "scan", id: msgId() }, "scan-reply", 180) : undefined;
-        if (reply) return { rects: offsetInto(reply.rects, contentBox(f, border)), kinds: reply.kinds ?? [], incomplete: !!reply.incomplete };
+        if (reply) {
+          // offsetInto clips (and may drop) rects, so labels are matched by index only when nothing was dropped.
+          const moved = offsetInto(reply.rects, contentBox(f, border));
+          return { rects: moved, labels: moved.length === reply.rects.length ? (reply.labels ?? []) : [], kinds: reply.kinds ?? [], incomplete: !!reply.incomplete };
+        }
         // No answer (sandboxed frame, recorder not there yet): blur payment/sign-in widgets whole
         // and flag the step for review either way. Never silently clean.
-        return { rects: frameLooksSensitive(f) ? [border] : [], kinds: [], incomplete: true };
+        return frameLooksSensitive(f)
+          ? { rects: [border], labels: ["Payment or sign-in frame"], kinds: [], incomplete: true }
+          : { rects: [], labels: [], kinds: [], incomplete: true };
       }),
     ).then(mergeScans);
     return { local, remote };
   }
 
   function mergeScans(all: ScanResult[]): ScanResult {
-    return { rects: all.flatMap((a) => a.rects), kinds: [...new Set(all.flatMap((a) => a.kinds))], incomplete: all.some((a) => a.incomplete) };
+    return {
+      rects: all.flatMap((a) => a.rects),
+      labels: all.flatMap((a) => a.rects.map((_, i) => a.labels[i] ?? null)),
+      kinds: [...new Set(all.flatMap((a) => a.kinds))],
+      incomplete: all.some((a) => a.incomplete),
+    };
   }
 
   async function allSensitive(scan: SensitiveScan): Promise<ScanResult> {
@@ -312,7 +347,7 @@ export default defineUnlistedScript(() => {
     const source = e.source as Window;
     if (msg.kind === "scan" && source === window.parent && !isTop) {
       const r = await allSensitive(collectSensitive());
-      source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects: r.rects, kinds: r.kinds, incomplete: r.incomplete } satisfies FrameMsg, "*");
+      source.postMessage({ [TAG]: 1, kind: "scan-reply", id: msg.id, rects: r.rects, labels: r.labels, kinds: r.kinds, incomplete: r.incomplete } satisfies FrameMsg, "*");
     } else if (msg.kind === "offset") {
       const frame = frameElements().find((f) => (f as HTMLIFrameElement).contentWindow === source);
       if (!frame) return;
@@ -341,7 +376,7 @@ export default defineUnlistedScript(() => {
     const draft: StepDraft = {
       action,
       page: snap?.page ?? page(),
-      at: new Date().toISOString(),
+      at: localIso(),
       metrics: snap?.metrics ?? metrics(),
       cid,
     };
@@ -351,12 +386,15 @@ export default defineUnlistedScript(() => {
     if (el) {
       draft.target = snap?.target ?? describe(el);
       draft.rect = snap?.rect ?? rectOf(el);
+      const corner = snap ? snap.corner : cornerFor(el, draft.rect);
+      if (corner) draft.corner = corner;
     }
     const scan = snap?.sensitive ?? collectSensitive();
     const fallbackCaptureId = knownFrames.filter((id) => id !== captureId).at(-1);
     // Fast path (the usual case): send synchronously, so a click that navigates away is not lost.
     const withScan = (r: ScanResult) => {
       draft.sensitiveRects = r.rects;
+      if (r.labels.some((l) => l)) draft.sensitiveLabels = r.rects.map((_, i) => r.labels[i] ?? null);
       if (r.kinds.length) draft.sensitiveKinds = r.kinds;
       if (r.incomplete) draft.scanIncomplete = true;
     };
@@ -485,14 +523,16 @@ export default defineUnlistedScript(() => {
       const field = tracker.pendingKey;
       // A click anywhere but the field being typed in ends that field's step; both share the frame.
       if (field !== undefined && !(isTextField(el) && keyOf(el) === field)) flushTyping(captureId);
+      const rect = rectOf(el);
       pending = {
         el,
         captureId,
         target: describe(el),
-        rect: rectOf(el),
+        rect,
         metrics: metrics(),
         sensitive: collectSensitive(),
         page: page(),
+        corner: cornerFor(el, rect),
         at: Date.now(),
       };
     },
@@ -714,7 +754,7 @@ export default defineUnlistedScript(() => {
       // For worker-side steps (navigations): what the top page looks like right now.
       if (!isTop) return false;
       void allSensitive(collectSensitive()).then((r) =>
-        reply({ metrics: metrics(), sensitiveRects: r.rects, sensitiveKinds: r.kinds, scanIncomplete: r.incomplete || undefined } satisfies ScanReply),
+        reply({ metrics: metrics(), sensitiveRects: r.rects, sensitiveLabels: r.rects.map((_, i) => r.labels[i] ?? null), sensitiveKinds: r.kinds, scanIncomplete: r.incomplete || undefined } satisfies ScanReply),
       );
       return true;
     }

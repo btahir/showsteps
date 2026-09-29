@@ -2,7 +2,8 @@
 // left and the selected step's screenshot large on the right.
 import { useEffect, useState } from "react";
 import { APP_NAME } from "../../config";
-import { useSession } from "../../ui/hooks";
+import { useLibrary, useSession } from "../../ui/hooks";
+import { relTime } from "../../ui/GuideView";
 import { useGuideAssets } from "../../ui/useGuideAssets";
 import { useGuideEditor } from "../../ui/useGuideEditor";
 import { GuideHeader, GuideView } from "../../ui/GuideView";
@@ -26,15 +27,7 @@ export function App() {
     if (ed.guide) document.title = `${ed.guide.title} · ${APP_NAME}`;
   }, [ed.guide?.title]);
 
-  if (!GUIDE_ID || ed.missing) {
-    return (
-      <main className="editor-missing">
-        <BrandMark size={72} />
-        <h1>Guide not found</h1>
-        <p className="muted">It may have been deleted. Open {APP_NAME} from the toolbar to see your guides.</p>
-      </main>
-    );
-  }
+  if (!GUIDE_ID || ed.missing) return <MissingGuide />;
   if (!ed.guide) return <main className="editor-loading" aria-busy="true" />;
 
   return (
@@ -69,5 +62,37 @@ export function App() {
       <ExportSheet open={exportOpen} guide={ed.guide} onClose={() => setExportOpen(false)} beforeExport={ed.save} />
       <EditToastView toast={ed.toast} onUndo={ed.undo} onDismiss={ed.dismissToast} />
     </div>
+  );
+}
+
+/** No guide id, or it was deleted: say so, and offer the library right here (review #31). */
+function MissingGuide() {
+  const { guides } = useLibrary();
+  const [open, setOpen] = useState(false);
+  return (
+    <main className="editor-missing">
+      <BrandMark size={72} />
+      <h1>Guide not found</h1>
+      <p className="muted">It may have been deleted, or this link is from another browser.</p>
+      {!open ? (
+        <button type="button" className="btn btn-primary" onClick={() => setOpen(true)} disabled={!guides.length}>
+          {guides.length ? "See your guides" : "No guides yet"}
+        </button>
+      ) : (
+        <ul className="missing-list" aria-label="Your guides">
+          {guides.map((g) => (
+            <li key={g.id}>
+              <a href={`editor.html?guide=${encodeURIComponent(g.id)}`}>
+                <span className="missing-title">{g.title}</span>
+                <span className="muted small num">
+                  {g.stepCount} {g.stepCount === 1 ? "step" : "steps"} · recorded {relTime(g.createdAt)}
+                  {g.domain ? ` · ${g.domain}` : ""}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
   );
 }

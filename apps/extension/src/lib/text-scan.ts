@@ -8,7 +8,7 @@
 // the whole field is blurred. Values never leave the page, only rectangles do.
 
 import type { Rect } from "@stepsnap/core";
-import { findSecrets, mightContainSecret } from "./text-patterns";
+import { findSecrets, KIND_LABEL, mightContainSecret } from "./text-patterns";
 import type { PatternOptions, SecretKind } from "./text-patterns";
 
 export interface TextScanOptions extends PatternOptions {
@@ -22,6 +22,8 @@ export interface TextScanOptions extends PatternOptions {
 
 export interface TextScanResult {
   rects: Rect[];
+  /** Parallel to `rects`: what each one hides ("Card number"). */
+  labels: string[];
   kinds: SecretKind[];
   incomplete: boolean;
 }
@@ -65,15 +67,19 @@ export function scanTextSecrets(doc: Document, opts: TextScanOptions): TextScanR
   const shadowOf = opts.shadowRootOf ?? ((el: Element) => el.shadowRoot);
   const vp = opts.viewport;
   const rects: Rect[] = [];
+  const labels: string[] = [];
   const kinds = new Set<SecretKind>();
   const queue: { root: Root; off: { x: number; y: number } }[] = [{ root: doc, off: { x: 0, y: 0 } }];
   const seen = new Set<Root>();
   let incomplete = false;
   let n = 0;
 
-  const push = (r: DOMRect | Rect, off: { x: number; y: number }) => {
+  const push = (r: DOMRect | Rect, off: { x: number; y: number }, kind: SecretKind) => {
     const box = { x: r.x + off.x, y: r.y + off.y, width: r.width, height: r.height };
-    if (onScreen(box, vp) && rects.length < maxRects) rects.push(box);
+    if (onScreen(box, vp) && rects.length < maxRects) {
+      rects.push(box);
+      labels.push(KIND_LABEL[kind]);
+    }
   };
 
   outer: while (queue.length) {
@@ -123,7 +129,7 @@ export function scanTextSecrets(doc: Document, opts: TextScanOptions): TextScanR
           range.setEnd(node, m.end);
           const boxes = Array.from(range.getClientRects());
           if (boxes.length) kinds.add(m.kind);
-          for (const b of boxes) push(b, off);
+          for (const b of boxes) push(b, off, m.kind);
         } catch {
           /* node changed under us */
         }
@@ -137,8 +143,8 @@ export function scanTextSecrets(doc: Document, opts: TextScanOptions): TextScanR
       const found = findSecrets(value, opts);
       if (!found.length) return;
       for (const m of found) kinds.add(m.kind);
-      push(el.getBoundingClientRect(), off);
+      push(el.getBoundingClientRect(), off, found[0]!.kind);
     }
   }
-  return { rects, kinds: [...kinds], incomplete };
+  return { rects, labels, kinds: [...kinds], incomplete };
 }

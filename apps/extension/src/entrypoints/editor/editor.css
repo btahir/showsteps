@@ -51,9 +51,9 @@
 .steps-tab .step {
   gap: 8px;
 }
+/* List thumbnails fill the column with the focus frame (review #32). */
 .step-thumb-small {
   margin-left: 38px;
-  max-width: 220px;
 }
 .ed-detail {
   display: grid;
@@ -114,3 +114,33 @@
     display: none;
   }
 }
+
+/* "Guide not found" offers the library (review #31) */
+.missing-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  width: min(520px, 100%);
+  text-align: left;
+  display: grid;
+  gap: 2px;
+}
+.missing-list a {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--ss-radius-md);
+  color: var(--ss-ink);
+  text-decoration: none;
+}
+.missing-list a:hover {
+  background: var(--ss-surface-2);
+}
+.missing-list a:focus-visible {
+  outline: none;
+  box-shadow: var(--ss-focus);
+}
+.missing-title {
+  font-weight: var(--ss-weight-semibold);
+}
+.small { font-size: 12.5px; }

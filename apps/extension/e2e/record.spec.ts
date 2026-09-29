@@ -3,6 +3,7 @@
 import { expect, test } from "@playwright/test";
 import type { Download, Page } from "@playwright/test";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync, strFromU8 } from "fflate";
@@ -197,6 +198,8 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
     expect(bytes.length, fmt).toBeGreaterThan(100);
     for (const t of texts(bytes)) expect(t.includes(SECRET), `${fmt} leaks the password`).toBe(false);
   }
+  // Titles are shown with typographic quotes in the HTML guide (design review #3).
+  expect(Buffer.from(saved.html!).toString("utf8")).toContain("\u201c");
   const md = Object.entries(unzipSync(saved.markdown!)).find(([p]) => p.endsWith(".md"));
   expect(md && strFromU8(md[1])).toContain("Click **Save**");
   const skill = Object.keys(unzipSync(saved.skill!));
@@ -205,6 +208,31 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
   expect(skill.some((p) => p.endsWith("replay.spec.ts"))).toBe(true);
   expect(Buffer.from(saved.pdf!.subarray(0, 5)).toString()).toBe("%PDF-");
   expect(Object.keys(unzipSync(saved.project!))).toContain("guide.json");
+
+  // ---- replay: the exported replay.spec.ts runs against the fixtures (ACCEPTANCE G3, G5) ---------
+  const REPLAY = join(ARTIFACTS, "replay");
+  rmSync(REPLAY, { recursive: true, force: true });
+  mkdirSync(REPLAY, { recursive: true });
+  for (const [p, bytes] of Object.entries(unzipSync(saved.skill!))) {
+    if (!p.endsWith("replay.spec.ts") && !p.endsWith("SKILL.md") && !p.endsWith("steps.json")) continue;
+    writeFileSync(join(REPLAY, p.split("/").pop()!), bytes);
+  }
+  writeFileSync(
+    join(REPLAY, "playwright.config.ts"),
+    `import { defineConfig } from "@playwright/test";\nexport default defineConfig({ testDir: ".", timeout: 60_000, workers: 1, reporter: [["line"]], use: { headless: true }, outputDir: "./results" });\n`,
+  );
+  expect(readFileSync(join(REPLAY, "replay.spec.ts"), "utf8")).not.toContain(SECRET);
+  const cli = resolve(here, "../node_modules/.bin/playwright");
+  // A clean child run: drop the worker variables of this Playwright run.
+  const baseEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(TEST_|PW_TEST|PWTEST|SHOWSTEPS_SECRET)/.test(k)));
+  const replay = (env: Record<string, string>) =>
+    spawnSync(cli, ["test", "--config", join(REPLAY, "playwright.config.ts")], { cwd: REPLAY, env: { ...baseEnv, ...env }, encoding: "utf8", timeout: 120_000 });
+  const ok = replay({ SHOWSTEPS_SECRET_1: SECRET });
+  writeFileSync(join(OUT, "replay-output.txt"), `${ok.stdout}\n${ok.stderr}`);
+  expect(ok.status, `replay failed:\n${ok.stdout}\n${ok.stderr}`).toBe(0);
+  expect(ok.stdout).toMatch(/1 passed/);
+  const noSecret = replay({ SHOWSTEPS_SECRET_1: "" });
+  expect(noSecret.stdout).toMatch(/1 skipped/);
 
   // ---- import the project back (agent hand-off path) ------------------------------------------
   const projectPath = join(OUT, readdirSync(OUT).find((f) => f.endsWith(".showsteps"))!);

@@ -37,7 +37,8 @@ const CSS = `
 .wrap { position: fixed; left: 50%; bottom: var(--bottom, ${MARGIN}px); transform: translateX(-50%); z-index: 2147483647;
   font: 600 14px/1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: ${PAPER};
   -webkit-font-smoothing: antialiased; letter-spacing: 0; text-transform: none; }
-.wrap.is-hidden { opacity: 0 !important; transition: none !important; pointer-events: none; }
+/* Invisible for the capture but still clickable: a click during the few ms of a capture must not fall through to the page. */
+.wrap.is-hidden { opacity: 0 !important; transition: none !important; }
 .bar { display: flex; align-items: center; gap: 4px; height: ${HEIGHT}px; padding: 0 6px 0 4px; border-radius: 999px; background: ${INK};
   box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 12px 32px -8px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
   box-sizing: border-box; white-space: nowrap; user-select: none; -webkit-user-select: none; touch-action: none; cursor: grab; }
@@ -162,7 +163,7 @@ export class RecBar {
   hideForCapture(): Promise<void> {
     clearTimeout(this.hideTimer);
     // Never stay hidden if the "show" never comes (worker restarted mid-capture).
-    this.hideTimer = setTimeout(() => this.showAfterCapture(), 2500);
+    this.hideTimer = setTimeout(() => this.showAfterCapture(), 1500);
     if (!this.host.isConnected) return Promise.resolve();
     if (this.wrap.classList.contains("is-hidden") && this.painted) return this.painted;
     this.wrap.classList.add("is-hidden");

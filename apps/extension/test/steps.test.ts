@@ -62,7 +62,11 @@ describe("buildStep", () => {
       at: "2026-09-28T10:00:00.000Z",
     };
     const s = buildStep("s_3", d, frame);
-    expect(s.screenshot!.redactions).toEqual([{ rect: { x: 592, y: 792, width: 496, height: 88 }, style: "blur", auto: true }]);
+    expect(s.screenshot!.redactions).toEqual([{ rect: { x: 592, y: 792, width: 496, height: 88 }, style: "mask", auto: true }]);
+    // With labels (review #26) and the tab corner measured at capture (review #5).
+    const labeled = buildStep("s_4", { ...d, sensitiveLabels: ["Card number", null], corner: "bottom-right" }, frame);
+    expect(labeled.screenshot!.redactions![0]!.label).toBe("Card number");
+    expect(labeled.screenshot!.highlight!.corner).toBe("bottom-right");
   });
 
   it("merges two reports of the same field into one redaction", () => {
@@ -103,10 +107,13 @@ describe("guide helpers", () => {
     });
   });
 
-  it("titles a guide from the first page", () => {
-    const d = new Date("2026-09-28T10:00:00Z");
-    expect(titleFromPage({ url: "http://x", title: "Sign in – Acme Books" }, d)).toBe("Sign in – Acme Books — Sep 28");
-    expect(titleFromPage({ url: "https://books.acme.test/a" }, d)).toBe("books.acme.test — Sep 28");
-    expect(titleFromPage(undefined, d)).toBe("Guide — Sep 28");
+  it("titles a guide from the first page, site first, no date (review #2)", () => {
+    expect(titleFromPage({ url: "http://x", title: "Sign in – Acme Books" })).toBe("Acme Books: Sign in");
+    expect(titleFromPage({ url: "http://x", title: "Inbox (3) - Mail — Example" })).toBe("Example: Inbox (3)");
+    expect(titleFromPage({ url: "http://x", title: "Settings | Acme" })).toBe("Acme: Settings");
+    expect(titleFromPage({ url: "http://x", title: "Dashboard" })).toBe("Dashboard");
+    expect(titleFromPage({ url: "http://x", title: "Well-known name" })).toBe("Well-known name");
+    expect(titleFromPage({ url: "https://www.books.acme.test/a" })).toBe("books.acme.test");
+    expect(titleFromPage(undefined)).toBe("Untitled guide");
   });
 });

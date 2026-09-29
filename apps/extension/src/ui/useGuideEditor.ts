@@ -167,6 +167,7 @@ export function useGuideEditor(guideId: string | undefined): GuideEditor {
     void getGuide(m.guideId).then((remote) => {
       const local = latest.current;
       if (!remote) return;
+      setMissing(false);
       if (!local || (!dirty.current && !past.length)) {
         if (local) {
           const known = new Set(local.steps.map((s) => s.id));

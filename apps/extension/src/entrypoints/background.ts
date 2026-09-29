@@ -1,10 +1,11 @@
 // Service worker: owns the recording session, captures screenshots (rate-limited), turns
 // recorder drafts into steps and stores them. Everything stays in this browser profile.
 
+import { localIso } from "../lib/time";
 import { acceptsSteps, IDLE, isActive, reduceSession, shouldJoin } from "../lib/session";
 import type { SessionEvent, SessionState } from "../lib/session";
 import { CaptureQueue } from "../lib/capture-queue";
-import { buildStep, newGuide, titleFromPage } from "../lib/steps";
+import { buildStep, newGuide, safeTitle, titleFromPage } from "../lib/steps";
 import type { FrameInfo, StepDraft } from "../lib/steps";
 import { amendStep, appendStep, indexOfStep, newId } from "../lib/guide-ops";
 import { deleteGuide, getGuide, mutateGuide, putGuide, putImage } from "../lib/db";
@@ -17,6 +18,8 @@ import type { AnyMessage, BarState, Broadcast, ControlReply, HelloReply, ScanRep
 const RECORDER_ID = "showsteps-recorder";
 const RECORDER_FILE = "recorder.js";
 const ALL_URLS = { origins: ["<all_urls>"] };
+/** How long unredacted originals outlive the last editor that held them (memory only). */
+const ORIGINALS_GRACE_MS = 2000;
 
 interface Frame extends FrameInfo {
   blob: Blob;
@@ -146,7 +149,8 @@ export default defineBackground(() => {
   async function grab(tabId: number): Promise<Frame | null> {
     const tab = await chrome.tabs.get(tabId).catch(() => undefined);
     if (!tab?.active || tab.windowId === undefined) return null; // captureVisibleTab only sees the active tab
-    // The recording bar must never be in a screenshot: hide it, capture, show it again.
+    // The recording bar must never be in a screenshot: hide it, capture, show it again (hiding
+    // changes opacity only, so the bar stays clickable for the few milliseconds it is invisible).
     if (!(await hideBar(tabId))) {
       showBar(tabId);
       if (DEBUG) console.warn("Showsteps: bar did not hide in time, capture skipped");
@@ -234,11 +238,16 @@ export default defineBackground(() => {
         debugLog.push({ title: step.title, rung: shot.rung, ...(amendId ? { amend: true } : {}) });
         await chrome.storage.session.set({ "debug:capture": debugLog }).catch(() => {});
       }
+      await ensureGuide(guideId, step.page);
       let amended = false;
       const saved = await mutateGuide(guideId, (g) => {
-        if (amendId && indexOfStep(g, amendId) >= 0) {
+        const at = amendId ? indexOfStep(g, amendId) : -1;
+        // Navigate titles name the site only when it changed since the previous step.
+        const prev = (at >= 0 ? g.steps[at - 1] : g.steps[g.steps.length - 1])?.page;
+        step.title = safeTitle(step, prev);
+        if (at >= 0) {
           amended = true;
-          return amendStep(g, amendId, step);
+          return amendStep(g, amendId!, step);
         }
         return appendStep(g, step);
       });
@@ -267,9 +276,10 @@ export default defineBackground(() => {
     const draft: StepDraft = {
       action: { type: "navigate", url },
       page: { url, title: tab.title || undefined },
-      at: new Date().toISOString(),
+      at: localIso(),
       metrics: scan?.metrics ?? fallback,
       sensitiveRects: scan?.sensitiveRects,
+      sensitiveLabels: scan?.sensitiveLabels,
       sensitiveKinds: scan?.sensitiveKinds,
       // No answer from the page: nothing was scanned, so ask for a review rather than pass it as clean.
       scanIncomplete: scan ? !!scan.scanIncomplete : isRecordableUrl(url),
@@ -318,8 +328,12 @@ export default defineBackground(() => {
       set?.delete(port);
       if (!set?.size) {
         originalPorts.delete(claimed);
-        // Closing the last editor drops them, unless this guide is still being recorded.
-        if (!(isActive(state) && state.guideId === claimed)) originals.drop(claimed);
+        // Closing the last editor drops them, unless this guide is still being recorded. A short
+        // grace period lets the next view take over (panel closing as the editor tab opens).
+        const g = claimed;
+        setTimeout(() => {
+          if (!originalPorts.get(g)?.size && !(isActive(state) && state.guideId === g)) originals.drop(g);
+        }, ORIGINALS_GRACE_MS);
       }
     });
   });
@@ -360,23 +374,30 @@ export default defineBackground(() => {
     const scoped = allSites ? tabs : tabs.filter((t) => t.id === active?.id);
     const now = new Date();
     const existing = appendTo ? await getGuide(appendTo) : undefined;
+    // The guide record is created when its first step lands (ensureGuide), so starting on a page
+    // Chrome does not let us record leaves no empty guide behind.
     const guideId = existing?.id ?? newId("g");
-    if (!existing) {
-      await putGuide(newGuide(guideId, now.toISOString(), chrome.runtime.getManifest().version, titleFromPage(active && { url: active.url ?? "", title: active.title }, now)));
-    }
     const tabIds = scoped.map((t) => t.id).filter((id): id is number => id !== undefined);
     for (const t of scoped) if (t.id !== undefined) nav.lastUrl.set(t.id, t.url ?? "");
     // A new recording: originals of earlier ones are no longer needed by anyone new.
     if (!originalPorts.size) originals.clear();
     lastByTab.clear();
-    await dispatch({ type: "start", guideId, windowId, tabIds, at: now.toISOString(), scope });
+    await dispatch({ type: "start", guideId, windowId, tabIds, at: localIso(now), scope });
     await chrome.storage.session.set({ lastGuideId: guideId }).catch(() => {});
     if (allSites) await registerRecorder().catch((e) => console.warn("Showsteps: register failed", e));
     await Promise.all(scoped.filter((t) => t.id !== undefined && isRecordableUrl(t.url)).map((t) => inject(t.id!)));
     await closePanel(windowId);
     // First step: where the task starts.
-    if (active?.id !== undefined && isRecordableUrl(active.url)) await navigateStep(active.id, active.url);
-    return { ok: true, state };
+    const blocked = !(active?.id !== undefined && isRecordableUrl(active.url));
+    if (!blocked) await navigateStep(active!.id!, active!.url!);
+    return { ok: true, state, blocked };
+  }
+
+  /** Create the guide on its first step, titled from that step's page. */
+  async function ensureGuide(guideId: string, page: { url: string; title?: string }): Promise<void> {
+    if (await getGuide(guideId)) return;
+    const created = state.startedAt ?? localIso();
+    await putGuide(newGuide(guideId, created, chrome.runtime.getManifest().version, titleFromPage(page)));
   }
 
   async function stop(opts: { openEditor?: boolean } = {}): Promise<ControlReply> {
@@ -400,8 +421,8 @@ export default defineBackground(() => {
     const guideId = state.guideId;
     const windowId = state.windowId;
     await dispatch({ type: "stopped" });
-    // Straight to the editor, where the guide gets reviewed.
-    if (guideId && opts.openEditor !== false) {
+    // Straight to the editor, where the guide gets reviewed (if anything was recorded).
+    if (guideId && opts.openEditor !== false && (await getGuide(guideId))) {
       await chrome.tabs.create({ url: chrome.runtime.getURL(`/editor.html?guide=${encodeURIComponent(guideId)}`), windowId }).catch(() => {});
     }
     return { ok: true, state };

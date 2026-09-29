@@ -1,6 +1,7 @@
 // Pure, immutable edits on a Guide. The editor and side panel use these; the service
 // worker uses appendStep while recording. Every function returns a new Guide.
 
+import { localIso } from "./time";
 import type { Guide, Rect, Redaction, Step } from "@stepsnap/core";
 
 export function newId(prefix = "s"): string {
@@ -11,7 +12,7 @@ export function newId(prefix = "s"): string {
 }
 
 function touch(g: Guide, steps: Step[], now?: string): Guide {
-  return { ...g, steps, updatedAt: now ?? new Date().toISOString() };
+  return { ...g, steps, updatedAt: now ?? localIso() };
 }
 
 export function indexOfStep(g: Guide, id: string): number {
@@ -82,7 +83,7 @@ export function toggleSkip(g: Guide, id: string, now?: string): Guide {
 
 /** Insert a human-only note step after `afterId` (or at the start when afterId is null). */
 export function addNote(g: Guide, afterId: string | null, opts: { id?: string; title?: string; now?: string } = {}): Guide {
-  const now = opts.now ?? new Date().toISOString();
+  const now = opts.now ?? localIso();
   const at = afterId === null ? 0 : indexOfStep(g, afterId) + 1;
   const prev = g.steps[Math.max(0, at - 1)];
   const note: Step = {

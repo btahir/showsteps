@@ -8,6 +8,8 @@ import { defineConfig } from "@playwright/test";
 //   ../../../research/heavy.sh pnpm --filter @stepsnap/extension e2e
 export default defineConfig({
   testDir: "e2e",
+  // Generated files (the exported replay.spec.ts) live under e2e/.artifacts and are run by record.spec.ts itself.
+  testIgnore: ["**/.artifacts/**"],
   timeout: 120_000,
   workers: 1,
   retries: 0,

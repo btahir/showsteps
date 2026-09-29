@@ -42,14 +42,33 @@ export const SWATCHES = [
   { name: "Ink", value: "#1F1C19" },
 ] as const;
 
-const TILE_TEXT: Record<ExportFormat, { name: string; line: string; short: string; verb: string }> = {
-  pdf: { name: "PDF", line: "Print-ready, A4 or Letter", short: "PDF", verb: "PDF" },
-  html: { name: "Web page", line: "One .html file, works offline", short: "HTML", verb: "web page" },
-  markdown: { name: "Markdown", line: ".md and images, zipped", short: "MD", verb: "Markdown" },
-  docx: { name: "Word", line: ".docx you can keep editing", short: "DOCX", verb: "Word" },
-  skill: { name: "Agent skill", line: "SKILL.md, steps, Playwright", short: "SKILL", verb: "agent skill" },
-  project: { name: "Showsteps file", line: "Reopen and edit later", short: "FILE", verb: "file" },
+/** Tile descriptions; `{x}` parts are file names, set in mono (review #24). */
+const TILE_TEXT: Record<ExportFormat, { name: string; line: (string | { mono: string })[]; short: string; verb: string }> = {
+  pdf: { name: "PDF", line: ["Print-ready, A4 or Letter"], short: "PDF", verb: "PDF" },
+  html: { name: "Web page", line: ["One ", { mono: ".html" }, " file, works offline"], short: "HTML", verb: "web page" },
+  markdown: { name: "Markdown", line: [{ mono: ".md" }, " and images, zipped"], short: "MD", verb: "Markdown" },
+  docx: { name: "Word", line: [{ mono: ".docx" }, " you can keep editing"], short: "DOCX", verb: "Word" },
+  skill: { name: "Agent skill", line: [{ mono: "SKILL.md" }, ", steps, Playwright"], short: "SKILL", verb: "agent skill" },
+  project: { name: "Showsteps file", line: ["Reopen and edit later"], short: "FILE", verb: "file" },
 };
+
+/** "sign-in-acme…sep-28.html": keep the start and the extension when a file name is long (review #25). */
+export function middleTruncate(name: string, max = 34): string {
+  if (name.length <= max) return name;
+  const dot = name.lastIndexOf(".");
+  const ext = dot > 0 && name.length - dot <= 12 ? name.slice(dot) : "";
+  const stem = ext ? name.slice(0, dot) : name;
+  const keep = max - ext.length - 1;
+  const head = Math.ceil(keep * 0.6);
+  const tail = keep - head;
+  return `${stem.slice(0, head)}…${tail > 0 ? stem.slice(-tail) : ""}${ext}`;
+}
+
+/** A4 outside the US, Canada and a few others (SPEC §6: default from the locale). */
+function localePageSize(): "A4" | "Letter" {
+  const region = (navigator.language.split("-")[1] ?? "").toUpperCase();
+  return ["US", "CA", "MX", "PH", "CL", "CO", "VE", "GT", "PR"].includes(region) ? "Letter" : "A4";
+}
 
 const PREFS_KEY = "exportPrefs";
 interface Prefs {
@@ -58,6 +77,7 @@ interface Prefs {
   dim: boolean;
   urls: boolean;
   hidden: boolean;
+  pageSize?: "A4" | "Letter";
 }
 const DEFAULT_PREFS: Prefs = { format: "pdf", color: SWATCHES[0].value, dim: true, urls: true, hidden: false };
 
@@ -129,6 +149,7 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
           dim: prefs.dim,
           includeUrls: prefs.urls,
           includeHidden: prefs.hidden,
+          pageSize: prefs.pageSize ?? localePageSize(),
           onProgress: (done, total) => setPhase({ kind: "busy", done, total }),
         });
         download(file);
@@ -148,7 +169,7 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
   return (
     <dialog ref={ref} className={`export export-${variant}`} aria-labelledby="export-title" onClose={onClose} onCancel={onClose}>
       <div className="export-head">
-        <h2 id="export-title">Export guide</h2>
+        <h2 id="export-title">{phase.kind === "saved" ? (phase.format === "copy" ? "Copied" : "Saved") : "Export guide"}</h2>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
           <IconClose />
         </button>
@@ -162,7 +183,9 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
             </span>
             <div className="saved-text">
               <strong>{phase.format === "copy" ? "Markdown copied" : "Guide saved"}</strong>
-              <span className="mono muted">{phase.filename}</span>
+              <span className="mono muted" title={phase.filename}>
+                {phase.format === "copy" ? phase.filename : middleTruncate(phase.filename)}
+              </span>
             </div>
             <button type="button" className="btn" onClick={() => setPhase({ kind: "choose" })}>
               Export another
@@ -224,8 +247,10 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
                   disabled={busy}
                 >
                   <span className="tile-name">{t.name}</span>
-                  <span className="tile-line">{t.line}</span>
-                  {on && <span className="tile-dot" aria-hidden />}
+                  <span className="tile-line">
+                    {t.line.map((part, i) => (typeof part === "string" ? <span key={i}>{part}</span> : <span key={i} className="mono">{part.mono}</span>))}
+                  </span>
+                  <span className="tile-dot" aria-hidden />
                 </button>
               );
             })}
@@ -252,6 +277,25 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
             <Switch id="opt-dim" label="Dim around the highlight" checked={prefs.dim} onChange={(dim) => update({ dim })} />
             <Switch id="opt-urls" label="Show page addresses" checked={prefs.urls} onChange={(urls) => update({ urls })} />
             <Switch id="opt-hidden" label="Include hidden steps" checked={prefs.hidden} onChange={(hidden) => update({ hidden })} />
+            {prefs.format === "pdf" && (
+              <div className="opt-row">
+                <span id="page-size-label">Page size</span>
+                <div className="seg seg-inline" role="radiogroup" aria-labelledby="page-size-label">
+                  {(["A4", "Letter"] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      role="radio"
+                      className="seg-btn"
+                      aria-checked={(prefs.pageSize ?? localePageSize()) === size}
+                      onClick={() => update({ pageSize: size })}
+                    >
+                      <span>{size}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (

@@ -1,8 +1,8 @@
 // Turns what the recorder saw (action, element, CSS rects, page metrics) plus the captured
 // frame into a schema Step. Pure apart from the core helpers it calls.
 
-import { autoRedactions, generateStepTitle } from "@stepsnap/core";
-import type { ElementDescriptor, Rect, Redaction, Step, StepAction } from "@stepsnap/core";
+import { autoRedactions, defaultGuideTitle, generateStepTitle } from "@stepsnap/core";
+import type { ElementDescriptor, Rect, Redaction, Step, StepAction, TabCorner } from "@stepsnap/core";
 import { cssRectToImage, padRect } from "./rect";
 import type { Viewport } from "./rect";
 
@@ -15,11 +15,15 @@ export interface PageMetricsLike {
 export interface StepDraft {
   action: StepAction;
   target?: ElementDescriptor;
-  page: { url: string; title?: string; tabId?: number };
+  page: { url: string; title?: string; tabId?: number; dir?: "ltr" | "rtl" };
   /** Target box in top-level viewport CSS px, measured before the action. */
   rect?: Rect;
   /** Other sensitive fields visible at the same moment (CSS px), blurred automatically. */
   sensitiveRects?: Rect[];
+  /** Parallel to `sensitiveRects`: the field's or pattern's name ("Password", "Card number"). */
+  sensitiveLabels?: (string | null)[];
+  /** Which way the numbered tab should point (least text under it), measured at capture. */
+  corner?: TabCorner;
   /** What the text scan found among those rects ("card", "token", ...), for the editor's chip. */
   sensitiveKinds?: string[];
   /** The redaction scan ran out of time or a frame did not answer: the step needs a human look. */
@@ -68,13 +72,14 @@ function coreAutoRedactions(step: Step): Redaction[] {
     return autoRedactions(step);
   } catch {
     // Fallback with the same meaning: a sensitive target is blurred over its highlight box.
-    return step.target?.sensitive && step.screenshot?.highlight ? [{ rect: step.screenshot.highlight, style: "blur", auto: true }] : [];
+    return step.target?.sensitive && step.screenshot?.highlight ? [{ rect: step.screenshot.highlight, style: "mask", auto: true }] : [];
   }
 }
 
-export function safeTitle(step: Pick<Step, "action" | "target" | "page">): string {
+/** Title for a step; navigate titles name the site only when it differs from the previous step's. */
+export function safeTitle(step: Pick<Step, "action" | "target" | "page">, previousPage?: Step["page"]): string {
   try {
-    return generateStepTitle(step);
+    return generateStepTitle(step, { previousPage });
   } catch {
     return step.action.type === "navigate" ? "Go to the page" : "Step";
   }
@@ -100,20 +105,25 @@ export function buildStep(id: string, d: StepDraft, frame?: FrameInfo): Step {
       viewport: { ...viewport },
     };
     const highlight = d.rect ? cssRectToImage(d.rect, viewport, frame) : null;
-    if (highlight) shot.highlight = highlight;
+    if (highlight) shot.highlight = d.corner ? { ...highlight, corner: d.corner } : highlight;
     step.screenshot = shot;
 
     const scale = frame.width / Math.max(1, viewport.width);
-    const redactions: Redaction[] = coreAutoRedactions(step).map((r) => ({ ...r, auto: true }));
-    for (const css of d.sensitiveRects ?? []) {
+    // Automatic redactions look like a masked field (core "mask": the field's own background and a
+    // row of dots), are burnt into the stored image, and say what they cover ("Password").
+    const redactions: Redaction[] = coreAutoRedactions(step).map((r) => ({ ...r, style: "mask", auto: true }));
+    (d.sensitiveRects ?? []).forEach((css, i) => {
       const img = cssRectToImage(css, viewport, frame);
-      if (!img) continue;
+      if (!img) return;
       const padded = padRect(img, Math.round(REDACT_PAD * scale), frame.width, frame.height);
+      const label = d.sensitiveLabels?.[i] ?? undefined;
       const dup = redactions.find((r) => sameRect(r.rect, padded));
       // Keep one box per field, big enough to cover every report of it.
-      if (dup) dup.rect = union(dup.rect, padded);
-      else redactions.push({ rect: padded, style: "blur", auto: true });
-    }
+      if (dup) {
+        dup.rect = union(dup.rect, padded);
+        if (!dup.label && label) dup.label = label;
+      } else redactions.push({ rect: padded, style: "mask", auto: true, ...(label ? { label } : {}) });
+    });
     if (redactions.length) shot.redactions = redactions;
   }
 
@@ -134,14 +144,15 @@ export function newGuide(id: string, now: string, version: string, title = "Unti
   };
 }
 
-/** A readable default guide title from the first page recorded. */
-export function titleFromPage(page: { url: string; title?: string } | undefined, date: Date): string {
-  const when = date.toLocaleDateString("en", { month: "short", day: "numeric" });
-  const name = page?.title?.trim();
-  if (name) return `${name.length > 60 ? name.slice(0, 59) + "…" : name} — ${when}`;
+/**
+ * A readable default guide title from the first page recorded (design review #2), from core's
+ * defaultGuideTitle: site first ("Sign in – Acme Books" becomes "Acme Books: Sign in"), else the
+ * whole title, else the host name. No date: the meta row already shows when.
+ */
+export function titleFromPage(page: { url: string; title?: string } | undefined): string {
   try {
-    return `${new URL(page?.url ?? "").hostname} — ${when}`;
+    return defaultGuideTitle(page?.title, page?.url);
   } catch {
-    return `Guide — ${when}`;
+    return "Untitled guide";
   }
 }

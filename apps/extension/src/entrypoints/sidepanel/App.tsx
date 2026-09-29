@@ -7,15 +7,16 @@ import { openEditor, send, useLibrary, useSession, useToast } from "../../ui/hoo
 import { useGuideAssets } from "../../ui/useGuideAssets";
 import { useGuideEditor } from "../../ui/useGuideEditor";
 import { GuideHeader, GuideView, relTime } from "../../ui/GuideView";
+import { StepImage } from "../../ui/StepImage";
 import { EditToastView, ExportSheet, SimpleToast } from "../../ui/components";
 import { useTheme } from "../../ui/theme";
-import { loadRedactPrefs, saveRedactPrefs } from "../../lib/prefs";
-import type { RedactPrefs } from "../../lib/prefs";
+import { loadExportPrefs, loadRedactPrefs, saveExportPrefs, saveRedactPrefs } from "../../lib/prefs";
+import type { ExportPrefs, RedactPrefs } from "../../lib/prefs";
 import type { ThemePref } from "../../ui/theme";
 import {
   BrandIcon,
   BrandMark,
-  IconChevron,
+  IconChevronLeft,
   IconClose,
   IconCopy,
   IconDownload,
@@ -30,6 +31,8 @@ import {
 } from "../../ui/icons";
 
 const ALL_URLS = { origins: ["<all_urls>"] };
+const BLOCKED_NOTICE = "Chrome doesn't let extensions record this page. Switch to a normal tab to keep going.";
+const WAITING = "Waiting for Chrome…";
 
 type View = { kind: "library" } | { kind: "guide"; id: string } | { kind: "settings" };
 
@@ -40,6 +43,8 @@ export function App() {
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  /** Chrome's "allow on all sites" prompt is open (Record was pressed without the permission). */
+  const [asking, setAsking] = useState(false);
   const [toast, showToast] = useToast();
   useTheme();
   const recording = session.status === "recording" || session.status === "paused" || session.status === "stopping";
@@ -47,7 +52,8 @@ export function App() {
   // Pick the first view: the recording, the guide just recorded, or the library.
   useEffect(() => {
     if (recording && session.guideId) {
-      setView({ kind: "guide", id: session.guideId });
+      // Same view object when nothing changed, or this effect would loop.
+      if (view?.kind !== "guide" || view.id !== session.guideId) setView({ kind: "guide", id: session.guideId });
       return;
     }
     if (view) return;
@@ -57,10 +63,17 @@ export function App() {
       .catch(() => setView({ kind: "library" }));
   }, [recording, session.guideId, view]);
 
+  // The "can't record this page" notice goes away once a step lands or recording ends.
+  useEffect(() => {
+    if (!recording || session.stepCount > 0) setNotice((n) => (n === BLOCKED_NOTICE ? undefined : n));
+  }, [recording, session.stepCount]);
+
   const record = async (appendTo?: string) => {
     setError(undefined);
     setNotice(undefined);
     setBusy(true);
+    // Only say "waiting" when Chrome actually shows its prompt (it answers at once if already allowed).
+    const askTimer = setTimeout(() => setAsking(true), 200);
     try {
       // First awaited call in the click handler, so Chrome still sees the user gesture.
       let allSites = false;
@@ -68,10 +81,14 @@ export function App() {
         allSites = await chrome.permissions.request(ALL_URLS);
       } catch {
         allSites = false;
+      } finally {
+        clearTimeout(askTimer);
+        setAsking(false);
       }
       const win = await chrome.windows.getCurrent();
       const r = await send({ type: "ctl:start", windowId: win.id!, guideId: appendTo });
       if (!r?.ok) setError(r?.error ?? "Could not start recording.");
+      else if (r.blocked) setNotice(BLOCKED_NOTICE);
       else if (!allSites) setNotice("Recording this tab only. Allow all sites to follow you across tabs and sites.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -90,7 +107,9 @@ export function App() {
       showToast("Guide opened");
       setView({ kind: "guide", id });
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "That file could not be opened.");
+      // Plain words in the toast; the technical reason goes to the console (review #30).
+      console.warn("Showsteps: import failed", e);
+      showToast(`That file isn't a ${APP_NAME} guide. Choose a ${PROJECT_EXT} file you exported.`);
     } finally {
       if (openFile.current) openFile.current.value = "";
     }
@@ -99,13 +118,14 @@ export function App() {
   const topBar = (
     <nav className="topbar" aria-label="Panel">
       <BrandIcon size={22} />
-      {view?.kind !== "library" && !recording ? (
+      {recording ? (
+        <span className="crumb crumb-static">Recording</span>
+      ) : view && view.kind !== "library" ? (
+        // A back link: chevron first (review #27). On the library itself the H1 says "Guides".
         <button type="button" className="crumb" onClick={() => setView({ kind: "library" })}>
-          Guides <IconChevron />
+          <IconChevronLeft /> Guides
         </button>
-      ) : (
-        <span className="crumb crumb-static">{recording ? APP_NAME : "Guides"}</span>
-      )}
+      ) : null}
       <span className="spacer" />
       {view?.kind === "guide" && !recording && (
         <button type="button" className="icon-btn" aria-label="Open in the full editor" title="Open in the full editor" onClick={() => void openEditor(view.id)}>
@@ -148,6 +168,7 @@ export function App() {
         guideId={view.id}
         session={session}
         busy={busy}
+        asking={asking}
         onRecordMore={() => void record(view.id)}
         onMissing={() => setView({ kind: "library" })}
         showToast={showToast}
@@ -160,14 +181,21 @@ export function App() {
         <h1 id="empty-title">Show it once</h1>
         <p>Press Record and do the task the way you always do. Every click becomes a step with its own marked screenshot.</p>
         <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => void record()} disabled={busy}>
-          <span className="rec-ring" aria-hidden /> Start recording
+          {asking ? WAITING : <><span className="rec-ring" aria-hidden /> Start recording</>}
         </button>
-        <p className="muted small">
-          While recording, <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">P</kbd> pauses and{" "}
-          <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">S</kbd> stops
-        </p>
+        {/* Two rows, each chord kept on one line (review #29). */}
+        <dl className="shortcuts muted small" aria-label="Shortcuts while recording">
+          <dt>Pause</dt>
+          <dd>
+            <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">P</kbd>
+          </dd>
+          <dt>Stop</dt>
+          <dd>
+            <kbd className="kbd">Alt</kbd> <kbd className="kbd">Shift</kbd> <kbd className="kbd">S</kbd>
+          </dd>
+        </dl>
         <p className="small">
-          Have a {PROJECT_EXT} file?{" "}
+          Have a <span className="mono">{PROJECT_EXT}</span> file?{" "}
           <button type="button" className="link-btn" onClick={() => openFile.current?.click()}>
             Open it
           </button>
@@ -189,6 +217,7 @@ export function App() {
         onRecord={() => void record()}
         onImport={() => openFile.current?.click()}
         busy={busy}
+        asking={asking}
       />
     );
 
@@ -198,6 +227,11 @@ export function App() {
       {error && (
         <p className="panel-alert error" role="alert">
           {error}
+        </p>
+      )}
+      {asking && (
+        <p className="panel-alert panel-ask" role="status">
+          Chrome is asking to let {APP_NAME} follow you across tabs. Choose Allow, or Deny to record just this tab.
         </p>
       )}
       {notice && (
@@ -216,6 +250,7 @@ function GuidePane({
   guideId,
   session,
   busy,
+  asking,
   onRecordMore,
   onMissing,
   showToast,
@@ -223,6 +258,7 @@ function GuidePane({
   guideId: string;
   session: ReturnType<typeof useSession>;
   busy: boolean;
+  asking: boolean;
   onRecordMore: () => void;
   onMissing: () => void;
   showToast: (m: string) => void;
@@ -234,9 +270,27 @@ function GuidePane({
   const recording = isThis && (session.status === "recording" || session.status === "paused" || session.status === "stopping");
 
   useEffect(() => {
-    if (ed.missing) onMissing();
-  }, [ed.missing, onMissing]);
-  if (!ed.guide) return <div className="loading" aria-busy="true" />;
+    // While recording, the guide appears with its first step; until then there is nothing to show.
+    if (ed.missing && !recording) onMissing();
+  }, [ed.missing, recording, onMissing]);
+  if (!ed.guide) {
+    if (!recording) return <div className="loading" aria-busy="true" />;
+    return (
+      <>
+        <main className="guide-pane">
+          <ol className="steps steps-panel" aria-label="Steps">
+            <li className="step step-waiting" aria-live="polite">
+              <span className="ring-placeholder" aria-hidden />
+              <span className="muted">Click anything on the page. Steps appear here.</span>
+            </li>
+          </ol>
+        </main>
+        <footer className="panel-foot">
+          <RecordingControls session={session} />
+        </footer>
+      </>
+    );
+  }
 
   const copy = async () => {
     const { markdownText } = await import("../../lib/export");
@@ -255,12 +309,12 @@ function GuidePane({
           <RecordingControls session={session} />
         ) : (
           <>
-            <button type="button" className="btn" onClick={onRecordMore} disabled={busy}>
-              <span className="rec-ring" aria-hidden /> Record more
+            <button type="button" className="btn btn-record-more" onClick={onRecordMore} disabled={busy} aria-label={asking ? WAITING : "Record more"}>
+              {asking ? WAITING : <><span className="rec-ring" aria-hidden /> <span className="btn-label">Record more</span></>}
             </button>
             <span className="spacer" />
-            <button type="button" className="btn btn-ghost" onClick={() => void copy()} disabled={!ed.guide.steps.length}>
-              <IconCopy /> Copy
+            <button type="button" className="btn btn-ghost btn-copy" onClick={() => void copy()} disabled={!ed.guide.steps.length} aria-label="Copy as Markdown">
+              <IconCopy /> <span className="btn-label">Copy</span>
             </button>
             <button type="button" className="btn btn-primary" onClick={() => setExportOpen(true)} disabled={!ed.guide.steps.length}>
               Export <IconDownload />
@@ -330,8 +384,7 @@ function LibraryThumb({ g }: { g: GuideSummary }) {
   }, [g.id, g.firstImage]);
   return (
     <span className="lib-thumb" aria-hidden>
-      {url && <img src={url} alt="" />}
-      <span className="flag flag-mini">1</span>
+      {g.firstStep ? <StepImage step={g.firstStep} src={url} number={g.firstNumber} size="mini" frame="focus" alt="" /> : null}
     </span>
   );
 }
@@ -343,6 +396,7 @@ function Library({
   onRecord,
   onImport,
   busy,
+  asking,
 }: {
   guides: GuideSummary[];
   onOpen: (id: string) => void;
@@ -350,6 +404,7 @@ function Library({
   onRecord: () => void;
   onImport: () => void;
   busy: boolean;
+  asking: boolean;
 }) {
   const [q, setQ] = useState("");
   const shown = q ? guides.filter((g) => g.title.toLowerCase().includes(q.toLowerCase())) : guides;
@@ -377,8 +432,18 @@ function Library({
                 <LibraryThumb g={g} />
                 <span className="lib-text">
                   <span className="lib-title">{g.title}</span>
-                  <span className="muted small num">
-                    {g.stepCount} {g.stepCount === 1 ? "step" : "steps"} · {relTime(g.updatedAt)}
+                  <span className="lib-meta muted small num">
+                    <span>
+                      {g.stepCount} {g.stepCount === 1 ? "step" : "steps"}
+                    </span>
+                    <span className="dot" aria-hidden />
+                    <span>recorded {relTime(g.createdAt)}</span>
+                    {g.domain && (
+                      <>
+                        <span className="dot" aria-hidden />
+                        <span className="mono lib-domain">{g.domain}</span>
+                      </>
+                    )}
                   </span>
                 </span>
               </button>
@@ -402,7 +467,7 @@ function Library({
       <footer className="panel-foot">
         <span className="spacer" />
         <button type="button" className="btn btn-primary" onClick={onRecord} disabled={busy}>
-          <span className="rec-ring" aria-hidden /> Start recording
+          {asking ? WAITING : <><span className="rec-ring" aria-hidden /> Start recording</>}
         </button>
       </footer>
     </>
@@ -413,9 +478,11 @@ function Settings() {
   const [theme, setTheme] = useTheme();
   const [allSites, setAllSites] = useState<boolean>();
   const [prefs, setPrefs] = useState<RedactPrefs>();
+  const [exportPrefs, setExportPrefs] = useState<ExportPrefs>();
   useEffect(() => {
     void chrome.permissions.contains(ALL_URLS).then(setAllSites);
     void loadRedactPrefs().then(setPrefs);
+    void loadExportPrefs().then(setExportPrefs);
   }, []);
   const version = chrome.runtime.getManifest().version;
   return (
@@ -436,7 +503,7 @@ function Settings() {
           Access to all sites
           <span className="muted small block">{allSites ? "Allowed: recording follows you across tabs and sites." : "Not allowed: recording stays in one tab."}</span>
         </span>
-        {allSites && (
+        {allSites ? (
           <button
             type="button"
             className="btn"
@@ -447,6 +514,20 @@ function Settings() {
           >
             Revoke
           </button>
+        ) : (
+          allSites === false && (
+            <button
+              type="button"
+              className="btn"
+              onClick={async () => {
+                // A click is a user gesture, so Chrome can show its prompt.
+                await chrome.permissions.request(ALL_URLS).catch(() => false);
+                setAllSites(await chrome.permissions.contains(ALL_URLS));
+              }}
+            >
+              Allow
+            </button>
+          )
         )}
       </div>
       <div className="set-row">
@@ -468,6 +549,28 @@ function Settings() {
             const next = { emails: !prefs?.emails };
             setPrefs(next);
             await saveRedactPrefs(next);
+          }}
+        />
+      </div>
+      <div className="set-row">
+        <span>
+          <span id="credit-label">Add a small {APP_NAME} credit</span>
+          <span className="muted small block" id="credit-hint">
+            A “Made with {APP_NAME}” line at the end of exported guides. Off by default.
+          </span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          className="switch"
+          aria-labelledby="credit-label"
+          aria-describedby="credit-hint"
+          aria-checked={!!exportPrefs?.credit}
+          disabled={!exportPrefs}
+          onClick={async () => {
+            const next = { credit: !exportPrefs?.credit };
+            setExportPrefs(next);
+            await saveExportPrefs(next);
           }}
         />
       </div>

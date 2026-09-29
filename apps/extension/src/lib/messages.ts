@@ -43,6 +43,7 @@ export type WorkerToTab =
 export interface ScanReply {
   metrics: NonNullable<StepDraft["metrics"]>;
   sensitiveRects: NonNullable<StepDraft["sensitiveRects"]>;
+  sensitiveLabels?: (string | null)[];
   sensitiveKinds?: string[];
   scanIncomplete?: boolean;
 }
@@ -63,4 +64,6 @@ export interface ControlReply {
   ok: boolean;
   state: SessionState;
   error?: string;
+  /** Recording started on a page Chrome does not let extensions record (chrome://, Web Store, PDF viewer). */
+  blocked?: boolean;
 }

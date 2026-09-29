@@ -88,4 +88,15 @@ test("side panel and editor, light and dark", async () => {
   await Promise.all([panel.waitForEvent("download"), panel.getByTestId("export-go").click()]);
   await expect(panel.getByRole("link", { name: /support showsteps/i })).toBeVisible();
   await both(panel, "panel-support");
+  await panel.getByRole("button", { name: "Close" }).click();
+
+  // Narrow panel (review #8), settings, library.
+  await panel.setViewportSize({ width: 320, height: 800 });
+  await both(panel, "panel-narrow-320");
+  await panel.setViewportSize({ width: 400, height: 900 });
+  await panel.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(panel.getByRole("switch", { name: /blur email addresses/i })).toBeVisible();
+  await both(panel, "panel-settings");
+  await panel.getByRole("button", { name: "Settings", exact: true }).click();
+  await both(panel, "panel-library");
 });

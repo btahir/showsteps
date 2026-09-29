@@ -3,7 +3,7 @@
 
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { Guide, Rect } from "@stepsnap/core";
+import type { Guide, Rect, Step } from "@stepsnap/core";
 
 export interface ImageRecord {
   key: string; // `${guideId}/${path}`
@@ -33,6 +33,23 @@ export interface GuideSummary {
   createdAt: string;
   stepCount: number;
   firstImage?: string;
+  /** First visible step with a screenshot and its number (library thumbnail with its flag). */
+  firstStep?: Step;
+  firstNumber?: number;
+  /** Host of the first recorded page, to tell apart guides with the same title. */
+  domain?: string;
+}
+
+function hostOf(g: Guide): string | undefined {
+  for (const s of g.steps) {
+    try {
+      const h = new URL(s.page.url).hostname;
+      if (h) return h;
+    } catch {
+      /* next */
+    }
+  }
+  return undefined;
 }
 
 let dbp: Promise<IDBPDatabase<StepsnapDB>> | undefined;
@@ -54,14 +71,21 @@ export const imageKey = (guideId: string, path: string) => `${guideId}/${path}`;
 export async function listGuides(): Promise<GuideSummary[]> {
   const all = await (await db()).getAll("guides");
   return all
-    .map((g) => ({
-      id: g.id,
-      title: g.title,
-      updatedAt: g.updatedAt,
-      createdAt: g.createdAt,
-      stepCount: g.steps.filter((s) => !s.skipped).length,
-      firstImage: g.steps.find((s) => s.screenshot && !s.skipped)?.screenshot?.image,
-    }))
+    .map((g) => {
+      const visible = g.steps.filter((s) => !s.skipped);
+      const i = visible.findIndex((s) => s.screenshot);
+      return {
+        id: g.id,
+        title: g.title,
+        updatedAt: g.updatedAt,
+        createdAt: g.createdAt,
+        stepCount: visible.length,
+        firstImage: visible[i]?.screenshot?.image,
+        firstStep: visible[i],
+        firstNumber: i >= 0 ? i + 1 : undefined,
+        domain: hostOf(g),
+      };
+    })
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 

@@ -49,8 +49,51 @@ function frameDocument(frame: Element): Document | null {
   }
 }
 
+export interface LabeledRect {
+  rect: Rect;
+  /** What the field is called ("Password", "Card number"), for the editor's "… blurred" chip. */
+  label?: string;
+}
+
+const tidy = (s: string | null | undefined): string | undefined => {
+  const t = (s ?? "").replace(/\s+/g, " ").replace(/[\s:*]+$/, "").trim();
+  return t ? (t.length > 40 ? t.slice(0, 39) + "…" : t) : undefined;
+};
+
+/** A short human name for a sensitive field: its label, else what its type or autocomplete says it holds. */
+export function fieldLabel(el: Element): string | undefined {
+  const aria = tidy(el.getAttribute("aria-label"));
+  if (aria) return aria;
+  const labelledBy = el.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    const t = tidy(labelledBy.split(/\s+/).map((id) => el.ownerDocument.getElementById(id)?.textContent ?? "").join(" "));
+    if (t) return t;
+  }
+  const labels = (el as HTMLInputElement).labels;
+  if (labels?.length) {
+    const t = tidy(labels[0]!.textContent);
+    if (t) return t;
+  }
+  const ac = (el.getAttribute("autocomplete") ?? "").toLowerCase();
+  const byAc: Record<string, string> = {
+    "cc-number": "Card number",
+    "cc-csc": "Security code",
+    "cc-exp": "Expiry date",
+    "one-time-code": "One-time code",
+    "current-password": "Password",
+    "new-password": "New password",
+  };
+  for (const [k, v] of Object.entries(byAc)) if (ac.includes(k)) return v;
+  if ((el.getAttribute("type") ?? "").toLowerCase() === "password") return "Password";
+  return tidy(el.getAttribute("placeholder"));
+}
+
 export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
-  const out: Rect[] = [];
+  return scanSensitiveLabeled(doc, deps).map((r) => r.rect);
+}
+
+export function scanSensitiveLabeled(doc: Document, deps: ScanDeps): LabeledRect[] {
+  const out: LabeledRect[] = [];
   const max = deps.maxResults ?? 60;
   const maxEls = deps.maxElements ?? 25_000;
   const roots: Root[] = [doc];
@@ -58,10 +101,10 @@ export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
   let visited = 0;
   const shadowOf = deps.shadowRootOf ?? ((el: Element) => el.shadowRoot);
 
-  const push = (el: Element) => {
+  const push = (el: Element, label?: string) => {
     try {
       const r = deps.rectOf(el);
-      if (onScreen(r, deps.viewport)) out.push(r);
+      if (onScreen(r, deps.viewport)) out.push({ rect: r, label });
     } catch {
       /* detached */
     }
@@ -75,7 +118,7 @@ export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
     for (const el of Array.from(root.querySelectorAll(FIELD_SELECTOR))) {
       if (out.length >= max) break;
       try {
-        if (deps.isSensitive(el)) push(el);
+        if (deps.isSensitive(el)) push(el, fieldLabel(el));
       } catch {
         /* ignore odd elements */
       }
@@ -90,7 +133,7 @@ export function scanSensitive(doc: Document, deps: ScanDeps): Rect[] {
         const d = frameDocument(el);
         if (d) roots.push(d);
         else if (deps.opaqueFrames) deps.opaqueFrames.push(el);
-        else if (frameLooksSensitive(el)) push(el);
+        else if (frameLooksSensitive(el)) push(el, "Payment or sign-in frame");
       }
     }
   }

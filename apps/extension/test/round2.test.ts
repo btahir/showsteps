@@ -98,11 +98,14 @@ describe("redaction chip", () => {
     expect(redactionChip(s, undefined, true)).toEqual({ text: "Password blurred", canUndo: true });
     expect(redactionChip(s, undefined, false)).toEqual({ text: "Password blurred", canUndo: false, note: "Blurred at capture for safety" });
   });
-  it("names text patterns", () => {
+  it("names what each redaction covers (labels stored at capture), then falls back to text kinds", () => {
+    const labeled = typeStep("s1", "", {
+      screenshot: { ...shot, redactions: [...auto(3).map((r, i) => ({ ...r, label: ["Password", "Card number", "password"][i] }))] },
+    });
+    expect(redactionChip(labeled, undefined, true)?.text).toBe("Password and 1 more blurred");
     const s = typeStep("s1", "", { screenshot: { ...shot, redactions: auto(2) } });
     expect(redactionChip(s, { kinds: ["card"] }, true)?.text).toBe("Card number blurred");
-    expect(redactionChip(s, { kinds: ["card", "token"] }, true)?.text).toBe("Card number and access token blurred");
-    expect(redactionChip(s, { kinds: ["card", "token", "ssn"] }, true)?.text).toBe("2 sensitive areas blurred");
+    expect(redactionChip(s, { kinds: ["card", "token", "ssn"] }, true)?.text).toBe("Card number and 2 more blurred");
     expect(redactionChip(s, {}, true)?.text).toBe("2 sensitive fields blurred");
   });
   it("is absent without automatic redactions; review chip when the scan was incomplete", () => {
@@ -143,5 +146,69 @@ describe("recording bar and presets", () => {
     expect(parseRedactPrefs(undefined)).toEqual({ emails: false });
     expect(parseRedactPrefs({ emails: "yes" })).toEqual({ emails: false });
     expect(parseRedactPrefs({ emails: true })).toEqual({ emails: true });
+  });
+});
+
+describe("local-offset timestamps (review #9)", () => {
+  it("writes the local wall-clock date with its offset", async () => {
+    const { localIso } = await import("../src/lib/time");
+    const d = new Date("2026-09-29T05:42:00.000Z");
+    const s = localIso(d);
+    expect(s).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+    expect(Date.parse(s)).toBe(d.getTime());
+    expect(Number(s.slice(8, 10))).toBe(d.getDate());
+  });
+});
+
+describe("focus frame thumbnails (review #4)", async () => {
+  const { focusFrame } = await import("../src/lib/rect");
+  const img = { width: 2560, height: 1600 };
+  it("is 16:10, centred on the target, at least 480 px and 40% wide", () => {
+    const f = focusFrame(img, { x: 1200, y: 700, width: 80, height: 40 });
+    expect(f.width).toBe(1024);
+    expect(f.height).toBe(640);
+    expect(f.x + f.width / 2).toBeCloseTo(1240, 0);
+    expect(f.y + f.height / 2).toBeCloseTo(720, 0);
+  });
+  it("stays inside the image near an edge", () => {
+    const f = focusFrame(img, { x: 2500, y: 10, width: 50, height: 20 });
+    expect(f.x + f.width).toBe(2560);
+    expect(f.y).toBe(0);
+  });
+  it("widens for big targets and fits tall ones", () => {
+    expect(focusFrame(img, { x: 100, y: 100, width: 600, height: 60 }).width).toBe(1824);
+    const tall = focusFrame(img, { x: 100, y: 100, width: 100, height: 900 });
+    expect(tall.height).toBeGreaterThanOrEqual(900);
+  });
+  it("shows the top of the page without a highlight, and respects the crop", () => {
+    expect(focusFrame({ width: 1280, height: 3000 })).toEqual({ x: 0, y: 0, width: 1280, height: 800 });
+    const crop = { x: 100, y: 100, width: 600, height: 400 };
+    const f = focusFrame(img, { x: 300, y: 300, width: 40, height: 20 }, crop);
+    expect(f.x).toBeGreaterThanOrEqual(100);
+    expect(f.x + f.width).toBeLessThanOrEqual(700);
+    expect(f.y + f.height).toBeLessThanOrEqual(500);
+  });
+});
+
+describe("tab corner at capture (review #5b)", async () => {
+  const { pickCorner, tabCandidates } = await import("../src/lib/tab-corner");
+  const vp = { width: 1280, height: 800 };
+  const target = { x: 400, y: 300, width: 16, height: 16 };
+  const c = tabCandidates(target, 1280);
+  it("keeps the default when nothing is under it", () => {
+    expect(pickCorner(c, [], vp)).toBeUndefined();
+    expect(pickCorner(c, [{ x: 0, y: 0, width: 50, height: 10 }], vp)).toBeUndefined();
+  });
+  it("moves the tab off a label that sits where the default tab would go", () => {
+    const label = { ...c["top-right"], width: 200 };
+    expect(pickCorner(c, [label], vp)).toBe("bottom-right");
+    const labelBelowToo = { ...c["bottom-right"], width: 200 };
+    expect(pickCorner(c, [label, labelBelowToo], vp)).toBe("top-left");
+  });
+  it("prefers the left side in RTL and skips tabs that would leave the viewport", () => {
+    const top = { x: 0, y: c["top-left"].y, width: 1280, height: c["top-left"].height };
+    expect(pickCorner(c, [top], vp, true)).toBe("bottom-left");
+    const edge = tabCandidates({ x: 400, y: 2, width: 60, height: 20 }, 1280);
+    expect(pickCorner(edge, [edge["bottom-right"]], vp)).toBe("bottom-left");
   });
 });

@@ -1,4 +1,5 @@
 // Import a .showsteps (or legacy .stepsnap) project into the library.
+import { localIso } from "./time";
 import { getGuide, putGuide, putImage } from "./db";
 import { newId } from "./guide-ops";
 import { readBundle } from "./export";
@@ -7,7 +8,7 @@ import { readBundle } from "./export";
 export async function importProject(file: Blob): Promise<string> {
   const { guide, images } = await readBundle(file);
   const exists = await getGuide(guide.id);
-  const now = new Date().toISOString();
+  const now = localIso();
   const g = exists ? { ...guide, id: newId("g"), title: `${guide.title} (copy)`, updatedAt: now } : { ...guide, updatedAt: now };
   for (const [path, blob] of Object.entries(images)) {
     const step = g.steps.find((s) => s.screenshot?.image === path);

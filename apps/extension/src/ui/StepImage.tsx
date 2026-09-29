@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as RKeyboardEvent, PointerEvent as RPointerEvent } from "react";
 import type { Rect, Step } from "@stepsnap/core";
 import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
-import { displayRectToImage, moveRect, resizeRect } from "../lib/rect";
+import { displayRectToImage, focusFrame, moveRect, resizeRect } from "../lib/rect";
 import type { Corner } from "../lib/rect";
 
 export type DrawMode = "none" | "blur" | "crop" | "highlight";
@@ -21,8 +21,10 @@ interface Props {
   /** Highlight moved or resized (image px). `coalesce` groups keyboard nudges into one undo step. */
   onHighlight?: (rect: Rect, via: "pointer" | "key") => void;
   showRedactionOutlines?: boolean;
-  /** "thumb": fixed-size flag for small previews (side panel); "large": export proportions. */
-  size?: "thumb" | "large";
+  /** "thumb": fixed-size flag for small previews (side panel); "large": export proportions; "mini": library rows. */
+  size?: "thumb" | "large" | "mini";
+  /** "focus": a 16:10 window around the target (list thumbnails); "full": the whole frame (plus crop). */
+  frame?: "full" | "focus";
   color?: string;
   alt: string;
 }
@@ -44,7 +46,7 @@ function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] 
   return [ref, w];
 }
 
-export function StepImage({ step, src, number, mode = "none", onDraw, onHighlight, showRedactionOutlines, size = "thumb", color, alt }: Props) {
+export function StepImage({ step, src, number, mode = "none", onDraw, onHighlight, showRedactionOutlines, size = "thumb", frame = "full", color, alt }: Props) {
   const sh = step.screenshot;
   const [wrap, width] = useWidth<HTMLDivElement>();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -53,6 +55,13 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
   // Highlight being dragged (image px), drawn live until the pointer is released.
   const [hlDrag, setHlDrag] = useState<{ start: Rect; px: number; py: number; part: Corner | "move"; rect: Rect } | null>(null);
   const liveHl = hlDrag?.rect ?? sh?.highlight;
+  /** The part of the image shown: whole image while cropping, a focus frame for list thumbs, else the crop. */
+  const viewOf = () => {
+    const full = { x: 0, y: 0, width: sh!.width, height: sh!.height };
+    if (mode === "crop") return full;
+    if (frame === "focus" && mode === "none") return focusFrame(sh!, sh!.highlight, sh!.crop, highlightScale(sh!.viewport.width, sh!.width / Math.max(1, sh!.viewport.width)));
+    return sh!.crop ?? full;
+  };
 
   useEffect(() => {
     void document.fonts?.load('750 16px "Rethink Sans"').finally(() => setFontsReady(true));
@@ -63,7 +72,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
     const c = canvas.current;
     if (!c || !sh || !width) return;
     const dpr = window.devicePixelRatio || 1;
-    const view = sh.crop ?? { x: 0, y: 0, width: sh.width, height: sh.height };
+    const view = viewOf();
     const cssH = (width * view.height) / view.width;
     c.width = Math.round(width * dpr);
     c.height = Math.round(cssH * dpr);
@@ -73,18 +82,21 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
     if (!liveHl) return;
     const s = c.width / view.width;
     const target = { x: (liveHl.x - view.x) * s, y: (liveHl.y - view.y) * s, width: liveHl.width * s, height: liveHl.height * s };
-    const thumbScale = (2.5 / flag.ringWidth) * dpr;
+    const thumbScale = ((size === "mini" ? 1.1 : 2.5) / flag.ringWidth) * dpr;
     const exportScale = highlightScale(sh.viewport.width, sh.width / Math.max(1, sh.viewport.width)) * s;
     drawFlagHighlight(ctx as unknown as Parameters<typeof drawFlagHighlight>[0], {
       target,
       n: number ?? "",
       imageWidth: c.width,
       imageHeight: c.height,
-      scale: size === "thumb" ? thumbScale : Math.max(thumbScale, exportScale),
+      scale: size === "large" ? Math.max(thumbScale, exportScale) : thumbScale,
       color: color ?? flag.color,
-      dim: size === "thumb" ? flag.spotlightDimThumb : flag.spotlightDim,
+      dim: size === "large" ? flag.spotlightDim : flag.spotlightDimThumb,
+      corner: hlDrag ? undefined : sh.highlight?.corner,
+      rtl: step.page.dir === "rtl",
     });
-  }, [sh, liveHl, width, number, size, color, fontsReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sh, liveHl, width, number, size, color, fontsReady, frame, mode]);
 
   useEffect(() => {
     if (mode !== "highlight") setHlDrag(null);
@@ -98,7 +110,7 @@ export function StepImage({ step, src, number, mode = "none", onDraw, onHighligh
     );
   }
 
-  const view = mode === "crop" ? { x: 0, y: 0, width: sh.width, height: sh.height } : sh.crop ?? { x: 0, y: 0, width: sh.width, height: sh.height };
+  const view = viewOf();
   const drawing = mode === "blur" || mode === "crop";
   const bounds = { width: sh.width, height: sh.height };
   /** Image px per display px (for pointer deltas and one-pixel keyboard nudges). */

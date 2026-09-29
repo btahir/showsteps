@@ -4,6 +4,7 @@
 //  - renderAnnotated: crop + redactions + highlight box + numbered step marker, for human
 //    exports (Markdown, HTML, PDF, DOCX) and previews.
 
+import { redactRegion } from "@stepsnap/core";
 import type { Rect, Redaction, Step } from "@stepsnap/core";
 import { clipRect, toCropSpace } from "./rect";
 import { drawFlagHighlight, highlight as flag, highlightScale } from "@stepsnap/brand";
@@ -41,6 +42,21 @@ export function obscure(ctx: Ctx, r: Rect, style: Redaction["style"], scale = 1)
     ctx.fillStyle = flag.redactSolidColor;
     ctx.fillRect(x, y, w, h);
     ctx.restore();
+    return;
+  }
+  if (style === "mask") {
+    // Automatic redactions: the field's own background, a thin border and a row of dots, drawn by
+    // core's rasteriser on the pixels (same result as the CLI and every exporter).
+    const cw = ctx.canvas.width;
+    const ch = ctx.canvas.height;
+    const x0 = Math.max(0, x);
+    const y0 = Math.max(0, y);
+    const w0 = Math.min(cw, x + w) - x0;
+    const h0 = Math.min(ch, y + h) - y0;
+    if (w0 <= 0 || h0 <= 0) return;
+    const img = ctx.getImageData(x0, y0, w0, h0);
+    redactRegion({ width: w0, height: h0, data: img.data as unknown as Uint8Array }, { x: 0, y: 0, width: w0, height: h0 }, "mask", scale);
+    ctx.putImageData(img, x0, y0);
     return;
   }
   // Block size: at least ~10 CSS px, and no more than 3 blocks per text line height.
@@ -128,6 +144,8 @@ export async function renderAnnotated(blob: Blob, step: Step, opts: AnnotateOpti
         scale: highlightScale(sh.viewport.width, k),
         color: opts.color ?? flag.color,
         dim: opts.dim === false ? "transparent" : undefined,
+        corner: sh.highlight.corner,
+        rtl: step.page.dir === "rtl",
       });
     }
   }

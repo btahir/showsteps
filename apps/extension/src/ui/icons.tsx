@@ -62,10 +62,11 @@ export const IconEyeOff = (p: P) => (
     <path d="M3 3l14 14M8.3 5.2A7.6 7.6 0 0 1 10 5c4.7 0 7.5 5 7.5 5a13 13 0 0 1-2.2 2.8M5.3 6.6A12.6 12.6 0 0 0 2.5 10s2.8 5 7.5 5a7 7 0 0 0 3.2-.8" />
   </svg>
 );
+/** Blur: a frame with a 45° hatch (review #32: the dotted grid read as a keyboard). */
 export const IconBlur = (p: P) => (
   <svg {...base(p)}>
-    <rect x="3.5" y="5" width="13" height="10" rx="1.5" />
-    <path d="M6.5 8h1M9.5 8h1M12.5 8h1M8 10h1M11 10h1M6.5 12h1M9.5 12h1M12.5 12h1" strokeWidth="1.8" />
+    <rect x="3.5" y="4.5" width="13" height="11" rx="1.5" />
+    <path d="M3.5 9.5l5-5M3.5 14.5l10-10M7.5 15.5l9-9M12.5 15.5l4-4" strokeWidth="1.3" />
   </svg>
 );
 export const IconCrop = (p: P) => (
@@ -85,9 +86,10 @@ export const IconNote = (p: P) => (
     <path d="M8 10h4M10 8v4" />
   </svg>
 );
+/** Lucide "merge" (ISC), redrawn on the 24 grid at the set's 1.6 px visual stroke. */
 export const IconMerge = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M6 3.5v4.5a4 4 0 0 0 4 4 4 4 0 0 1 4-4V3.5M10 12v4.5" />
+  <svg {...base({ viewBox: "0 0 24 24", strokeWidth: 1.9, ...p })}>
+    <path d="m8 6 4-4 4 4M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22M20 22l-5-5" />
   </svg>
 );
 export const IconSkip = (p: P) => (
@@ -166,15 +168,21 @@ export const IconPlus = (p: P) => (
   </svg>
 );
 
+/** Lucide "settings" gear (ISC); the old sun-like glyph read as a theme toggle (review #27). */
 export const IconSettings = (p: P) => (
-  <svg {...base(p)}>
-    <circle cx="10" cy="10" r="2.6" />
-    <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
+  <svg {...base({ viewBox: "0 0 24 24", strokeWidth: 1.9, ...p })}>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 export const IconChevron = (p: P) => (
   <svg {...base(p)}>
     <path d="M8 5l5 5-5 5" />
+  </svg>
+);
+export const IconChevronLeft = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 5l-5 5 5 5" />
   </svg>
 );
 export const IconCheck = (p: P) => (
@@ -208,13 +216,28 @@ export const BrandIcon = ({ size = 22, ...p }: P & { size?: number }) => (
 );
 
 /** packages/brand/mark.svg: ring and tab without the squircle, for empty states. */
-export const BrandMark = ({ size = 88, ...p }: P & { size?: number }) => (
-  <svg viewBox="12 12 104 104" width={size} height={size} aria-hidden focusable={false} {...p}>
-    <path
-      d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 55.5H95A5.5 5.5 0 0 1 100.5 61V91A5.5 5.5 0 0 1 95 96.5H33A5.5 5.5 0 0 1 27.5 91V61A5.5 5.5 0 0 1 33 55.5Z"
-      fill="var(--ss-accent)"
-      fillRule="evenodd"
-    />
-    <path d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5Z" fill="var(--ss-accent)" />
-  </svg>
-);
+/** The mark (packages/brand/mark.svg at 64 px and up: numeral cut into the tab, thinner ring; mark-small.svg below). */
+export const BrandMark = ({ size = 88, ...p }: P & { size?: number }) =>
+  size >= 64 ? (
+    <svg viewBox="12 12 104 104" width={size} height={size} aria-hidden focusable={false} {...p}>
+      <path
+        d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 53.5H95A7.5 7.5 0 0 1 102.5 61V91A7.5 7.5 0 0 1 95 98.5H33A7.5 7.5 0 0 1 25.5 91V61A7.5 7.5 0 0 1 33 53.5Z"
+        fill="var(--ss-accent)"
+        fillRule="evenodd"
+      />
+      <path
+        d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5ZM99.39 40L85.17 40L85.17 35.92L90.27 35.92L90.27 24.22L85.41 25.15L85.41 21.43L92.22 19L94.71 19L94.71 35.92L99.39 35.92L99.39 40Z"
+        fill="var(--ss-accent)"
+        fillRule="evenodd"
+      />
+    </svg>
+  ) : (
+    <svg viewBox="12 12 104 104" width={size} height={size} aria-hidden focusable={false} {...p}>
+      <path
+        d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 55.5H95A5.5 5.5 0 0 1 100.5 61V91A5.5 5.5 0 0 1 95 96.5H33A5.5 5.5 0 0 1 27.5 91V61A5.5 5.5 0 0 1 33 55.5Z"
+        fill="var(--ss-accent)"
+        fillRule="evenodd"
+      />
+      <path d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5Z" fill="var(--ss-accent)" />
+    </svg>
+  );
