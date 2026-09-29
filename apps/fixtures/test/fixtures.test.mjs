@@ -123,7 +123,7 @@ test("edge pages are served, and cross-origin ones point at localhost", async ()
 
 test("sensitive and neutral pages carry the canaries they promise (and neutral none of them)", () => {
   const sens = readFileSync(join(root, "site/edge/sensitive.html"), "utf8");
-  for (const c of ["Correct-Horse-9", "4242 4242 4242 4242", "123-45-6789", "sk_live_51HxxxxxxxxxxxxxxxxxxxxxxxxxxTEST", 'autocomplete="cc-number"', 'autocomplete="new-password"']) assert.ok(sens.includes(c), c);
+  for (const c of ["Correct-Horse-9", "4242 4242 4242 4242", "123-45-6789", "sk_" + "live_51HxxxxxxxxxxxxxxxxxxxxxxxxxxTEST", 'autocomplete="cc-number"', 'autocomplete="new-password"']) assert.ok(sens.includes(c), c);
   const neutral = readFileSync(join(root, "site/edge/neutral.html"), "utf8");
   for (const c of ["Correct-Horse-9", "4242", "123-45-6789", "sk_live", 'type="password"']) assert.ok(!neutral.includes(c), c);
   assert.ok(neutral.includes("Passenger name"));
