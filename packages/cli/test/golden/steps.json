@@ -35,9 +35,9 @@
       "id": "s3",
       "title": "Type in **Password**",
       "action": {
+        "masked": true,
         "type": "type",
-        "value": "•••",
-        "masked": true
+        "value": "•••"
       },
       "target": "Password",
       "url": "https://app.example.test/login",
@@ -64,9 +64,9 @@
       "id": "s5",
       "title": "Select **Monthly** in **Billing period**",
       "action": {
+        "optionText": "Monthly",
         "type": "select",
-        "value": "monthly",
-        "optionText": "Monthly"
+        "value": "monthly"
       },
       "target": "Billing period",
       "url": "https://app.example.test/settings",
@@ -79,8 +79,8 @@
       "id": "s6",
       "title": "Press **Enter**",
       "action": {
-        "type": "press",
-        "key": "Enter"
+        "key": "Enter",
+        "type": "press"
       },
       "url": "https://app.example.test/settings",
       "skipped": true,

@@ -31,9 +31,9 @@
     "id": "s4",
     "title": "Fill in **New password**",
     "action": {
+      "masked": true,
       "type": "type",
-      "value": "•••",
-      "masked": true
+      "value": "•••"
     },
     "target": "New password",
     "sensitive": true
