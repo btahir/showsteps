@@ -36,7 +36,7 @@ export default defineBackground(() => {
   const frames = new Map<string, { at: number; frame: Promise<Frame | null>; settled: boolean }>();
   // e2e builds log which capture rung each step used (PLAN §3.4), in storage.session["debug:capture"].
   const DEBUG = import.meta.env.MODE === "e2e";
-  const debugLog: { title: string; rung: string; amend?: boolean }[] = [];
+  const debugLog: { title: string; rung: string; amend?: boolean; stepId?: string; review?: boolean; needsReview?: string; scanMs?: number; highlight?: boolean }[] = [];
   const nav = createNavTracker();
   const newTabs = new Set<number>();
   const pendingNav = new Map<number, { url: string; timer: ReturnType<typeof setTimeout> }>();
@@ -234,7 +234,7 @@ export default defineBackground(() => {
       const last = lastByTab.get(tabId);
       const amendId = draft.amends && last && last.cid === draft.amends ? last.stepId : undefined;
       const id = amendId ?? newId("s");
-      const { amends: _a, cid: _c, sensitiveKinds, scanIncomplete, ...clean } = draft;
+      const { amends: _a, cid: _c, sensitiveKinds, scanIncomplete, needsReview, scanMs, ...clean } = draft;
       const step = buildStep(id, { ...clean, page: { ...draft.page, tabId } }, frame ?? undefined);
       if (frame && step.screenshot) {
         // Automatic redactions are burnt into the stored pixels now (auto: true = already burnt);
@@ -252,7 +252,16 @@ export default defineBackground(() => {
         if (step.screenshot) await putImage(guideId, step.screenshot.image, blob, step.screenshot.highlight, { kinds: sensitiveKinds, review: scanIncomplete });
       }
       if (DEBUG) {
-        debugLog.push({ title: step.title, rung: shot.rung, ...(amendId ? { amend: true } : {}) });
+        debugLog.push({
+          title: step.title,
+          rung: shot.rung,
+          stepId: id,
+          ...(amendId ? { amend: true } : {}),
+          ...(scanIncomplete ? { review: true } : {}),
+          ...(needsReview ? { needsReview } : {}),
+          ...(scanMs !== undefined ? { scanMs } : {}),
+          highlight: !!step.screenshot?.highlight,
+        });
         await chrome.storage.session.set({ "debug:capture": debugLog }).catch(() => {});
       }
       await ensureGuide(guideId, step.page);

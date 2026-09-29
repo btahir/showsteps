@@ -7,7 +7,7 @@
 // screen (shadow DOM and frames included) so those pixels get redacted.
 
 import { localIso } from "../lib/time";
-import { describeElement, isSensitive, pageMetrics, rectOf, resolveTarget, sensitiveRects as domSensitiveRects } from "@showsteps/dom";
+import { describeElement, isSensitive, pageMetrics, resolveTarget, sensitiveRects as domSensitiveRects } from "@showsteps/dom";
 import type { ElementDescriptor, Rect, StepAction, TabCorner } from "@showsteps/core";
 import { TypingTracker } from "../lib/typing";
 import { RecBar } from "../lib/rec-bar";
@@ -17,6 +17,8 @@ import { scanTextSecrets } from "../lib/text-scan";
 import type { PatternOptions } from "../lib/text-patterns";
 import { parseRedactPrefs, REDACT_PREFS_KEY } from "../lib/prefs";
 import { ask, contentBox, isFrameMsg, isRootFrame, msgId, offsetInto, TAG } from "../lib/frames";
+import { composeHops, rectThroughHop, visualViewportOf } from "../lib/rect";
+import type { FrameHop } from "../lib/rect";
 import type { FrameMsg } from "../lib/frames";
 import type { ControlMessage, HelloReply, RecorderMessage, ScanReply, WorkerToTab } from "../lib/messages";
 import type { StepDraft } from "../lib/steps";
@@ -65,6 +67,8 @@ export default defineUnlistedScript(() => {
   // Same-origin child frames are handled by the root above them.
   if (!isRootFrame()) return;
   const isTop = window.top === window;
+  /** How long a frame waits for its parent's answer before recording without placement (PLAN §3.8). */
+  const HANDSHAKE_MS = 250;
   const DEBUG = import.meta.env.MODE === "e2e";
   if (window.__showstepsRecorder) {
     window.__showstepsRecorder.sync();
@@ -251,7 +255,33 @@ export default defineUnlistedScript(() => {
 
   function metrics(): NonNullable<StepDraft["metrics"]> {
     const m = pageMetrics(window);
-    return { devicePixelRatio: m.devicePixelRatio, viewport: m.viewport };
+    // What the screenshot shows (pinch zoom), measured in the top frame (PLAN §3.8).
+    return isTop ? { devicePixelRatio: m.devicePixelRatio, viewport: m.viewport, visual: visualViewportOf(window) } : { devicePixelRatio: m.devicePixelRatio, viewport: m.viewport };
+  }
+
+  /** Composed hop from a same-origin frame document (managed by this root) to this root's viewport. */
+  function hopToRoot(doc: Document): FrameHop {
+    const hops: FrameHop[] = [];
+    let win: Window | null = doc.defaultView;
+    for (let guard = 0; win && win.document !== document && guard < 16; guard++) {
+      let fe: Element | null = null;
+      try {
+        fe = win.frameElement;
+      } catch {
+        fe = null;
+      }
+      if (!fe) break;
+      hops.unshift(contentBox(fe, fe.getBoundingClientRect()));
+      win = fe.ownerDocument.defaultView;
+    }
+    return composeHops(hops);
+  }
+
+  /** An element's box in this root's viewport CSS px, through same-origin frames (scaled ones too). */
+  function rectInRoot(el: Element): Rect {
+    const b = el.getBoundingClientRect();
+    const r = { x: b.x, y: b.y, width: b.width, height: b.height };
+    return el.ownerDocument === document ? r : rectThroughHop(r, hopToRoot(el.ownerDocument));
   }
 
   /** Open or closed shadow root of `el` (content scripts may open closed roots). */
@@ -276,7 +306,7 @@ export default defineUnlistedScript(() => {
     const opaque: Element[] = [];
     const viewport = { width: window.innerWidth, height: window.innerHeight };
     // Our own walk first: it knows each field's name for the "Password blurred" chip.
-    for (const r of scanSensitiveLabeled(document, { isSensitive, rectOf: (el) => rectOf(el), viewport, shadowRootOf, opaqueFrames: opaque })) {
+    for (const r of scanSensitiveLabeled(document, { isSensitive, rectOf: (el) => rectInRoot(el), viewport, shadowRootOf, opaqueFrames: opaque })) {
       rects.push(r.rect);
       labels.push(r.label ?? null);
     }
@@ -303,13 +333,13 @@ export default defineUnlistedScript(() => {
     }
     const local: ScanResult = { rects, labels, kinds, incomplete };
     const visible = opaque.filter((f) => {
-      const r = rectOf(f);
+      const r = rectInRoot(f);
       return r.width > 0 && r.height > 0 && r.x < window.innerWidth && r.y < window.innerHeight && r.x + r.width > 0 && r.y + r.height > 0;
     });
     if (!visible.length) return { local, remote: null };
     const remote = Promise.all(
       visible.map(async (f): Promise<ScanResult> => {
-        const border = rectOf(f);
+        const border = rectInRoot(f);
         const win = (f as HTMLIFrameElement).contentWindow;
         const reply = win ? await ask<Extract<FrameMsg, { kind: "scan-reply" }>>(win, { [TAG]: 1, kind: "scan", id: msgId() }, "scan-reply", 180) : undefined;
         if (reply) {
@@ -355,10 +385,12 @@ export default defineUnlistedScript(() => {
   }
 
   /** Where this root's viewport sits in the top-level viewport, and the top page's metrics. */
-  async function offsetInTop(): Promise<{ x: number; y: number; metrics?: StepDraft["metrics"] }> {
-    if (isTop) return { x: 0, y: 0, metrics: metrics() };
-    const r = await ask<Extract<FrameMsg, { kind: "offset-reply" }>>(window.parent, { [TAG]: 1, kind: "offset", id: msgId() }, "offset-reply", 400);
-    return r ? { x: r.x, y: r.y, metrics: r.metrics as StepDraft["metrics"] } : { x: 0, y: 0 };
+  async function offsetInTop(): Promise<FrameHop & { metrics?: StepDraft["metrics"]; ok: boolean }> {
+    if (isTop) return { x: 0, y: 0, scaleX: 1, scaleY: 1, metrics: metrics(), ok: true };
+    const r = await ask<Extract<FrameMsg, { kind: "offset-reply" }>>(window.parent, { [TAG]: 1, kind: "offset", id: msgId() }, "offset-reply", HANDSHAKE_MS);
+    return r
+      ? { x: r.x, y: r.y, scaleX: r.scaleX ?? 1, scaleY: r.scaleY ?? 1, metrics: r.metrics as StepDraft["metrics"], ok: true }
+      : { x: 0, y: 0, scaleX: 1, scaleY: 1, ok: false };
   }
 
   /** Every frame element in the documents this root manages (its own and same-origin frames). */
@@ -386,9 +418,12 @@ export default defineUnlistedScript(() => {
     } else if (msg.kind === "offset") {
       const frame = frameElements().find((f) => (f as HTMLIFrameElement).contentWindow === source);
       if (!frame) return;
-      const box = contentBox(frame, rectOf(frame));
+      // Child viewport → the frame's document → this root → the top frame (scales compose).
+      const local = contentBox(frame, frame.getBoundingClientRect());
       const mine = await offsetInTop();
-      source.postMessage({ [TAG]: 1, kind: "offset-reply", id: msg.id, x: mine.x + box.x, y: mine.y + box.y, metrics: mine.metrics } satisfies FrameMsg, "*");
+      if (!mine.ok) return; // our own parent is silent: let the child time out too (fail closed)
+      const hop = composeHops([mine, hopToRoot(frame.ownerDocument), local]);
+      source.postMessage({ [TAG]: 1, kind: "offset-reply", id: msg.id, x: hop.x, y: hop.y, scaleX: hop.scaleX, scaleY: hop.scaleY, metrics: mine.metrics } satisfies FrameMsg, "*");
     }
   }
 
@@ -420,11 +455,11 @@ export default defineUnlistedScript(() => {
     lastSent = { cid, fieldKey: typing?.fieldKey };
     if (el) {
       draft.target = snap?.target ?? describe(el);
-      draft.rect = snap?.rect ?? rectOf(el);
+      draft.rect = snap?.rect ?? rectInRoot(el);
       const corner = snap ? snap.corner : cornerFor(el, draft.rect);
       if (corner) draft.corner = corner;
       const label = labelOf(el);
-      if (label) draft.labelRect = rectOf(label);
+      if (label) draft.labelRect = rectInRoot(label);
     }
     const scan = snap?.sensitive ?? collectSensitive();
     const fallbackCaptureIds = knownFrames.filter((id) => id !== captureId).reverse();
@@ -447,10 +482,22 @@ export default defineUnlistedScript(() => {
         withScan(await allSensitive(scan));
         if (!isTop) {
           const off = await offsetInTop();
-          const shift = (r: Rect): Rect => ({ ...r, x: r.x + off.x, y: r.y + off.y });
-          if (draft.rect) draft.rect = shift(draft.rect);
-          if (draft.labelRect) draft.labelRect = shift(draft.labelRect);
-          draft.sensitiveRects = (draft.sensitiveRects ?? []).map(shift);
+          if (!off.ok) {
+            // The parent did not answer (it blocks messages, or has no recorder): we cannot place
+            // anything in the screenshot. Record the step without a highlight, and without claiming
+            // the redaction scan covered this frame (PLAN §3.8: fail closed, flag for review).
+            delete draft.rect;
+            delete draft.labelRect;
+            delete draft.corner;
+            draft.sensitiveRects = [];
+            draft.scanIncomplete = true;
+            draft.needsReview = "frame-handshake";
+          } else {
+            const shift = (r: Rect): Rect => rectThroughHop(r, off);
+            if (draft.rect) draft.rect = shift(draft.rect);
+            if (draft.labelRect) draft.labelRect = shift(draft.labelRect);
+            draft.sensitiveRects = (draft.sensitiveRects ?? []).map(shift);
+          }
           // Unknown metrics are filled in by the worker from the tab.
           draft.metrics = off.metrics;
         }
@@ -562,7 +609,7 @@ export default defineUnlistedScript(() => {
       const field = tracker.pendingKey;
       // A click anywhere but the field being typed in ends that field's step; both share the frame.
       if (field !== undefined && !(isTextField(el) && keyOf(el) === field)) flushTyping(captureId);
-      const rect = rectOf(el);
+      const rect = rectInRoot(el);
       pending = {
         el,
         captureId,
@@ -662,7 +709,7 @@ export default defineUnlistedScript(() => {
         pending = undefined;
         const captureId = snap?.captureId ?? requestCapture();
         if (!snap) flushTyping(captureId);
-        emit({ type: "check", checked: (o as HTMLInputElement).checked }, o, captureId, snap && { ...snap, target: describe(o), rect: rectOf(o) });
+        emit({ type: "check", checked: (o as HTMLInputElement).checked }, o, captureId, snap && { ...snap, target: describe(o), rect: rectInRoot(o) });
         return;
       }
       if (tagIs(o, "select")) {
@@ -675,7 +722,7 @@ export default defineUnlistedScript(() => {
         const action: StepAction = isSensitive(sel)
           ? { type: "select", value: "" }
           : { type: "select", value: sel.value, optionText: opt?.text.trim() || undefined };
-        emit(action, o, captureId, snap && { ...snap, target: describe(o), rect: rectOf(o) });
+        emit(action, o, captureId, snap && { ...snap, target: describe(o), rect: rectInRoot(o) });
         return;
       }
       const field = fieldOf(o);

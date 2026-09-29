@@ -3,7 +3,7 @@
 // imageWidth / viewportWidth (normally the devicePixelRatio, but zoom and scrollbars
 // make the real ratio differ slightly, so measure it from the image instead of trusting dpr).
 
-import { focusFrame as coreFocusFrame } from "@showsteps/core";
+import { clampRect, cssToImageRect as coreCssToImage, focusFrame as coreFocusFrame } from "@showsteps/core";
 import type { Rect } from "@showsteps/core";
 
 export interface Viewport {
@@ -30,21 +30,89 @@ export function clipRect(r: Rect, w: number, h: number): Rect | null {
 }
 
 /**
- * Viewport-relative CSS rect → image-pixel rect, clipped to the image.
- * One scale for both axes, measured from the width (PLAN §0.7: imageRect = cssRect × imageWidth /
- * viewportWidth). The captured height can differ from innerHeight (browser UI, emulated
- * viewports), the width does not. Returns null when the rect is off-screen or inputs are degenerate.
+ * The part of the page a screenshot shows, in layout-viewport CSS px (PLAN §3.8). At page scale 1
+ * this is the whole layout viewport: `{width: innerWidth, height: innerHeight, offsetLeft: 0,
+ * offsetTop: 0}`. With pinch zoom (`visualViewport.scale > 1`) only `innerWidth / scale` CSS px
+ * are on screen, starting at `visualViewport.offsetLeft/offsetTop`.
+ *
+ * Why `innerWidth / scale` and not `visualViewport.width`: `visualViewport.width` leaves out a
+ * classic scrollbar, but captureVisibleTab includes it, so the scale would be off by the
+ * scrollbar's share (about 1.2% at 1280 px, 12 px at the right edge).
+ */
+export interface VisualViewportLike {
+  width: number;
+  height: number;
+  offsetLeft: number;
+  offsetTop: number;
+  scale?: number;
+}
+
+/** What the recorder measures in the top frame (see VisualViewportLike). */
+export function visualViewportOf(win: Pick<Window, "innerWidth" | "innerHeight"> & { visualViewport?: { scale: number; offsetLeft: number; offsetTop: number } | null }): VisualViewportLike {
+  const vv = win.visualViewport;
+  const scale = vv && vv.scale > 0 ? vv.scale : 1;
+  return { width: win.innerWidth / scale, height: win.innerHeight / scale, offsetLeft: vv?.offsetLeft ?? 0, offsetTop: vv?.offsetTop ?? 0, scale };
+}
+
+/**
+ * Layout-viewport CSS rect → image-pixel rect, clipped to the image (PLAN §3.8):
+ *   sx = W / vv.width;  x0 = floor((r.x - vv.offsetLeft) * sx);  x1 = ceil((r.right - vv.offsetLeft) * sx)
+ * and the same for y with the same factor. The scale is measured from the image, never assumed to
+ * equal devicePixelRatio (browser zoom, pinch zoom and a 1 px rounding of the capture all fold into
+ * it). One factor for both axes: captureVisibleTab pixels are square, so an image whose height does
+ * not match the viewport's is a taller or shorter cut of the same page (headless viewport emulation,
+ * browser UI), never a stretched one; scaling y by H / vv.height would move every ring in that case.
+ * Outward rounding: the result always covers the element. Null when nothing is left on screen.
+ */
+export function cssRectToImageVV(css: Rect, vv: VisualViewportLike, image: { width: number; height: number }): Rect | null {
+  if (!(vv.width > 0) || !(image.width > 0) || !(image.height > 0)) return null;
+  const sx = image.width / vv.width;
+  const shifted = { x: css.x - vv.offsetLeft, y: css.y - vv.offsetTop, width: css.width, height: css.height };
+  const out = coreCssToImage(shifted, { devicePixelRatio: sx, round: "none" });
+  // Snap values within a millionth of a pixel first, so 100.5 * 2 does not round out to 202.
+  const snap = (v: number) => (Math.abs(v - Math.round(v)) < 1e-6 ? Math.round(v) : v);
+  const x0 = Math.floor(snap(out.x));
+  const y0 = Math.floor(snap(out.y));
+  const x1 = Math.ceil(snap(out.x + out.width));
+  const y1 = Math.ceil(snap(out.y + out.height));
+  const c = clampRect({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, image);
+  return c.width > 0 && c.height > 0 ? c : null;
+}
+
+/**
+ * Viewport-relative CSS rect → image-pixel rect when only the layout viewport is known (older
+ * drafts, worker-side navigations): page scale 1, no pinch offset.
  */
 export function cssRectToImage(
   css: Rect,
   viewport: Pick<Viewport, "width" | "height">,
   image: { width: number; height: number },
+  visual?: VisualViewportLike,
 ): Rect | null {
-  if (viewport.width <= 0 || image.width <= 0 || image.height <= 0) return null;
-  const k = image.width / viewport.width;
-  const scaled = { x: css.x * k, y: css.y * k, width: css.width * k, height: css.height * k };
-  const clipped = clipRect(scaled, image.width, image.height);
-  return clipped ? roundRect(clipped) : null;
+  return cssRectToImageVV(css, visual ?? { width: viewport.width, height: viewport.height, offsetLeft: 0, offsetTop: 0 }, image);
+}
+
+/**
+ * One hop of a frame chain: where a frame's content box sits in its parent's viewport, and how
+ * much the parent scales it (CSS `transform: scale(0.5)` on the iframe gives 0.5).
+ */
+export interface FrameHop {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+}
+
+/** Compose hops outermost first into one hop (frame viewport → top viewport). */
+export function composeHops(hops: FrameHop[]): FrameHop {
+  let acc: FrameHop = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
+  for (const h of hops) acc = { x: acc.x + h.x * acc.scaleX, y: acc.y + h.y * acc.scaleY, scaleX: acc.scaleX * h.scaleX, scaleY: acc.scaleY * h.scaleY };
+  return acc;
+}
+
+/** A rect in a frame's own viewport → the top-level viewport, through the composed hop. */
+export function rectThroughHop(r: Rect, hop: FrameHop): Rect {
+  return { x: hop.x + r.x * hop.scaleX, y: hop.y + r.y * hop.scaleY, width: r.width * hop.scaleX, height: r.height * hop.scaleY };
 }
 
 /** Image-pixel rect → rect in the coordinate space of an element showing the image at `displayWidth`. */

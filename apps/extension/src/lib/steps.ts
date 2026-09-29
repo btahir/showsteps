@@ -4,11 +4,13 @@
 import { autoRedactions, defaultGuideTitle, generateStepTitle } from "@showsteps/core";
 import type { ElementDescriptor, Rect, Redaction, Step, StepAction, TabCorner } from "@showsteps/core";
 import { cssRectToImage, padRect } from "./rect";
-import type { Viewport } from "./rect";
+import type { Viewport, VisualViewportLike } from "./rect";
 
 export interface PageMetricsLike {
   devicePixelRatio: number;
   viewport: Viewport;
+  /** What the screenshot shows (pinch zoom), measured in the top frame; not stored in the guide. */
+  visual?: VisualViewportLike;
 }
 
 /** What the content script (or the worker, for navigations) reports for one step. */
@@ -30,6 +32,10 @@ export interface StepDraft {
   sensitiveKinds?: string[];
   /** The redaction scan ran out of time or a frame did not answer: the step needs a human look. */
   scanIncomplete?: boolean;
+  /** Why the step needs a human look beyond the scan ("frame-handshake": a frame's parent did not answer). */
+  needsReview?: string;
+  /** Milliseconds the capture-time redaction scan took in the page (e2e debug log, R9). */
+  scanMs?: number;
   /** Typing that continues the step this recorder sent as `cid` (PLAN §3.6 amend). */
   amends?: string;
   /** Recorder-side id of this draft, so a later typing flush can amend it. */
@@ -98,7 +104,7 @@ export function buildStep(id: string, d: StepDraft, frame?: FrameInfo): Step {
   if (d.target) step.target = d.target;
 
   if (frame && d.metrics) {
-    const { viewport, devicePixelRatio } = d.metrics;
+    const { viewport, devicePixelRatio, visual } = d.metrics;
     const shot: NonNullable<Step["screenshot"]> = {
       image: `images/${id}.png`,
       width: frame.width,
@@ -106,19 +112,19 @@ export function buildStep(id: string, d: StepDraft, frame?: FrameInfo): Step {
       devicePixelRatio,
       viewport: { ...viewport },
     };
-    const highlight = d.rect ? cssRectToImage(d.rect, viewport, frame) : null;
+    const highlight = d.rect ? cssRectToImage(d.rect, viewport, frame, visual) : null;
     if (highlight) {
-      const labelRect = d.labelRect ? cssRectToImage(d.labelRect, viewport, frame) : null;
+      const labelRect = d.labelRect ? cssRectToImage(d.labelRect, viewport, frame, visual) : null;
       shot.highlight = { ...highlight, ...(d.corner ? { corner: d.corner } : {}), ...(labelRect ? { labelRect } : {}) };
     }
     step.screenshot = shot;
 
-    const scale = frame.width / Math.max(1, viewport.width);
+    const scale = frame.width / Math.max(1, visual?.width ?? viewport.width);
     // Automatic redactions look like a masked field (core "mask": the field's own background and a
     // row of dots), are burnt into the stored image, and say what they cover ("Password").
     const redactions: Redaction[] = coreAutoRedactions(step).map((r) => ({ ...r, style: "mask", auto: true }));
     (d.sensitiveRects ?? []).forEach((css, i) => {
-      const img = cssRectToImage(css, viewport, frame);
+      const img = cssRectToImage(css, viewport, frame, visual);
       if (!img) return;
       const padded = padRect(img, Math.round(REDACT_PAD * scale), frame.width, frame.height);
       const label = d.sensitiveLabels?.[i] ?? undefined;
