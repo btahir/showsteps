@@ -1,0 +1,16 @@
+{
+  "name": "@stepsnap/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "astro dev --port 4630",
+    "build": "astro build",
+    "preview": "astro preview --port 4630",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "astro": "^7.3.5"
+  }
+}
