@@ -84,7 +84,7 @@ const path = "/docs/agents/";
               <tr><th scope="row"><code>showsteps steps &lt;file&gt; [--json]</code></th><td>Steps with id, title, action, target, skipped and sensitive flags.</td></tr>
               <tr><th scope="row"><code>showsteps edit-step &lt;file&gt; --id &lt;id&gt; [--title T] [--description D] [--skip|--unskip] [--out F]</code></th><td>Edit one step. Overwrites the file unless <code>--out</code> is given.</td></tr>
               <tr><th scope="row"><code>showsteps regen-titles &lt;file&gt; [--out F]</code></th><td>Regenerate generated titles. Hand-edited titles are kept.</td></tr>
-              <tr><th scope="row"><code>showsteps export &lt;file&gt; --format md|html|pdf|docx|playwright|skill|all --out &lt;dir&gt; [--json]</code></th><td>Write exports. Comma lists work: <code>--format md,pdf</code>.</td></tr>
+              <tr><th scope="row"><code>showsteps export &lt;file&gt; --format md|html|pdf|docx|playwright|skill|all --out &lt;dir&gt; [--no-images] [--credit] [--json]</code></th><td>Write exports. Comma lists work: <code>--format md,pdf</code>. Exports carry no Showsteps branding unless you pass <code>--credit</code>.</td></tr>
               <tr><th scope="row"><code>showsteps new --from-steps &lt;steps.json&gt; --out &lt;file.showsteps&gt; [--title T]</code></th><td>Create a guide from a step list.</td></tr>
             </tbody>
           </table>
@@ -144,7 +144,7 @@ const path = "/docs/agents/";
               <tr><th scope="row"><code>list_steps</code></th><td><code>path</code>, <code>include_skipped?</code></td><td>Ordered steps with ids</td></tr>
               <tr><th scope="row"><code>edit_step</code></th><td><code>path</code>, <code>step_id</code>, <code>title?</code>, <code>description?</code>, <code>skipped?</code>, <code>out_path?</code></td><td>Updated step and changed fields</td></tr>
               <tr><th scope="row"><code>regenerate_titles</code></th><td><code>path</code>, <code>out_path?</code></td><td>Number of titles changed</td></tr>
-              <tr><th scope="row"><code>export_guide</code></th><td><code>path</code>, <code>format</code>, <code>out_dir</code></td><td>Absolute paths written</td></tr>
+              <tr><th scope="row"><code>export_guide</code></th><td><code>path</code>, <code>format</code>, <code>out_dir</code>, <code>include_images?</code>, <code>credit?</code></td><td>Absolute paths written</td></tr>
               <tr><th scope="row"><code>create_guide_from_steps</code></th><td><code>out_path</code>, <code>title</code>, <code>steps[]</code>, <code>description?</code>, <code>start_url?</code></td><td>Path, id, step count</td></tr>
             </tbody>
           </table>

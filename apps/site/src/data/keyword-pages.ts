@@ -174,7 +174,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     slug: "scribe-alternative-no-cloud-upload",
     label: "Scribe alternative without cloud upload",
     kind: "Privacy",
-    figure: { kind: "blur", alt: "Two crops of the same screenshot. Left: the raw capture of a sign-in form. Right: the exported screenshot with the password field blurred and outlined.", caption: "The same screenshot before and after export. The sensitive value is blurred into the picture, not hidden behind an overlay." },
+    figure: { kind: "blur", alt: "A mock account page showing a card number, tax ID, IBAN, session token and API key, next to the same step in the guide with those values masked.", caption: "Left: what the page showed. Right: what the guide keeps. Fake data throughout." },
     title: "A Scribe alternative that never uploads your screenshots",
     h1: "A Scribe alternative that never uploads your screenshots",
     description:

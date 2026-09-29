@@ -17,7 +17,7 @@ Recorded with Showsteps on 28 September 2026: 6 steps across 1 tab, starting at 
 
 ## Steps
 
-1. Go to **Settings – Acme**
+1. Go to **Settings** on Acme
    - URL: https://app.acme.test/settings
 2. Click **Team**
    - Find it by: role "link" named "Team"
@@ -34,5 +34,3 @@ Recorded with Showsteps on 28 September 2026: 6 steps across 1 tab, starting at 
 
 - `replay.spec.ts`: Playwright test for the whole flow.
 - `steps.json`: machine-readable steps (format `showsteps-steps`, version 1).
-
-Made with [Showsteps](https://showsteps.vercel.app).

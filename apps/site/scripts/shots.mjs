@@ -28,6 +28,7 @@ for (const scheme of ["light", "dark"]) {
     for (const p of paths) {
       await page.goto("http://localhost:4631" + p, { waitUntil: "networkidle" });
       await page.waitForTimeout(1400); // let one-shot hero animations finish
+      await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); } scrollTo(0, 0); }); // trigger lazy images
       const name = (p === "/" ? "home" : p.replace(/\//g, "_").replace(/^_|_$/g, "")) + `-${scheme}-${tag}.png`;
       await page.screenshot({ path: join(out, name), fullPage: true });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);

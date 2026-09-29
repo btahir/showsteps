@@ -1,0 +1,50 @@
+{
+  "card": {
+    "x": 417,
+    "y": 147,
+    "width": 172,
+    "height": 18
+  },
+  "ssn": {
+    "x": 417,
+    "y": 179,
+    "width": 99,
+    "height": 18
+  },
+  "iban": {
+    "x": 417,
+    "y": 211,
+    "width": 244,
+    "height": 18
+  },
+  "jwt": {
+    "x": 417,
+    "y": 243,
+    "width": 831,
+    "height": 18
+  },
+  "token": {
+    "x": 417,
+    "y": 275,
+    "width": 370,
+    "height": 18
+  },
+  "notes": {
+    "x": 225,
+    "y": 543,
+    "width": 830,
+    "height": 43
+  },
+  "button": {
+    "x": 225,
+    "y": 586,
+    "width": 141,
+    "height": 43
+  },
+  "panel": {
+    "x": 225,
+    "y": 145,
+    "width": 830,
+    "height": 151
+  }
+}

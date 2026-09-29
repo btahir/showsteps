@@ -17,9 +17,8 @@ const { figure } = Astro.props;
   )}
   {figure.kind === "blur" && (
     <div class="blur-pair">
-      <div><img src="/img/blur-before.webp" alt="" width="1200" height="340" decoding="async" /><span>Before: the raw capture</span></div>
-      <div><img src="/img/blur-after.webp" alt="" width="1200" height="340" decoding="async" /><span>After: the exported guide</span></div>
-      <span class="sr-only">{figure.alt}</span>
+      <div><img src="/img/privacy-before.webp" alt="A mock account page as it appeared on screen, showing a card number, tax ID, IBAN, session token and API key in plain text." width="880" height="605" decoding="async" /><span>Before: what the page showed</span></div>
+      <div><img src="/img/privacy-after.png" alt="The same page in the guide: those values are replaced by dots and the Refresh button is outlined." width="880" height="605" decoding="async" /><span>After: what the guide keeps</span></div>
     </div>
   )}
   <figcaption>{figure.caption}</figcaption>

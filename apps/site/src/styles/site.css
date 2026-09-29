@@ -908,24 +908,27 @@ table.compare {
   letter-spacing: -0.04em;
   max-width: none;
 }
+/* Matches drawFlagHighlight (packages/brand/tokens.ts): 3 px ring with the top-right corner squared; the tab (24 px, radius 7)
+   sits on the ring's outer corner, its bottom edge on the stroke's inner edge, with a 7 px concave fillet on its left. */
 .ring-word {
   position: relative;
   display: inline-block;
-  padding: 0 0.04em;
-  margin: 0 0.06em;
+  padding: 0.03em 0.15em 0.15em 0.1em;
+  margin: -0.03em 0.05em -0.15em;
 }
 .ring-word::before {
   content: "";
   position: absolute;
-  inset: 0.04em -0.1em -0.02em -0.1em;
+  inset: 0;
   border: 3px solid var(--ring);
   border-radius: 0.2em 0 0.2em 0.2em;
+  pointer-events: none;
   animation: ring-draw 600ms var(--ss-ease-out) 200ms both;
 }
 .ring-tab {
   position: absolute;
-  right: calc(-0.1em - 3px);
-  top: calc(0.04em - 3px - 24px);
+  right: 0;
+  bottom: calc(100% - 3px);
   height: 24px;
   min-width: 26px;
   padding: 0 7px;
@@ -933,7 +936,7 @@ table.compare {
   place-items: center;
   background: var(--ring);
   color: var(--ss-highlight-on);
-  border-radius: 8px 8px 0 8px;
+  border-radius: 7px 7px 0 0;
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 700;
@@ -941,9 +944,18 @@ table.compare {
   line-height: 1;
   animation: tab-drop var(--ss-dur-flag) var(--ss-ease-flag) 800ms both;
 }
+.ring-tab::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  background: radial-gradient(circle at 0 0, transparent 6.5px, var(--ring) 7px);
+}
 @keyframes ring-draw {
-  from { clip-path: inset(-20% 100% -20% -20%); }
-  to { clip-path: inset(-20% -20% -20% -20%); }
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(-30px -6px 0 0); }
 }
 @keyframes tab-drop {
   from { opacity: 0; transform: translateY(-10px); }
@@ -1018,6 +1030,10 @@ table.compare {
   border-radius: var(--ss-radius-flag);
   font-weight: 700;
   font-size: 0.9rem;
+}
+.stage-guide img,
+.stage-guide picture {
+  display: block;
 }
 .stage-guide img {
   width: 100%;

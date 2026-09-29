@@ -32,7 +32,10 @@ const title = "Showsteps: free step-by-step guides from a click-through";
       <div class="stage">
         <div class="stage-guide">
           <div class="stage-head"><span class="flag-num">2</span><span>Type “jane@example.com” in <b>Email</b></span></div>
-          <img src="/img/sample-step-email.webp" width="1544" height="864" alt="A step from an exported guide: the Email field of a sign-in form outlined with a numbered tab, and the password field below it blurred." fetchpriority="high" />
+          <picture>
+            <source srcset="/img/sample-step-email-crop.webp" media="(max-width: 600px)" width="605" height="378" />
+            <img src="/img/sample-step-email.webp" width="1544" height="864" alt="A step from an exported guide: the Email field of a sign-in form outlined with a numbered tab, and the password field below it masked." fetchpriority="high" />
+          </picture>
         </div>
         <picture class="stage-panel">
           <source srcset="/img/panel-guide-dark.webp" media="(prefers-color-scheme: dark)" />
@@ -101,10 +104,10 @@ const title = "Showsteps: free step-by-step guides from a click-through";
     <div class="wrap">
       <figure class="blur-fig">
         <div class="blur-pair">
-          <div><img src="/img/blur-before.webp" alt="" width="1200" height="340" loading="lazy" /><span>Before: the raw capture</span></div>
-          <div><img src="/img/blur-after.webp" alt="" width="1200" height="340" loading="lazy" /><span>After: the exported guide</span></div>
+          <div><img src="/img/privacy-before.webp" alt="A mock account page as it appeared on screen, showing a card number, tax ID, IBAN, session token and API key in plain text." width="880" height="605" loading="lazy" /><span>Before: what the page showed</span></div>
+          <div><img src="/img/privacy-after.png" alt="The same page in the guide: those values are replaced by dots and the Refresh button is outlined." width="880" height="605" loading="lazy" /><span>After: what the guide keeps</span></div>
         </div>
-        <figcaption>The same screenshot before and after export. The password field is blurred into the picture, not hidden under an overlay. You can draw your own blur over anything else. Mock data.</figcaption>
+        <figcaption>A mock account page as it appeared on screen, and the same step as the guide keeps it. Card numbers, tax IDs, IBANs, session tokens and API keys are found on the page and masked before the screenshot is stored, so the original never reaches the guide. Fake data throughout.</figcaption>
       </figure>
     </div>
   </section>

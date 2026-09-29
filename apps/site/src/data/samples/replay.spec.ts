@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 test("Invite a teammate", async ({ context }) => {
   const page = await context.newPage();
 
-  await test.step("1. Go to Settings – Acme", async () => {
+  await test.step("1. Go to Settings on Acme", async () => {
     await page.goto("https://app.acme.test/settings");
     await expect(page).toHaveURL(/^https:\/\/app\.acme\.test\/settings\/?(?:[?#].*)?$/);
   });
