@@ -1,0 +1,29 @@
+# Internal notes (never commit)
+BRIEF.md
+PLAN.md
+ACCEPTANCE.md
+docs/design/
+docs/launch/
+notes/
+
+# Media stays out of git
+*.mp4
+*.mov
+*.gif
+*.mp3
+
+# Dependencies and builds
+node_modules/
+dist/
+out/
+.output/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Environment and OS
+.env*
+.DS_Store
+*.log
+.pnpm-serial.lock/
