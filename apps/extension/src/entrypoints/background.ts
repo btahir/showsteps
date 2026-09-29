@@ -16,7 +16,6 @@ import type { OriginalsPortMsg } from "../lib/originals";
 import { draftForFrame, viewOf } from "../lib/frame-pick";
 import type { FrameScan, FrameView } from "../lib/frame-pick";
 import type { AnyMessage, BarState, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
-import { installDevBridge } from "../lib/dev-bridge";
 
 const RECORDER_ID = "showsteps-recorder";
 /** storage.session key: a one-line reason the panel shows when recording ended without Stop. */
@@ -736,11 +735,6 @@ export default defineBackground(() => {
       }
     });
   });
-
-  // Owner-approved test hook, development builds only (see src/lib/dev-bridge.ts).
-  if (import.meta.env.MODE === "development") {
-    installDevBridge({ start: (w, t) => start(w, t), stop: (o) => stop(o), state: () => state });
-  }
 
   void updateBadge();
 });
