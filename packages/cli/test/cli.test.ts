@@ -129,9 +129,10 @@ describe("export", () => {
     const r = await cli(["export", "guide.stepsnap", "--format", "all", "--out", out, "--json"], sb.dir);
     expect(r.code).toBe(0);
     const j = json(r);
+    const reported: string[] = j.files.map((p: string) => p.replace("<TMP>", sb.dir));
     const rel = (await walk(out)).map((p) => relative(out, p));
-    await expect(pretty({ files: rel, reported: j.files.map((p: string) => relative(out, p)) })).toMatchFileSnapshot(golden("export-all.json"));
-    expect(new Set(j.files)).toEqual(new Set(await walk(out)));
+    await expect(pretty({ files: rel, reported: reported.map((p) => relative(out, p)) })).toMatchFileSnapshot(golden("export-all.json"));
+    expect(new Set(reported)).toEqual(new Set(await walk(out)));
     const pdf = await readFile(join(out, "guide.pdf"));
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect((await readFile(join(out, "guide.docx"))).subarray(0, 2).toString()).toBe("PK");

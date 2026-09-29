@@ -88,14 +88,15 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
         const l = await loadGuideFile(file, cwd);
         const info = guideInfo(l.guide, l.images);
         const acts = Object.entries(info.actions).map(([k, n]) => `${k} ${n}`).join(", ") || "none";
+        const row = (k: string, v: string) => `${(k + ":").padEnd(13)}${v}`;
         const lines = [
-          `Title:      ${info.title}`,
-          `Steps:      ${info.stepCount}${info.skippedSteps ? ` (${info.skippedSteps} skipped)` : ""}`,
-          `Actions:    ${acts}`,
-          `Pages:      ${info.pages.length}`,
+          row("Title", info.title),
+          row("Steps", `${info.stepCount}${info.skippedSteps ? ` (${info.skippedSteps} skipped)` : ""}`),
+          row("Actions", acts),
+          row("Pages", String(info.pages.length)),
           ...info.pages.map((p) => `  ${p.url}${p.title ? ` (${p.title})` : ""}: ${p.steps} step${p.steps === 1 ? "" : "s"}`),
-          `Sensitive:  ${info.sensitiveSteps.length ? info.sensitiveSteps.map((s) => s.index).join(", ") : "none"}`,
-          `Screenshots: ${info.screenshots.imagesFound}/${info.screenshots.steps} images found, ${info.redactions} redactions`,
+          row("Sensitive", info.sensitiveSteps.length ? info.sensitiveSteps.map((s) => s.index).join(", ") : "none"),
+          row("Screenshots", `${info.screenshots.imagesFound}/${info.screenshots.steps} images found, ${info.redactions} redactions`),
         ];
         return { json: { file: l.path, format: l.kind, ...info }, text: lines.join("\n") };
       }, o.json),

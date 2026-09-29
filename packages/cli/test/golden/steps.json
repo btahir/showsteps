@@ -1,0 +1,91 @@
+{
+  "ok": true,
+  "file": "<TMP>/guide.stepsnap",
+  "title": "Set up billing",
+  "steps": [
+    {
+      "index": 1,
+      "id": "s1",
+      "title": "Go to **Sign in – Acme**",
+      "action": {
+        "type": "navigate",
+        "url": "https://app.example.test/login"
+      },
+      "url": "https://app.example.test/login",
+      "skipped": false,
+      "sensitive": false,
+      "hasScreenshot": true
+    },
+    {
+      "index": 2,
+      "id": "s2",
+      "title": "Type \"jane@example.test\" in **Email**",
+      "action": {
+        "type": "type",
+        "value": "jane@example.test"
+      },
+      "target": "Email",
+      "url": "https://app.example.test/login",
+      "skipped": false,
+      "sensitive": false,
+      "hasScreenshot": true
+    },
+    {
+      "index": 3,
+      "id": "s3",
+      "title": "Type in **Password**",
+      "action": {
+        "type": "type",
+        "value": "•••",
+        "masked": true
+      },
+      "target": "Password",
+      "url": "https://app.example.test/login",
+      "skipped": false,
+      "sensitive": true,
+      "hasScreenshot": true
+    },
+    {
+      "index": 4,
+      "id": "s4",
+      "title": "Click **Sign in**",
+      "description": "You land on the dashboard.",
+      "action": {
+        "type": "click"
+      },
+      "target": "Sign in",
+      "url": "https://app.example.test/login",
+      "skipped": false,
+      "sensitive": false,
+      "hasScreenshot": true
+    },
+    {
+      "index": 5,
+      "id": "s5",
+      "title": "Select **Monthly** in **Billing period**",
+      "action": {
+        "type": "select",
+        "value": "monthly",
+        "optionText": "Monthly"
+      },
+      "target": "Billing period",
+      "url": "https://app.example.test/settings",
+      "skipped": false,
+      "sensitive": false,
+      "hasScreenshot": false
+    },
+    {
+      "index": 6,
+      "id": "s6",
+      "title": "Press **Enter**",
+      "action": {
+        "type": "press",
+        "key": "Enter"
+      },
+      "url": "https://app.example.test/settings",
+      "skipped": true,
+      "sensitive": false,
+      "hasScreenshot": false
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "file": "<TMP>/guide.stepsnap",
+  "format": "bundle",
+  "id": "g_fixture",
+  "title": "Set up billing",
+  "description": "Synthetic fixture guide.",
+  "schemaVersion": 1,
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "stepCount": 6,
+  "activeSteps": 5,
+  "skippedSteps": 1,
+  "actions": {
+    "click": 1,
+    "navigate": 1,
+    "press": 1,
+    "select": 1,
+    "type": 2
+  },
+  "pages": [
+    {
+      "url": "https://app.example.test/login",
+      "title": "Sign in – Acme",
+      "steps": 4
+    },
+    {
+      "url": "https://app.example.test/settings",
+      "title": "Settings – Acme",
+      "steps": 2
+    }
+  ],
+  "sensitiveSteps": [
+    {
+      "index": 3,
+      "id": "s3",
+      "title": "Type in **Password**"
+    }
+  ],
+  "screenshots": {
+    "steps": 4,
+    "imagesFound": 4,
+    "imagesMissing": 0
+  },
+  "redactions": 1
+}

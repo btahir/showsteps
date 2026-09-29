@@ -1,0 +1,1 @@
+valid: <TMP>/bare/guide.json (6 steps)

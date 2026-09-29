@@ -1,0 +1,8 @@
+Title:       Set up billing
+Steps:       6 (1 skipped)
+Actions:     click 1, navigate 1, press 1, select 1, type 2
+Pages:       2
+  https://app.example.test/login (Sign in – Acme): 4 steps
+  https://app.example.test/settings (Settings – Acme): 2 steps
+Sensitive:   3
+Screenshots: 4/4 images found, 1 redactions

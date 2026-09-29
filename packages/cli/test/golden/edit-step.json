@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "file": "<TMP>/guide.stepsnap",
+  "out": "<TMP>/edited.stepsnap",
+  "changed": [
+    "title",
+    "description",
+    "skipped"
+  ],
+  "step": {
+    "index": 2,
+    "id": "s2",
+    "title": "Enter your work email",
+    "description": "Use the address you signed up with.",
+    "action": {
+      "type": "type",
+      "value": "jane@example.test"
+    },
+    "target": "Email",
+    "url": "https://app.example.test/login",
+    "skipped": true,
+    "sensitive": false,
+    "hasScreenshot": true
+  }
+}

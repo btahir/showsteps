@@ -1,0 +1,6 @@
+ 1  s1  Go to **Sign in – Acme**  [navigate]
+ 2  s2  Type "jane@example.test" in **Email**  [type]
+ 3  s3  Type in **Password**  [type] (sensitive)
+ 4  s4  Click **Sign in**  [click]
+ 5  s5  Select **Monthly** in **Billing period**  [select]
+ 6  s6  Press **Enter**  [press] (skipped)
