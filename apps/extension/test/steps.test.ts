@@ -65,6 +65,24 @@ describe("buildStep", () => {
     expect(s.screenshot!.redactions).toEqual([{ rect: { x: 592, y: 792, width: 496, height: 88 }, style: "blur", auto: true }]);
   });
 
+  it("merges two reports of the same field into one redaction", () => {
+    const d: StepDraft = {
+      action: { type: "click" },
+      target: { tag: "button", role: "button", name: "Go", locators: [{ kind: "role", role: "button", name: "Go" }] },
+      page: { url: "http://localhost:4517/" },
+      rect: { x: 10, y: 10, width: 50, height: 20 },
+      sensitiveRects: [
+        { x: 298, y: 398, width: 244, height: 40 },
+        { x: 300, y: 400, width: 240, height: 36 },
+      ],
+      metrics: { devicePixelRatio: 1, viewport: { width: 1280, height: 800, scrollX: 0, scrollY: 0 } },
+      at: "x",
+    };
+    const reds = buildStep("s_5", d, { width: 1280, height: 800 }).screenshot!.redactions!;
+    expect(reds).toHaveLength(1);
+    expect(reds[0]!.rect).toEqual({ x: 294, y: 394, width: 252, height: 48 });
+  });
+
   it("works without a frame (no screenshot) and for navigations", () => {
     const s = buildStep("s_4", { action: { type: "navigate", url: "http://localhost:4517/help.html" }, page: { url: "http://localhost:4517/help.html", title: "Help" }, at: "x" });
     expect(s.screenshot).toBeUndefined();

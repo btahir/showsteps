@@ -2,7 +2,7 @@
 // real extension, then check steps, titles, highlight boxes, redactions and every export.
 import { expect, test } from "@playwright/test";
 import type { Download, Page } from "@playwright/test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync, strFromU8 } from "fflate";
@@ -33,6 +33,7 @@ async function boxOf(page: Page, selector: string): Promise<Box> {
 let h: Harness;
 
 test.beforeAll(async () => {
+  rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
   h = await launch();
 });
@@ -179,7 +180,7 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
     const path = join(OUT, (dl as Download).suggestedFilename());
     await dl.saveAs(path);
     saved[fmt] = new Uint8Array(readFileSync(path));
-    await expect(dialog.getByRole("heading", { name: "Guide saved" })).toBeVisible();
+    await expect(dialog.getByText("Guide saved", { exact: true })).toBeVisible();
     // The support moment follows the first successful export (then the 3rd, 10th, every 15th).
     if (first) await expect(dialog.getByRole("link", { name: /support showsteps/i })).toBeVisible();
     first = false;
@@ -204,4 +205,26 @@ test("records the 10-step, 2-tab fixture flow and exports it without the passwor
   expect(skill.some((p) => p.endsWith("replay.spec.ts"))).toBe(true);
   expect(Buffer.from(saved.pdf!.subarray(0, 5)).toString()).toBe("%PDF-");
   expect(Object.keys(unzipSync(saved.project!))).toContain("guide.json");
+
+  // ---- import the project back (agent hand-off path) ------------------------------------------
+  const projectPath = join(OUT, readdirSync(OUT).find((f) => f.endsWith(".showsteps"))!);
+  await panel.reload();
+  await panel.getByRole("button", { name: /^guides/i }).click().catch(() => {});
+  await panel.locator('input[type="file"]').setInputFiles(projectPath);
+  await expect(panel.getByRole("button", { name: /guide title:/i })).toContainText("(copy)");
+  const ids = await panel.evaluate(
+    () =>
+      new Promise<string[]>((res) => {
+        const r = indexedDB.open("stepsnap");
+        r.onsuccess = () => {
+          const q = r.result.transaction("guides").objectStore("guides").getAllKeys();
+          q.onsuccess = () => res(q.result as string[]);
+        };
+      }),
+  );
+  const copyId = ids.find((i) => i !== guideId)!;
+  const copy = await readGuide(panel, copyId);
+  expect(copy.steps.map((s: any) => s.title)).toEqual(guide.steps.map((s: any) => s.title));
+  // Burnt-in pixels: the imported screenshots equal the stored (already redacted) ones or are re-baked.
+  for (const s of copy.steps) if (s.screenshot) expect(await readImage(panel, copyId, s.screenshot.image)).toBeTruthy();
 });

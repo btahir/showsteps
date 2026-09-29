@@ -32,8 +32,26 @@ export interface FrameInfo {
 /** Padding (image px at 1x) around sensitive fields so borders and glyph edges are covered too. */
 const REDACT_PAD = 4;
 
+/** Intersection over union of two rects (0..1). */
+export function overlap(a: Rect, b: Rect): number {
+  const x1 = Math.max(a.x, b.x);
+  const y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.width, b.x + b.width);
+  const y2 = Math.min(a.y + a.height, b.y + b.height);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const union = a.width * a.height + b.width * b.height - inter;
+  return union > 0 ? inter / union : 0;
+}
+
+/** The same field reported twice (different padding, or by two scanners). */
 function sameRect(a: Rect, b: Rect): boolean {
-  return Math.abs(a.x - b.x) <= 2 && Math.abs(a.y - b.y) <= 2 && Math.abs(a.width - b.width) <= 2 && Math.abs(a.height - b.height) <= 2;
+  return overlap(a, b) >= 0.7;
+}
+
+function union(a: Rect, b: Rect): Rect {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, width: Math.max(a.x + a.width, b.x + b.width) - x, height: Math.max(a.y + a.height, b.y + b.height) - y };
 }
 
 /** Core's autoRedactions, tolerating a core build that has not implemented it yet. */
@@ -83,8 +101,10 @@ export function buildStep(id: string, d: StepDraft, frame?: FrameInfo): Step {
       const img = cssRectToImage(css, viewport, frame);
       if (!img) continue;
       const padded = padRect(img, Math.round(REDACT_PAD * scale), frame.width, frame.height);
-      if (redactions.some((r) => sameRect(r.rect, padded) || sameRect(r.rect, img))) continue;
-      redactions.push({ rect: padded, style: "blur", auto: true });
+      const dup = redactions.find((r) => sameRect(r.rect, padded));
+      // Keep one box per field, big enough to cover every report of it.
+      if (dup) dup.rect = union(dup.rect, padded);
+      else redactions.push({ rect: padded, style: "blur", auto: true });
     }
     if (redactions.length) shot.redactions = redactions;
   }

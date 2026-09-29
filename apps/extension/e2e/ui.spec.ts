@@ -32,10 +32,15 @@ test("side panel and editor, light and dark", async () => {
   const { context } = h;
   const main = await context.newPage();
   await main.goto(`${FIXTURES}/index.html`);
+  // Empty state in its own tab (viewport emulation on a tab in the recording window would
+  // disturb captureVisibleTab in headless mode, so sizes are only set outside the recording).
+  const first = await context.newPage();
+  await first.setViewportSize({ width: 400, height: 900 });
+  await first.goto(extUrl(h, "sidepanel.html"));
+  await both(first, "panel-empty");
+  await first.close();
   const panel = await context.newPage();
-  await panel.setViewportSize({ width: 400, height: 900 });
   await panel.goto(extUrl(h, "sidepanel.html"));
-  await both(panel, "panel-empty");
 
   await main.bringToFront();
   await panel.getByRole("button", { name: /start recording/i }).click();
@@ -59,6 +64,8 @@ test("side panel and editor, light and dark", async () => {
   await act(() => main.click("#settings-link"));
   await main.waitForURL("**/settings.html");
   await act(() => main.selectOption("#billing-period", "yearly"));
+  await main.waitForTimeout(1200);
+  await panel.setViewportSize({ width: 400, height: 900 });
   await both(panel, "panel-recording");
 
   await panel.getByRole("button", { name: /stop and review/i }).click();

@@ -141,7 +141,7 @@ export function ExportSheet({ open, guide, onClose, beforeExport, variant = "dia
   return (
     <dialog ref={ref} className={`export export-${variant}`} aria-labelledby="export-title" onClose={onClose} onCancel={onClose}>
       <div className="export-head">
-        <h2 id="export-title">{phase.kind === "saved" ? "Guide saved" : "Export guide"}</h2>
+        <h2 id="export-title">Export guide</h2>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
           <IconClose />
         </button>

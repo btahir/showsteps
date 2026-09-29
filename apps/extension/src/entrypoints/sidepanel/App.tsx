@@ -16,7 +16,6 @@ import {
   IconClose,
   IconCopy,
   IconDownload,
-  IconEdit,
   IconExternal,
   IconHeart,
   IconLock,
@@ -107,7 +106,7 @@ export function App() {
       <span className="spacer" />
       {view?.kind === "guide" && !recording && (
         <button type="button" className="icon-btn" aria-label="Open in the full editor" title="Open in the full editor" onClick={() => void openEditor(view.id)}>
-          <IconEdit />
+          <IconExternal />
         </button>
       )}
       {!recording && (
@@ -288,11 +287,12 @@ function RecordingControls({ session }: { session: ReturnType<typeof useSession>
       <button
         type="button"
         className="btn btn-ghost"
+        aria-label={paused ? "Resume" : "Pause"}
         onClick={() => void send({ type: paused ? "ctl:resume" : "ctl:pause" })}
         disabled={stopping}
         aria-keyshortcuts="Alt+Shift+P"
       >
-        {paused ? <IconPlay /> : <IconPause />} {paused ? "Resume" : "Pause"}
+        {paused ? <IconPlay /> : <IconPause />} <span className="btn-label">{paused ? "Resume" : "Pause"}</span>
       </button>
       <button
         type="button"

@@ -289,3 +289,14 @@ code {
   border-radius: var(--ss-radius-xs);
   background: var(--ss-surface-2);
 }
+.rec-controls {
+  flex-wrap: nowrap;
+}
+.rec-controls .btn {
+  padding: 0 10px;
+}
+@media (max-width: 440px) {
+  .rec-controls .btn-label {
+    display: none;
+  }
+}

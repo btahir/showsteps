@@ -120,7 +120,8 @@ function optionalExporter(name: "exportPdf" | "exportDocx"): PdfFn {
 }
 
 export async function markdownText(guide: Guide): Promise<string> {
-  const { files } = exportMarkdown(guide);
+  // Clipboard copy: text only (image links would point at files that are not there).
+  const { files } = exportMarkdown(guide, { imageLinks: false } as Parameters<typeof exportMarkdown>[1]);
   const md = Object.entries(files).find(([p]) => p.endsWith(".md"))?.[1];
   if (md === undefined) throw new Error("Markdown exporter returned no .md file");
   return typeof md === "string" ? md : new TextDecoder().decode(md);
@@ -134,7 +135,7 @@ export async function exportGuide(format: ExportFormat, source: Guide, blobs: Re
   switch (format) {
     case "markdown": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const { files } = exportMarkdown(g, { images });
+      const { files } = exportMarkdown(g, { images, imagesPrerendered: true, includeUrls } as Parameters<typeof exportMarkdown>[1]);
       const all: Record<string, Uint8Array> = {};
       for (const [p, v] of Object.entries(files)) all[p] = toU8(v);
       // Include referenced images if the exporter left them to us.
@@ -143,7 +144,7 @@ export async function exportGuide(format: ExportFormat, source: Guide, blobs: Re
     }
     case "html": {
       const { guide: g, images } = await prepareAnnotated(guide, blobs, opts);
-      const html = exportHtml(g, images, { includeUrls });
+      const html = exportHtml(g, images, { includeUrls, imagesPrerendered: true } as Parameters<typeof exportHtml>[2]);
       return { filename: `${base}.html`, blob: new Blob([html], { type: "text/html" }) };
     }
     case "pdf": {
