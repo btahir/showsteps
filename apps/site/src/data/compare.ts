@@ -16,7 +16,7 @@ export const COMPARE_ROWS: CompareRow[] = [
   {
     feature: "Where your guides live",
     stepsnap: "In your browser and in files you save. Nothing is uploaded.",
-    scribe: "Scribe's cloud. Its docs describe blurring before upload so data stays off its servers.",
+    scribe: "Scribe's servers. Its docs describe blurring before capture so blurred data never reaches them.",
     tango: "Tango's cloud, hosted on AWS. No on-premises option.",
   },
   {

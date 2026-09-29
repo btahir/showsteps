@@ -4,55 +4,35 @@
  * When packages/brand/tokens.css lands, map it in the "brand bridge" block and nothing else changes.
  */
 
-/* ---- brand bridge (neutral defaults until packages/brand lands) ---- */
+/* ---- brand bridge: packages/brand/tokens.css (--ss-*) mapped to the names used below ---- */
 :root {
-  color-scheme: light dark;
-  --bg: #faf8f4;
-  --bg-sunk: #f2eee7;
-  --surface: #ffffff;
-  --ink: #1d1b18;
-  --ink-2: #4a4640;
-  --ink-3: #6f695f;
-  --line: #e4ded3;
-  --accent: #c8471b;
-  --accent-ink: #ffffff;
-  --accent-soft: #fbe6dc;
-  --accent-text: #a63a14;
-  --ok: #2f7a4b;
-  --code-bg: #1f1d1a;
+  --bg: var(--ss-bg);
+  --bg-sunk: var(--ss-surface-2);
+  --surface: var(--ss-surface);
+  --ink: var(--ss-ink);
+  --ink-2: var(--ss-ink-2);
+  --ink-3: var(--ss-ink-3);
+  --line: var(--ss-line);
+  --line-2: var(--ss-line-2);
+  --accent: var(--ss-accent-strong);
+  --accent-ink: var(--ss-on-accent);
+  --accent-soft: var(--ss-accent-soft);
+  --accent-text: var(--ss-accent-ink);
+  --ring: var(--ss-highlight);
+  --ok: var(--ss-ok);
+  --code-bg: #1b1917;
   --code-ink: #efe9dd;
-  --code-dim: #a49c8d;
-  --shadow: 0 1px 2px rgb(30 24 12 / 6%), 0 8px 24px rgb(30 24 12 / 7%);
+  --code-dim: #9a9285;
+  --shadow: var(--ss-shadow-2);
 
-  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-body);
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-body: var(--ss-font-ui);
+  --font-display: var(--ss-font-ui);
+  --font-mono: var(--ss-font-mono);
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: var(--ss-radius-md);
+  --radius-sm: var(--ss-radius-sm);
   --wrap: 1080px;
   --prose: 680px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #171512;
-    --bg-sunk: #1e1b17;
-    --surface: #24211c;
-    --ink: #f1ece2;
-    --ink-2: #c9c2b5;
-    --ink-3: #9a9385;
-    --line: #38342d;
-    --accent: #f0663a;
-    --accent-ink: #1a0e08;
-    --accent-soft: #3a2118;
-    --accent-text: #ff9068;
-    --ok: #62c084;
-    --code-bg: #100f0d;
-    --code-ink: #efe9dd;
-    --code-dim: #8f8778;
-    --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 30%);
-  }
 }
 
 /* ---- base ---- */
@@ -122,8 +102,9 @@ h3 {
   text-wrap: balance;
 }
 h1 {
-  font-size: clamp(2.2rem, 5.2vw, 3.6rem);
+  font-size: clamp(2.1rem, 4.6vw, 3.3rem);
   font-weight: 750;
+  letter-spacing: var(--ss-tracking-display);
 }
 h2 {
   font-size: clamp(1.55rem, 3vw, 2.05rem);
@@ -201,6 +182,11 @@ kbd {
 .nav .btn {
   margin-left: 8px;
 }
+.nav a.btn-primary,
+.nav a.btn-primary:hover {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
 
 /* ---- buttons ---- */
 .btn {
@@ -212,6 +198,7 @@ kbd {
   font-weight: 650;
   font-size: 0.98rem;
   line-height: 1;
+  white-space: nowrap;
   padding: 13px 20px;
   border-radius: var(--radius);
   border: 1.5px solid transparent;
@@ -322,7 +309,7 @@ kbd {
   padding: 10px 14px;
   background: var(--bg-sunk);
   border-bottom: 1px solid var(--line);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 12px;
 }
 .mock-bar i {
@@ -356,11 +343,11 @@ kbd {
 }
 .mock-step h4 .n {
   flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--bg);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ss-radius-flag);
+  background: var(--ring);
+  color: var(--ss-highlight-on);
   font-size: 12px;
   display: inline-grid;
   place-items: center;
@@ -407,7 +394,7 @@ kbd {
   position: relative;
 }
 .mock-btn.hl {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
   border-radius: 8px;
 }
@@ -415,8 +402,9 @@ kbd {
   position: absolute;
   top: -12px;
   right: -8px;
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--ss-ok-soft);
+  color: var(--ss-ok);
+  border: 1px solid var(--ss-ok);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
@@ -524,6 +512,7 @@ kbd {
   line-height: 1.65;
   tab-size: 2;
 }
+.code-pair pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .code-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -561,7 +550,7 @@ table.compare {
 .compare thead th {
   font-size: 0.85rem;
   letter-spacing: 0.02em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   background: var(--bg-sunk);
   white-space: nowrap;
 }
@@ -786,7 +775,7 @@ table.compare {
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-2);
   margin-bottom: 12px;
   font-family: var(--font-body);
   font-weight: 700;
@@ -807,7 +796,7 @@ table.compare {
   text-decoration: underline;
 }
 .foot-note {
-  color: var(--ink-3);
+  color: var(--ink-2);
   max-width: 34ch;
   margin-top: 12px;
 }
@@ -815,7 +804,7 @@ table.compare {
   margin-top: 40px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 0.86rem;
 }
 
@@ -870,3 +859,33 @@ table.compare {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* flag tab on outlined targets (brand signature) */
+.hl-ring {
+  position: relative;
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: 9px;
+  box-shadow: 0 0 0 5px var(--ss-highlight-halo);
+}
+.hl-flag {
+  position: absolute;
+  right: -10px;
+  top: -25px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  background: var(--ring);
+  color: var(--ss-highlight-on);
+  border-radius: var(--ss-radius-flag);
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 2;
+}
+.brand svg { flex: none; }
+
+.mock-btn.hl-ring { margin-top: 18px; }
+
+.prose .table-scroll { width: min(980px, calc(100vw - 40px)); }

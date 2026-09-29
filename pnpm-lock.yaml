@@ -62,13 +62,21 @@ importers:
 
   apps/site:
     dependencies:
+      '@stepsnap/brand':
+        specifier: workspace:*
+        version: link:../../packages/brand
       astro:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.8)(jiti@2.7.0)
     devDependencies:
+      axe-core:
+        specifier: ^4.13.0
+        version: 4.13.0
       playwright-core:
         specifier: ^1.63.0
         version: 1.63.0
+
+  packages/brand: {}
 
   packages/cli:
     dependencies:
@@ -1172,6 +1180,10 @@ packages:
     peerDependenciesMeta:
       '@astrojs/markdown-remark':
         optional: true
+
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -3700,6 +3712,8 @@ snapshots:
       - tsx
       - uploadthing
       - yaml
+
+  axe-core@4.13.0: {}
 
   axobject-query@4.1.0: {}
 
