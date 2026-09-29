@@ -137,9 +137,9 @@ const ruleLinks = grab(rules.slice(rules.indexOf("export const DONATION_LINKS"),
 const cfgLinks = grab(SRC.slice(SRC.indexOf("export const DONATION_LINKS")));
 const sup = byPath["/support/"]?.html || "";
 const supLinks = [...sup.matchAll(/href="(https:\/\/buy\.stripe\.com\/[^"]+)"/g)].map((m) => m[1]);
-const navOk = pages.filter((p) => !/href="\/support\/"/.test(p.html)).map((p) => p.path);
+const navOk = pages.filter((p) => (p.html.match(/href="\/support\/"/g) || []).length < 2).map((p) => p.path);
 const monthlyOrdered = JSON.stringify(supLinks.filter((l) => l !== ruleLinks[0])) === JSON.stringify(ruleLinks.slice(1));
-rec("K13", JSON.stringify(cfgLinks) === JSON.stringify(ruleLinks) && supLinks.includes(ruleLinks[0]) && monthlyOrdered && navOk.length === 0, `config == RULES §5 (${cfgLinks.length} links); /support/ has ${supLinks.length} stripe hrefs, once present ${supLinks.includes(ruleLinks[0])}, monthly order ${monthlyOrdered}; pages without a /support/ link: ${navOk.join(", ") || "none"}`);
+rec("K13", JSON.stringify(cfgLinks) === JSON.stringify(ruleLinks) && supLinks.includes(ruleLinks[0]) && monthlyOrdered && navOk.length === 0, `config == RULES §5 (${cfgLinks.length} links); /support/ has ${supLinks.length} stripe hrefs, once present ${supLinks.includes(ruleLinks[0])}, monthly order ${monthlyOrdered}; pages with fewer than 2 /support/ links (header and footer): ${navOk.join(", ") || "none"}`);
 
 // K14 single source of truth
 const { execSync } = await import("node:child_process");
@@ -158,12 +158,16 @@ const winText = win ? text(win.html) : "";
 const sentences = winText.split(/(?<=[.!?])\s+/);
 rec("K15", alt.includes("github.com/westpoint-io/mimik") && asof.length > 0 && asof.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)) && sentences.some((s) => /\bweb\b/i.test(s) && /\bdesktop\b/i.test(s)), `Mimik link ${alt.includes("github.com/westpoint-io/mimik")}; ${asof.length} [data-asof] with ISO dates; windows page has a web+desktop sentence: ${sentences.some((s) => /\bweb\b/i.test(s) && /\bdesktop\b/i.test(s))} (5-figure spot check against market-check.md is manual)`);
 
-// K16 (static half): bytes of "/" compressed, excluding sample images
+// K16 (static half): upper bound of bytes for "/" (html, css and js gzipped; every font and image the CSS or HTML names, raw, whether or not the browser fetches it)
 const homeAssets = new Set(["/"]);
-for (const m of byPath["/"].html.matchAll(/(?:href|src)="(\/[^"]+\.(?:css|js|woff2|svg|png|webp|ico))"/g)) homeAssets.add(m[1]);
+const addRefs = (text) => { for (const m of text.matchAll(/(?:href="|src="|url\()(\/[^"')?#]+\.(?:css|js|woff2|svg|png|webp|ico))/g)) homeAssets.add(m[1]); };
+addRefs(byPath["/"].html);
+for (const a of [...homeAssets]) if (a.endsWith(".css") && existsSync(join(DIST, a))) addRefs(readFileSync(join(DIST, a), "utf8").replace(/url\(\.\.?\//g, "url(/"));
+// css refers to fonts relatively: resolve against /_astro/
+for (const a of [...homeAssets].filter((x) => x.endsWith(".css"))) for (const m of readFileSync(join(DIST, a), "utf8").matchAll(/url\(([^)]+\.woff2)\)/g)) homeAssets.add(join("/_astro", m[1].replace(/["']/g, "").replace(/^\.\//, "").split("/").pop()));
 let bytes = 0; const parts = [];
-for (const a of homeAssets) { const f = a === "/" ? join(DIST, "index.html") : join(DIST, a); if (!existsSync(f)) continue; const b = readFileSync(f); const z = /\.(woff2|png|webp)$/.test(a) ? b.length : gzipSync(b).length; bytes += z; parts.push(`${a}=${z}`); }
-rec("K16-size", bytes <= 300 * 1024, `/ transfers ~${(bytes / 1024).toFixed(0)} KB compressed (html+css+js gzip, fonts/images raw) of the 300 KB budget: ${parts.join(" ")}`);
+for (const a of homeAssets) { const f = a === "/" ? join(DIST, "index.html") : join(DIST, a); if (!existsSync(f)) continue; const b = readFileSync(f); const z = /\.(woff2|png|webp)$/.test(a) ? b.length : gzipSync(b).length; bytes += z; parts.push(`${a.split("/").pop() || "/"}=${z}`); }
+rec("K16-size", bytes <= 300 * 1024, `/ upper bound ~${(bytes / 1024).toFixed(0)} KB of the 300 KB budget (html+css gzip, fonts raw, ${homeAssets.size} files): ${parts.join(" ")}`);
 
 // K17 (static half): images have alt
 const noAlt = pages.filter((p) => [...p.html.matchAll(/<img\b[^>]*>/g)].some((m) => !/\balt=/.test(m[0]))).map((p) => p.path);
