@@ -1,0 +1,41 @@
+---
+import { SITE_NAME, SUPPORT_URL, GITHUB_URL, LICENSE_NAME } from "../config/site";
+import { KEYWORD_PAGES } from "../data/keyword-pages";
+---
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="/" aria-label="Showsteps home">{SITE_NAME}</a>
+        <p class="foot-note">Free, open-source, local-first step-by-step guides from a click-through.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="/#how">How it works</a></li>
+          <li><a href="/docs/agents/">For agents</a></li>
+          <li><a href="/changelog/">Changelog</a></li>
+          <li><a href="/privacy/">Privacy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Guides</h2>
+        <ul>
+          {KEYWORD_PAGES.map((p) => <li><a href={`/${p.slug}/`}>{p.label}</a></li>)}
+        </ul>
+      </div>
+      <div>
+        <h2>Project</h2>
+        <ul>
+          <li><a href="/about/">About</a></li>
+          <li><a href={SUPPORT_URL}>Support Showsteps</a></li>
+          <li><a href={GITHUB_URL}>GitHub</a></li>
+          <li><a href={`${GITHUB_URL}/issues`}>Report a bug</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot-bottom">
+      {LICENSE_NAME} licensed. No analytics, no cookies, no accounts. <a href={SUPPORT_URL}>Support the project</a>.
+    </p>
+  </div>
+</footer>

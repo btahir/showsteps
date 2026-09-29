@@ -1,0 +1,8 @@
+---
+interface Props { code: string; caption?: string }
+const { code, caption } = Astro.props;
+---
+<figure class="codeblock" style="margin:0">
+  {caption && <figcaption class="cap">{caption}</figcaption>}
+  <pre tabindex="0"><code>{code}</code></pre>
+</figure>

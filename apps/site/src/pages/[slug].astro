@@ -1,0 +1,63 @@
+---
+import Base from "../layouts/Base.astro";
+import Blocks from "../components/Blocks.astro";
+import Faq from "../components/Faq.astro";
+import InstallCta from "../components/InstallCta.astro";
+import { KEYWORD_PAGES, bySlug } from "../data/keyword-pages";
+import { SUPPORT_URL } from "../config/site";
+import { softwareApplication, faqPage, breadcrumbs, article } from "../data/jsonld";
+
+export function getStaticPaths() {
+  return KEYWORD_PAGES.map((p) => ({ params: { slug: p.slug } }));
+}
+const page = bySlug(Astro.params.slug!)!;
+const path = `/${page.slug}/`;
+const related = page.related.map((s) => bySlug(s)!).filter(Boolean);
+const ld = [
+  article({ headline: page.h1, description: page.description, path, dateModified: page.updated }),
+  breadcrumbs([{ name: "Showsteps", path: "/" }, { name: page.label, path }]),
+  faqPage(page.faq),
+  softwareApplication(),
+];
+---
+<Base title={page.title} description={page.description} path={path} jsonLd={ld}>
+  <div class="wrap">
+    <div class="page-head">
+      <span class="eyebrow">Showsteps</span>
+      <h1>{page.h1}</h1>
+      <p class="lede">{page.lede}</p>
+      <div class="cta-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><InstallCta size="md" /></div>
+    </div>
+    <div class="prose-wrap">
+      <article class="prose">
+        {page.sections.map((s) => (
+          <section>
+            <h2>{s.h2}</h2>
+            <Blocks blocks={s.blocks} />
+          </section>
+        ))}
+      </article>
+
+      <section class="prose" style="margin-top:56px" aria-labelledby="faq-h">
+        <h2 id="faq-h">Questions</h2>
+        <Faq items={page.faq} />
+      </section>
+
+      <div class="cta-band">
+        <div>
+          <h2>Free, and staying free</h2>
+          <p>If Showsteps saves you an afternoon, you can <a href={SUPPORT_URL}>support the project</a>. Nothing depends on it.</p>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap"><InstallCta size="md" /></div>
+      </div>
+
+      <nav class="related" aria-label="Related pages">
+        <h2 style="font-size:1.1rem">Related</h2>
+        <ul>
+          {related.map((r) => <li><a href={`/${r.slug}/`}>{r.label}</a></li>)}
+        </ul>
+      </nav>
+      <p class="table-note" style="margin-top:32px">Last updated {page.updated}.</p>
+    </div>
+  </div>
+</Base>

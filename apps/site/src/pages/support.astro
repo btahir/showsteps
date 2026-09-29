@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import { DONATION_LINKS, GITHUB_URL, SITE_NAME } from "../config/site";
+
+const title = `Support ${SITE_NAME}`;
+const desc = `${SITE_NAME} is free and open source. If it saves you time, you can support its development with a one-off gift or a small monthly contribution.`;
+---
+<Base title={title} description={desc} path="/support/">
+  <div class="wrap">
+    <div class="page-head">
+      <span class="eyebrow">Support</span>
+      <h1>Keep Showsteps free</h1>
+      <p class="lede">
+        Showsteps costs nothing to use and never will. Support is voluntary: it pays for maintenance, fixes and the evenings that go into
+        them. Every feature stays free and MIT licensed either way.
+      </p>
+    </div>
+    <div class="prose-wrap">
+      <div class="support-card">
+        <a class="btn btn-primary btn-lg" href={DONATION_LINKS.once} target="_blank" rel="noopener noreferrer">Give once</a>
+        <p style="color:var(--ink-3);font-size:0.92rem;margin:12px 0 0">Choose your own amount.</p>
+
+        <h2 style="font-size:1.15rem;margin-top:32px">Or support monthly</h2>
+        <div class="tiers">
+          {DONATION_LINKS.monthly.map((t) => (
+            <a class="tier" href={t.href} target="_blank" rel="noopener noreferrer">
+              <b>{t.label}<small> /month</small></b>
+              <span>{t.note}</span>
+            </a>
+          ))}
+        </div>
+        <p style="color:var(--ink-3);font-size:0.92rem;margin:14px 0 0">
+          Payments are handled by Stripe. Monthly support renews until you cancel it.
+        </p>
+      </div>
+
+      <div class="prose" style="margin-top:40px">
+        <h2 style="margin-top:0">Why it matters</h2>
+        <p>
+          Scribe and Tango put PDF export and screenshot redaction on paid plans. Showsteps includes both, and keeps your screenshots on
+          your own computer, because that is how a documentation tool should work. There is no hosted service to pay for, so the money
+          goes to the work itself: keeping up with Chrome changes, fixing what breaks on real sites, and adding formats.
+        </p>
+        <h2>Can't give? That helps too</h2>
+        <p>
+          Starring the <a href={GITHUB_URL}>repo</a>, <a href={`${GITHUB_URL}/issues`}>reporting a bug</a>, or telling a colleague who
+          writes how-to documents all help as much. <a href="/">Back to Showsteps</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</Base>

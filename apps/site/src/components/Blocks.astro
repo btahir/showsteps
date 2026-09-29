@@ -1,0 +1,25 @@
+---
+import type { Block } from "../data/keyword-pages";
+import Code from "./Code.astro";
+import CompareTable from "./CompareTable.astro";
+import { fill } from "../config/site";
+interface Props { blocks: Block[] }
+const { blocks } = Astro.props;
+---
+{blocks.map((b) => {
+  if ("p" in b) return <p set:html={fill(b.p)} />;
+  if ("ul" in b) return <ul>{b.ul.map((li) => <li set:html={fill(li)} />)}</ul>;
+  if ("ol" in b) return <ol>{b.ol.map((li) => <li set:html={fill(li)} />)}</ol>;
+  if ("code" in b) return <Code code={b.code} caption={b.caption} />;
+  if ("callout" in b) return <div class="callout"><p set:html={fill(b.callout)} /></div>;
+  if ("table" in b) return (
+    <div class="table-scroll" role="region" aria-label="Table" tabindex="0">
+      <table class="compare">
+        <thead><tr>{b.table.head.map((h) => <th scope="col">{h === "" ? <span class="sr-only">Aspect</span> : h}</th>)}</tr></thead>
+        <tbody>{b.table.rows.map((r) => <tr>{r.map((c, i) => i === 0 ? <th scope="row" set:html={fill(c)} /> : <td set:html={fill(c)} />)}</tr>)}</tbody>
+      </table>
+    </div>
+  );
+  if ("compare" in b) return <CompareTable />;
+  return null;
+})}

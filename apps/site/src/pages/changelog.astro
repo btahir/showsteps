@@ -1,0 +1,27 @@
+---
+import Base from "../layouts/Base.astro";
+const desc = "What changed in each Showsteps release.";
+---
+<Base title="Changelog" description={desc} path="/changelog/">
+  <div class="wrap">
+    <div class="page-head">
+      <span class="eyebrow">Changelog</span>
+      <h1>What changed</h1>
+    </div>
+    <div class="prose-wrap">
+      <article class="release">
+        <div><div class="v">0.1.0</div><div class="d">Unreleased</div></div>
+        <div class="prose">
+          <p>The first public version.</p>
+          <ul>
+            <li>Record clicks, typing, selections, checkboxes, keys and page changes across Chrome tabs, with pause and resume.</li>
+            <li>A screenshot for every step, with the target outlined and password and card fields blurred.</li>
+            <li>Side-panel and full-tab editor: rewrite titles, reorder, delete, skip, merge, add notes, blur and crop.</li>
+            <li>Export Markdown, self-contained HTML, PDF, DOCX, an agent skill, and a <code>.stepsnap</code> project you can reopen.</li>
+            <li><code>stepsnap</code> command line and <code>stepsnap-mcp</code> server for agents.</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </div>
+</Base>

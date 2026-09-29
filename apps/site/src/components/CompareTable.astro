@@ -1,0 +1,29 @@
+---
+import { COMPARE_ROWS, COMPARE_DATE } from "../data/compare";
+---
+<div class="table-scroll" role="region" aria-label="Comparison table" tabindex="0">
+  <table class="compare">
+    <thead>
+      <tr>
+        <th scope="col"><span class="sr-only">Feature</span></th>
+        <th scope="col" class="us">Showsteps</th>
+        <th scope="col">Scribe</th>
+        <th scope="col">Tango</th>
+      </tr>
+    </thead>
+    <tbody>
+      {COMPARE_ROWS.map((r) => (
+        <tr>
+          <th scope="row">{r.feature}</th>
+          <td class="us">{r.stepsnap}</td>
+          <td>{r.scribe}</td>
+          <td>{r.tango}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<p class="table-note">
+  Competitor details are taken from each vendor's own pricing, security and documentation pages as they were on {COMPARE_DATE}.
+  Plans and prices change; check their sites before deciding. Scribe and Tango are trademarks of their owners. Showsteps is not affiliated with either.
+</p>

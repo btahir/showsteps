@@ -1,0 +1,125 @@
+---
+import Base from "../layouts/Base.astro";
+import GuideMock from "../components/GuideMock.astro";
+import Code from "../components/Code.astro";
+import Faq from "../components/Faq.astro";
+import CompareTable from "../components/CompareTable.astro";
+import InstallCta from "../components/InstallCta.astro";
+import { SITE_NAME, SITE_DESCRIPTION, SUPPORT_URL } from "../config/site";
+import { SAMPLE_SKILL_MD, SAMPLE_REPLAY_TS, LANDING_FAQ } from "../data/samples";
+import { softwareApplication, faqPage } from "../data/jsonld";
+
+const title = "Showsteps: free step-by-step guides from a click-through";
+---
+<Base title={title} absoluteTitle description={SITE_DESCRIPTION} path="/" jsonLd={[softwareApplication(), faqPage(LANDING_FAQ)]}>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">Free and open source · Chrome</span>
+        <h1>Record a task once. Get a guide for people and a skill for your agent.</h1>
+        <p class="lede">
+          {SITE_NAME} turns a click-through in Chrome into an annotated step-by-step guide, and into a script an AI agent can replay.
+          Passwords and card fields are blurred as you record. Everything stays on your computer.
+        </p>
+        <div class="cta-row"><InstallCta /></div>
+        <p class="fine">MIT licensed. No account, no watermark, no upload.</p>
+      </div>
+      <GuideMock />
+    </div>
+  </section>
+
+  <section class="section sunk" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps, about a minute of your time</h2>
+      </div>
+      <ol class="steps3">
+        <li>
+          <h3>Record</h3>
+          <p>Press Record and do the task the way you normally would, across as many tabs as it takes. Pause whenever you need to.</p>
+        </li>
+        <li>
+          <h3>Tidy up</h3>
+          <p>Every step has a screenshot and a plain title such as Click <b>Save</b>. Rewrite a title, merge or delete steps, add a note, draw a blur.</p>
+        </li>
+        <li>
+          <h3>Export</h3>
+          <p>Send a PDF, a single HTML file, Markdown, or a DOCX. Or export the agent skill and let something else do the clicking.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="privacy">
+    <div class="wrap promise">
+      <div class="section-head" style="margin:0">
+        <span class="eyebrow">Privacy</span>
+        <h2>Your screenshots stay on your computer</h2>
+        <p>
+          Guides about internal tools contain customer names, account numbers and URLs. Showsteps has no server to send them to.
+          <a href="/privacy/">Read the details</a>.
+        </p>
+      </div>
+      <ul class="checklist">
+        <li><strong>No upload.</strong> Screenshots and text live in your browser until you export a file.</li>
+        <li><strong>No account.</strong> No sign-up, no email address, no login.</li>
+        <li><strong>No analytics.</strong> None in the extension, none on this site.</li>
+        <li><strong>Passwords are not recorded.</strong> Password and card fields are detected, their values are never saved, and the screenshot is blurred.</li>
+        <li><strong>No network after install.</strong> The extension does not phone home.</li>
+        <li><strong>Readable source.</strong> MIT licensed, and the file format is documented.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section sunk" id="agents">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">For agents</span>
+        <h2>One recording, two audiences</h2>
+        <p>
+          You get a guide. Your coding agent gets a skill: numbered steps in <code>SKILL.md</code>, a machine-readable
+          <code>steps.json</code> and a Playwright <code>replay.spec.ts</code> that prefers role, label and test-id locators.
+          Agents can also drive Showsteps from the command line or a local MCP server.
+        </p>
+      </div>
+      <div class="code-pair">
+        <Code code={SAMPLE_SKILL_MD} caption="SKILL.md" />
+        <Code code={SAMPLE_REPLAY_TS} caption="replay.spec.ts" />
+      </div>
+      <p style="margin-top:20px"><a href="/docs/agents/">CLI and MCP usage for agents</a> · <a href="/record-clicks-to-playwright-test/">Recording clicks as a Playwright test</a></p>
+    </div>
+  </section>
+
+  <section class="section" id="compare">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Compared</span>
+        <h2>Showsteps, Scribe and Tango</h2>
+        <p>Scribe and Tango do things we do not: desktop capture, hosted links, team workspaces. If you need those, use them. If you need a guide you own, here is the difference.</p>
+      </div>
+      <CompareTable />
+      <p style="margin-top:20px"><a href="/open-source-scribe-alternative/">Open-source Scribe alternative, with Mimik compared</a> · <a href="/tango-alternative/">A Tango alternative</a> · <a href="/scribe-alternative-without-cloud-upload/">Without cloud upload</a></p>
+    </div>
+  </section>
+
+  <section class="section sunk" id="faq">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow">FAQ</span><h2>Questions people ask first</h2></div>
+      <Faq items={LANDING_FAQ} />
+    </div>
+  </section>
+
+  <section class="section" id="install">
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom:24px">
+        <h2>Get Showsteps</h2>
+        <p>Scribe puts PDF export and redaction on a plan it lists at $35 a month. Showsteps does both for nothing, and keeps your screenshots to itself.</p>
+      </div>
+      <div class="cta-row" style="display:flex;gap:12px;flex-wrap:wrap"><InstallCta /></div>
+      <p class="fine" style="margin-top:18px;color:var(--ink-3)">
+        It stays free because people chip in. If it saves you time, <a href={SUPPORT_URL}>support Showsteps</a>.
+      </p>
+    </div>
+  </section>
+</Base>

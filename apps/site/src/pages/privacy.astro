@@ -1,0 +1,65 @@
+---
+import Base from "../layouts/Base.astro";
+import { GITHUB_URL } from "../config/site";
+import { breadcrumbs } from "../data/jsonld";
+const desc = "Showsteps stores everything on your device, has no account and no analytics, and makes no network requests after install. Every permission explained.";
+---
+<Base title="Privacy" description={desc} path="/privacy/" jsonLd={[breadcrumbs([{ name: "Showsteps", path: "/" }, { name: "Privacy", path: "/privacy/" }])]}>
+  <div class="wrap">
+    <div class="page-head">
+      <span class="eyebrow">Privacy</span>
+      <h1>Nothing leaves your browser</h1>
+      <p class="lede">Short version: Showsteps has no server, no account and no analytics. What you record stays on your computer until you export a file yourself.</p>
+    </div>
+    <div class="prose-wrap">
+      <div class="prose">
+        <h2 style="margin-top:0">What Showsteps stores, and where</h2>
+        <ul>
+          <li>Guides, step text and screenshots are stored in your browser's IndexedDB on your computer.</li>
+          <li>Settings (for example highlight colour) are stored in the extension's local storage.</li>
+          <li>Exports are files you save. Showsteps does not track where you send them.</li>
+        </ul>
+        <h2>What leaves your computer</h2>
+        <p>
+          Nothing. The extension makes no network requests after install: no analytics, no crash reporting, no update pings of its own
+          (Chrome updates extensions itself), and no AI service. When you press a support link, your browser opens this website in a
+          normal tab; that is separate from the extension.
+        </p>
+        <h2>Passwords and sensitive fields</h2>
+        <p>
+          While you record, Showsteps looks for password fields, card numbers and other fields that look sensitive. The typed value is
+          not saved, and the step screenshot is blurred over the field. Auto-detection is a safety net, not a guarantee: it cannot know
+          that a name in a table is a real customer. Review every screenshot before sharing, and use the blur and crop tools.
+        </p>
+        <h2>Permissions, and why</h2>
+        <div class="table-scroll" role="region" aria-label="Permissions" tabindex="0">
+          <table class="compare">
+            <thead><tr><th scope="col">Permission</th><th scope="col">Why Showsteps needs it</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>activeTab</code></th><td>Lets Showsteps capture and act on the tab you are working in when you press Record.</td></tr>
+              <tr><th scope="row"><code>scripting</code></th><td>Injects the small script that notices clicks, typing and selections and describes the element.</td></tr>
+              <tr><th scope="row"><code>storage</code></th><td>Keeps your settings.</td></tr>
+              <tr><th scope="row"><code>sidePanel</code></th><td>Shows the step list and editor beside the page.</td></tr>
+              <tr><th scope="row"><code>unlimitedStorage</code></th><td>Guides with many screenshots are large. This stops the browser from clearing them to save space.</td></tr>
+              <tr><th scope="row">Access to all sites (optional)</th><td>Requested only when you start recording, so Showsteps can follow you across tabs and page changes. You can decline it and record a single tab.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2>This website</h2>
+        <p>
+          The site you are reading has no analytics, no cookies and no third-party requests. Its fonts are served from the same origin.
+        </p>
+        <h2>Payments</h2>
+        <p>
+          Support payments are handled by Stripe on Stripe's own pages. Showsteps never sees your card details, and the extension does not
+          know whether you have given.
+        </p>
+        <h2>Changes and questions</h2>
+        <p>
+          The source is on <a href={GITHUB_URL}>GitHub</a>, so any change to this behaviour is visible in the history. Questions can go
+          to the <a href={`${GITHUB_URL}/issues`}>issue tracker</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</Base>

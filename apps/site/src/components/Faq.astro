@@ -1,0 +1,13 @@
+---
+interface Props { items: { q: string; a: string }[] }
+import { fill } from "../config/site";
+const { items } = Astro.props;
+---
+<div class="faq">
+  {items.map((f) => (
+    <details>
+      <summary>{f.q}</summary>
+      <div class="a"><p set:html={fill(f.a)} /></div>
+    </details>
+  ))}
+</div>

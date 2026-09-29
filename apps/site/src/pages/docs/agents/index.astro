@@ -1,0 +1,172 @@
+---
+import Base from "../../../layouts/Base.astro";
+import Code from "../../../components/Code.astro";
+import { GITHUB_URL } from "../../../config/site";
+import { breadcrumbs, article } from "../../../data/jsonld";
+
+const desc = "Use Showsteps from an AI agent: the stepsnap command line with JSON output and exit codes, the local stepsnap-mcp server, file format, and worked examples.";
+
+const editExample = `stepsnap info onboarding.stepsnap --json
+stepsnap steps onboarding.stepsnap --json          # find the step ids
+stepsnap edit-step onboarding.stepsnap --id s4 \\
+  --title "Open **Billing** in the sidebar" \\
+  --description "You need the Admin role to see this." --out reviewed.stepsnap
+stepsnap export reviewed.stepsnap --format md,pdf,skill --out ./out --json`;
+
+const stepsJson = `{
+  "title": "Reset your password",
+  "steps": [
+    { "action": "navigate", "url": "https://app.example.com/login" },
+    { "action": "click", "target": "Forgot password" },
+    { "action": "type", "target": "Email", "value": "jane@example.com" },
+    { "action": "type", "target": "New password", "masked": true },
+    { "action": "click", "target": "Reset password" },
+    { "action": "note", "title": "Check your inbox for the confirmation email." }
+  ]
+}`;
+
+const newExample = `stepsnap new --from-steps steps.json --out reset-password.stepsnap --json
+stepsnap export reset-password.stepsnap --format skill --out ./skill --json`;
+
+const mcpConfig = `{
+  "mcpServers": {
+    "stepsnap": { "command": "npx", "args": ["-y", "@stepsnap/mcp"] }
+  }
+}`;
+
+const path = "/docs/agents/";
+---
+<Base title="Showsteps for agents: CLI and MCP" description={desc} path={path}
+  jsonLd={[article({ headline: "Showsteps for agents", description: desc, path, dateModified: "2026-09-28" }), breadcrumbs([{ name: "Showsteps", path: "/" }, { name: "For agents", path }])]}>
+  <div class="wrap">
+    <div class="page-head">
+      <span class="eyebrow">For agents</span>
+      <h1>Showsteps for agents</h1>
+      <p class="lede">
+        A person records a task in the Chrome extension. You, an agent, can read, fix, export and create guides from files, with no
+        network, no account and no API key. The same text is in <a href={`${GITHUB_URL}/blob/main/AGENTS.md`}>AGENTS.md</a> in the repo and in <a href="/llms.txt">llms.txt</a>.
+      </p>
+    </div>
+    <div class="prose-wrap">
+      <div class="prose">
+        <h2 style="margin-top:0">What you can do</h2>
+        <ul>
+          <li>Validate and inspect a guide file.</li>
+          <li>Rewrite step titles and descriptions, hide steps, regenerate titles.</li>
+          <li>Export Markdown, self-contained HTML, PDF, DOCX, a Playwright script, or a replayable agent skill.</li>
+          <li>Create a guide from steps you write (no screenshots needed), then hand the file to a person to open in the extension.</li>
+        </ul>
+        <p>
+          Everything works offline on local files. Passwords and other sensitive fields are never stored in a guide: typed values in
+          those fields are masked as <code>•••</code> and no tool prints them.
+        </p>
+
+        <h2>Files</h2>
+        <p>A guide is either:</p>
+        <ul>
+          <li><code>something.stepsnap</code>: a zip with <code>guide.json</code> and <code>images/&lt;stepId&gt;.png</code>, or</li>
+          <li>a bare <code>guide.json</code>. Screenshots are picked up from an <code>images/</code> folder next to it, if present.</li>
+        </ul>
+        <p>
+          Every command and tool accepts both. The schema is versioned (v1). Key fields: <code>title</code>, and <code>steps[]</code> with
+          <code>id</code>, <code>action</code>, <code>target</code> (name, role, locators), <code>title</code>, <code>description</code>,
+          <code>page.url</code> and <code>skipped</code>.
+        </p>
+
+        <h2>CLI</h2>
+        <Code code={`npx -y @stepsnap/cli --help`} caption="shell" />
+        <div class="table-scroll" role="region" aria-label="CLI commands" tabindex="0">
+          <table class="compare">
+            <thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>stepsnap validate &lt;file&gt; [--json]</code></th><td>Checks the file against the schema. Exit 1 lists every problem.</td></tr>
+              <tr><th scope="row"><code>stepsnap info &lt;file&gt; [--json]</code></th><td>Title, step counts, actions, pages, sensitive steps, screenshot counts.</td></tr>
+              <tr><th scope="row"><code>stepsnap steps &lt;file&gt; [--json]</code></th><td>Steps with id, title, action, target, skipped and sensitive flags.</td></tr>
+              <tr><th scope="row"><code>stepsnap edit-step &lt;file&gt; --id &lt;id&gt; [--title T] [--description D] [--skip|--unskip] [--out F]</code></th><td>Edit one step. Overwrites the file unless <code>--out</code> is given.</td></tr>
+              <tr><th scope="row"><code>stepsnap regen-titles &lt;file&gt; [--out F]</code></th><td>Regenerate generated titles. Hand-edited titles are kept.</td></tr>
+              <tr><th scope="row"><code>stepsnap export &lt;file&gt; --format md|html|pdf|docx|playwright|skill|all --out &lt;dir&gt; [--json]</code></th><td>Write exports. Comma lists work: <code>--format md,pdf</code>.</td></tr>
+              <tr><th scope="row"><code>stepsnap new --from-steps &lt;steps.json&gt; --out &lt;file.stepsnap&gt; [--title T]</code></th><td>Create a guide from a step list.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Rules you can rely on</h3>
+        <ul>
+          <li><code>--json</code> prints exactly one JSON object on stdout and nothing else. It always has <code>"ok": true|false</code>. Failures look like <code>{`{"ok": false, "error": {"code": "invalid|usage|io", "message": "...", "errors": [...]}}`}</code>.</li>
+          <li>Human messages and errors go to stderr.</li>
+          <li>Exit codes: <code>0</code> ok, <code>1</code> invalid input (bad guide, unknown step id, bad steps file), <code>2</code> usage error, <code>3</code> file error (missing or unwritable path).</li>
+          <li>Relative paths resolve against the current directory.</li>
+          <li><code>SOURCE_DATE_EPOCH</code> fixes timestamps written by <code>new</code> and by edits, for reproducible output.</li>
+        </ul>
+
+        <h3>Export layout</h3>
+        <div class="table-scroll" role="region" aria-label="Export layout" tabindex="0">
+          <table class="compare">
+            <thead><tr><th scope="col">Format</th><th scope="col">Files written to <code>--out</code></th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>md</code></th><td><code>guide.md</code>, <code>images/*.png</code></td></tr>
+              <tr><th scope="row"><code>html</code></th><td><code>guide.html</code> (one file, images inlined, print-ready)</td></tr>
+              <tr><th scope="row"><code>pdf</code></th><td><code>guide.pdf</code></td></tr>
+              <tr><th scope="row"><code>docx</code></th><td><code>guide.docx</code></td></tr>
+              <tr><th scope="row"><code>playwright</code></th><td><code>replay.spec.ts</code></td></tr>
+              <tr><th scope="row"><code>skill</code></th><td><code>skill/SKILL.md</code>, <code>skill/steps.json</code>, <code>skill/replay.spec.ts</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:1em"><code>--json</code> returns <code>{`{"ok": true, "files": ["/abs/path", ...]}`}</code>. Steps with <code>skipped: true</code> are left out of every export.</p>
+
+        <h3>Example: fix wording, then export</h3>
+        <Code code={editExample} caption="shell" />
+
+        <h3>Example: write a guide from scratch</h3>
+        <p><code>steps.json</code> can be an array, or an object with a <code>title</code> and <code>steps</code>:</p>
+        <Code code={stepsJson} caption="steps.json" />
+        <Code code={newExample} caption="shell" />
+        <p>
+          Step fields: <code>action</code> (<code>navigate</code>, <code>click</code>, <code>type</code>, <code>select</code>, <code>check</code>,
+          <code>press</code>, <code>scroll</code>, <code>hover</code>, <code>note</code>), <code>title</code> (generated when omitted, required for
+          <code>note</code>), <code>description</code>, <code>target</code>, <code>url</code>, <code>value</code>, <code>optionText</code>, <code>key</code>,
+          <code>checked</code>, <code>masked</code>, <code>page</code> and <code>skipped</code>. Later steps inherit the last URL. Titles you give are treated as
+          hand-edited and survive <code>regen-titles</code>. Every problem in the file is reported at once, so fix them in one pass.
+        </p>
+        <p>Guides made this way have no screenshots. Exports still work, and a person can open the file in the extension to review it.</p>
+
+        <h2>MCP server</h2>
+        <p><code>stepsnap-mcp</code> speaks MCP over stdio. It needs no network and no keys. Files are passed by absolute path.</p>
+        <Code code={`claude mcp add stepsnap -- npx -y @stepsnap/mcp`} caption="Claude Code" />
+        <Code code={mcpConfig} caption="Claude Desktop (claude_desktop_config.json) and Cursor (.cursor/mcp.json)" />
+        <div class="table-scroll" role="region" aria-label="MCP tools" tabindex="0">
+          <table class="compare">
+            <thead><tr><th scope="col">Tool</th><th scope="col">Inputs</th><th scope="col">Returns</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>validate_guide</code></th><td><code>path</code></td><td><code>{`{valid, steps}`}</code> or <code>{`{valid: false, errors}`}</code></td></tr>
+              <tr><th scope="row"><code>guide_info</code></th><td><code>path</code></td><td>Title, counts, actions, pages, sensitive steps</td></tr>
+              <tr><th scope="row"><code>list_steps</code></th><td><code>path</code>, <code>include_skipped?</code></td><td>Ordered steps with ids</td></tr>
+              <tr><th scope="row"><code>edit_step</code></th><td><code>path</code>, <code>step_id</code>, <code>title?</code>, <code>description?</code>, <code>skipped?</code>, <code>out_path?</code></td><td>Updated step and changed fields</td></tr>
+              <tr><th scope="row"><code>regenerate_titles</code></th><td><code>path</code>, <code>out_path?</code></td><td>Number of titles changed</td></tr>
+              <tr><th scope="row"><code>export_guide</code></th><td><code>path</code>, <code>format</code>, <code>out_dir</code></td><td>Absolute paths written</td></tr>
+              <tr><th scope="row"><code>create_guide_from_steps</code></th><td><code>out_path</code>, <code>title</code>, <code>steps[]</code>, <code>description?</code>, <code>start_url?</code></td><td>Path, id, step count</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:1em">
+          Results are JSON in both the text content and <code>structuredContent</code>. Invalid guide content is reported as data by
+          <code>validate_guide</code>. Everything else that fails (missing file, unknown step id, relative path, malformed steps) returns
+          <code>isError: true</code> with an <code>error.code</code> of <code>invalid</code>, <code>usage</code> or <code>io</code> and the list of problems.
+        </p>
+        <p>
+          <code>edit_step</code> and <code>regenerate_titles</code> overwrite the file unless you pass <code>out_path</code>. Prefer
+          <code>out_path</code> when a person has not asked you to change the original.
+        </p>
+
+        <h2>Working with people</h2>
+        <p>
+          The recording is a human&rsquo;s account of a task. A sensible split: you fix wording, structure and exports; the person reviews
+          screenshots and redactions in the extension (<code>.stepsnap</code> files open there directly) before sharing. Send them the file
+          path, not the contents.
+        </p>
+        <p>See also: <a href="/record-workflow-as-agent-skill/">record a workflow as an agent skill</a> and <a href="/record-clicks-to-playwright-test/">convert clicks to a Playwright test</a>.</p>
+      </div>
+    </div>
+  </div>
+</Base>
