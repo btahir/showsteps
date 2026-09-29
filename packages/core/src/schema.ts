@@ -1,4 +1,4 @@
-// Showsteps (formerly Stepsnap) guide file format, v1. This is the contract every package codes against.
+// Showsteps guide file format, v1. This is the contract every package codes against.
 // A guide is saved as a folder or zip: `guide.json` (this schema) + `images/<stepId>.png`.
 // Change it only by adding optional fields; bump `schemaVersion` for breaking changes.
 

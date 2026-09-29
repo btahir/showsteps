@@ -64,14 +64,14 @@ async function run(page: import("@playwright/test").Page, golden: string, target
   return out as Record<string, import("@showsteps/core").ElementDescriptor>;
 }
 
-test("login page descriptors", async ({ page }) => {
+test("C2 login page descriptors: every locator resolves to exactly the recorded element", async ({ page }) => {
   await page.goto("/index.html");
   const d = await run(page, "login", login);
   expect(d.password!.sensitive).toBe(true);
   expect(d.email!.sensitive).toBeUndefined();
 });
 
-test("dashboard descriptors (icon buttons, slow button, SPA view)", async ({ page }) => {
+test("C2 dashboard descriptors (icon buttons, slow button, SPA view): every locator resolves to exactly the recorded element", async ({ page }) => {
   await page.goto("/dashboard.html");
   await page.waitForSelector("#export-csv"); // the slow-loading button appears after ~1.2 s
   const d = await run(page, "dashboard", dashboard);
@@ -86,7 +86,7 @@ test("dashboard descriptors (icon buttons, slow button, SPA view)", async ({ pag
   expect(r["download-report"]!.locators[0]).toEqual({ kind: "testid", value: "download-report" });
 });
 
-test("settings page descriptors (forms, iframe, shadow DOM, card fields)", async ({ page }) => {
+test("C2 settings page descriptors (forms, iframe, shadow DOM, card fields): every locator resolves to exactly the recorded element", async ({ page }) => {
   await page.goto("/settings.html");
   await page.waitForSelector("acme-tip");
   const d = await run(page, "settings", settings);
@@ -99,7 +99,7 @@ test("settings page descriptors (forms, iframe, shadow DOM, card fields)", async
   expect(d["signature-contenteditable"]!.text).toBeUndefined();
 });
 
-test("help page descriptors", async ({ page }) => {
+test("C2 help page descriptors: every locator resolves to exactly the recorded element", async ({ page }) => {
   await page.goto("/help.html");
   await run(page, "help", help);
 });

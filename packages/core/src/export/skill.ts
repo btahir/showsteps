@@ -3,7 +3,7 @@ import { PRODUCT_NAME, SITE_URL, STEPS_JSON_FORMAT, STEPS_JSON_VERSION } from ".
 import { hostnameOf, plainTitle, slugify } from "../text";
 import type { ExportFiles, ExportResult, ImageSource } from "../types";
 import { canonicalJson } from "../json";
-import stepsSchema from "../../schema/steps.schema.json";
+import stepsSchema from "../../schema/steps.schema.json" with { type: "json" };
 import { exportPlaywright } from "./playwright";
 import { buildReplayPlan, q, type PlanStep } from "./replay-plan";
 import { formatDate, renderGuideImages, type ImageRenderOptions } from "./shared";
