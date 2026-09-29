@@ -8,7 +8,7 @@ const { figure } = Astro.props;
     <div class={`shot-frame ${figure.name === "editor" ? "wide" : "narrow"}`}>
       <picture>
         <source srcset={`/img/${figure.name}-dark.webp`} media="(prefers-color-scheme: dark)" />
-        <img src={`/img/${figure.name}-light.webp`} alt={figure.alt} width={figure.name === "editor" ? 1280 : 400} height={figure.name === "editor" ? 860 : 900} decoding="async" />
+        <img src={`/img/${figure.name}-light.webp`} alt={figure.alt} width={figure.name === "editor" ? 920 : 400} height={figure.name === "editor" ? 724 : 900} decoding="async" />
       </picture>
     </div>
   )}

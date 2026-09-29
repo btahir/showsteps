@@ -15,12 +15,14 @@ const out = join(root, "public/img/");
 const screens = join(root, "../extension/e2e/.artifacts/screens/");
 await mkdir(out, { recursive: true });
 const tmp = await mkdtemp(join(tmpdir(), "assets-"));
-const webp = (src, dest, q = 88) => execFileSync("cwebp", ["-quiet", "-q", String(q), "-m", "6", src, "-o", join(out, dest)]);
+const webp = (src, dest, q = 88, crop = []) => execFileSync("cwebp", ["-quiet", "-q", String(q), "-m", "6", ...(crop.length ? ["-crop", ...crop.map(String)] : []), src, "-o", join(out, dest)]);
 
 // 1. e2e renders -> webp (light and dark variants of the same screen)
-for (const name of ["panel-recording", "panel-guide", "panel-export", "panel-support", "panel-empty", "editor"]) {
+for (const name of ["panel-recording", "panel-guide", "panel-export", "panel-support", "panel-empty"]) {
   for (const t of ["light", "dark"]) webp(join(screens, `${name}-${t}.png`), `${name}-${t}.webp`);
 }
+// The editor screen is cropped to the right-hand pane (title, toolbar, blurred field), dropping the fixture host in the list meta and URL caption.
+for (const t of ["light", "dark"]) webp(join(screens, `editor-${t}.png`), `editor-${t}.webp`, 88, [360, 56, 920, 724]);
 
 // 2. figures from the built sample guide
 const types = { ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
