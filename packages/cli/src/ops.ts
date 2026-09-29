@@ -28,6 +28,9 @@ import {
 } from "./files.ts";
 import { VERSION } from "./version.ts";
 
+export { EXIT, StepsnapError, invalid, ioError, usage } from "./errors.ts";
+export { checkGuideFile, loadGuideFile, saveGuideFile, type CheckResult, type ImageSource, type LoadedGuide } from "./files.ts";
+
 // ---------------------------------------------------------------- summaries
 
 export const isSensitiveStep = (s: Step): boolean =>
