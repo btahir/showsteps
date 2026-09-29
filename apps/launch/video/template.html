@@ -1,0 +1,359 @@
+<!doctype html>
+<!-- Showsteps launch video, 30 s, 1920x1080. GENERATED from apps/launch/video/template.html by compose.mjs (do not edit the output). -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>Showsteps launch</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face { font-family: "Rethink Sans"; src: url("assets/fonts/RethinkSans-Variable-latin.woff2") format("woff2"); font-weight: 400 800; font-style: normal; }
+@font-face { font-family: "Fragment Mono"; src: url("assets/fonts/FragmentMono-Regular-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #F4F2EE; }
+body { font-family: "Rethink Sans", system-ui, sans-serif; color: #1F1C19; -webkit-font-smoothing: antialiased; font-feature-settings: "liga" 0; }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.scene { position: absolute; inset: 0; }
+.clip { position: absolute; inset: 0; }
+
+/* theme tokens (packages/brand/tokens.css) */
+.scene { --bg:#F4F2EE; --surface:#fff; --ink:#1F1C19; --ink2:#57514B; --ink3:#736B63; --line:#E0DCD6; --accent:#EB4E26; --accent-strong:#D13F19; --accent-ink:#B63A14; --ok:#217A4F; --ok-soft:#E1F2E8;
+  background: var(--bg); color: var(--ink); }
+.scene.dark { --bg:#141312; --surface:#1C1A18; --ink:#F3EFEA; --ink2:#B9B0A6; --ink3:#8F867C; --line:#2F2B28; --accent:#FF6337; --accent-ink:#FF8D6A; --ok:#5BC98C; --ok-soft:#173024; }
+
+.lockup { position: absolute; left: 110px; top: 72px; display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 30px; letter-spacing: -0.02em; z-index: 5; }
+.lockup svg { width: 44px; height: 44px; }
+
+/* headline column */
+.hl { position: absolute; left: 110px; top: 0; width: 560px; height: 100%; display: flex; flex-direction: column; justify-content: center; opacity: 0; }
+.hl h1 { font-size: 88px; line-height: 1.0; font-weight: 760; letter-spacing: -0.03em; word-spacing: 0.04em; }
+#h5 h1 { font-size: 68px; }
+.hl p { margin-top: 30px; font-size: 27px; line-height: 1.38; color: var(--ink2); max-width: 500px; letter-spacing: -0.005em; }
+.hl .mono { font-family: "Fragment Mono", monospace; font-size: 20px; color: var(--ink3); margin-top: 26px; letter-spacing: 0; }
+.hl .w { display: inline-block; }
+
+/* browser window */
+.win { position: absolute; left: 720px; top: 168px; width: 1120px; height: 744px; border-radius: 18px; background: var(--surface); box-shadow: 0 2px 6px rgba(31,28,25,.08), 0 40px 90px -24px rgba(31,28,25,.34), 0 0 0 1px rgba(31,28,25,.08); overflow: hidden; opacity: 0; }
+.dark .win { box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 40px 90px -24px rgba(0,0,0,.6); }
+.bar { position: absolute; left: 0; top: 0; width: 100%; height: 44px; background: #ECE9E4; display: flex; align-items: center; padding: 0 16px; gap: 8px; border-bottom: 1px solid #E0DCD6; }
+.dark .bar { background: #221F1D; border-color: #2F2B28; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: #D2CDC6; }
+.dark .dot { background: #3D3935; }
+.url { position: absolute; left: 50%; transform: translateX(-50%); height: 28px; padding: 0 16px; min-width: 320px; border-radius: 14px; background: #F7F5F2; font-size: 15px; color: #57514B; display: flex; align-items: center; justify-content: center; letter-spacing: 0; }
+.dark .url { background: #141312; color: #B9B0A6; }
+.ext { position: absolute; right: 14px; top: 8px; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; }
+.ext svg { width: 22px; height: 22px; }
+.tip { position: absolute; right: 10px; top: 52px; height: 34px; padding: 0 14px; border-radius: 9px; background: #1F1C19; color: #F3EFEA; font: 600 16px/34px "Rethink Sans"; opacity: 0; z-index: 9; white-space: nowrap; }
+.view { position: absolute; left: 0; top: 44px; width: 1120px; height: 700px; overflow: hidden; background: #F4F2EE; }
+.pv { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; }
+.pg { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; opacity: 0; }
+#pg-clean-login { opacity: 1; }
+.ed { position: absolute; left: 0; top: 0; width: 1280px; height: 860px; transform-origin: 0 0; opacity: 0; }
+.ed img { position: absolute; left: 0; top: 0; width: 1280px; height: 860px; opacity: 0; }
+
+/* callouts */
+.tagpill { position: absolute; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: #E1F2E8; color: #217A4F; font: 600 15px/1 "Rethink Sans"; opacity: 0; white-space: nowrap; box-shadow: 0 0 0 1px rgba(33,122,79,.25); }
+.ringbox { position: absolute; border: 3px solid #EB4E26; border-radius: 8px; box-shadow: 0 0 0 2px rgba(255,255,255,.96); opacity: 0; pointer-events: none; }
+.fmtchips { position: absolute; left: 720px; top: 940px; width: 1120px; display: flex; gap: 12px; opacity: 0; }
+.chip { height: 44px; padding: 0 20px; border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); font-weight: 600; font-size: 20px; display: flex; align-items: center; letter-spacing: -0.01em; }
+.chip.on { background: #EB4E26; color: #fff; box-shadow: none; }
+
+/* dark scene: code window */
+.code { position: absolute; left: 720px; top: 168px; width: 1120px; height: 744px; border-radius: 18px; background: #1C1A18; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 40px 90px -24px rgba(0,0,0,.6); overflow: hidden; opacity: 0; }
+.tabs { height: 52px; display: flex; align-items: flex-end; padding-left: 20px; gap: 4px; background: #141312; border-bottom: 1px solid #2F2B28; }
+.tab { height: 42px; padding: 0 20px; display: flex; align-items: center; gap: 10px; font: 400 18px "Fragment Mono", monospace; color: #8F867C; border-radius: 10px 10px 0 0; }
+.tab.on { background: #1C1A18; color: #F3EFEA; box-shadow: inset 0 2px 0 #FF6337; }
+.pane { position: absolute; left: 0; top: 52px; width: 100%; height: 400px; padding: 26px 34px; font: 400 21px/1.62 "Fragment Mono", monospace; color: #D9D2CA; white-space: pre; overflow: hidden; }
+.pane .ln { opacity: 0; display: block; height: 34px; }
+.term { position: absolute; left: 0; top: 452px; width: 100%; height: 292px; background: #100F0E; border-top: 1px solid #2F2B28; padding: 22px 34px; font: 400 21px/1.62 "Fragment Mono", monospace; color: #D9D2CA; white-space: pre; }
+.term .ln { opacity: 0; display: block; height: 34px; }
+.c-h { color: #FF8D6A; } .c-d { color: #8F867C; } .c-s { color: #E9C77B; } .c-k { color: #9CC5F5; } .c-ok { color: #5BC98C; }
+.cursorbar { display: inline-block; width: 11px; height: 24px; background: #F3EFEA; vertical-align: -4px; margin-left: 2px; opacity: 0; }
+.passbadge { position: absolute; right: 30px; bottom: 28px; height: 44px; padding: 0 18px; border-radius: 22px; background: #173024; color: #5BC98C; font: 700 20px/44px "Rethink Sans"; opacity: 0; display: flex; gap: 10px; align-items: center; }
+
+/* stats scene */
+.big { position: absolute; left: 110px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 10px; width: 600px; }
+.big .row { font-size: 96px; font-weight: 760; letter-spacing: -0.035em; white-space: nowrap; line-height: 1.02; opacity: 0; display: flex; align-items: center; gap: 22px; }
+.big .row .tick { width: 56px; height: 56px; border-radius: 16px 16px 16px 4px; background: #217A4F; display: grid; place-items: center; flex: none; }
+.big .row .tick svg { width: 30px; height: 30px; }
+.big p { margin-top: 26px; font-size: 27px; color: var(--ink2); opacity: 0; max-width: 560px; line-height: 1.38; }
+
+/* end card */
+.endc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.endc .mk { width: 190px; height: 190px; }
+.endc .mk svg { width: 190px; height: 190px; overflow: visible; }
+.endc h2 { margin-top: 26px; font-size: 128px; font-weight: 760; letter-spacing: -0.035em; line-height: 1; }
+.endc .sub { margin-top: 20px; font-size: 38px; color: var(--ink2); font-weight: 500; letter-spacing: -0.015em; }
+.endc .row { margin-top: 56px; display: flex; gap: 18px; align-items: center; }
+.btn svg { width: 46px; height: 46px; flex: none; }
+.btn { white-space: nowrap; height: 76px; padding: 0 38px; border-radius: 16px; background: #D13F19; color: #fff; font-weight: 700; font-size: 29px; display: flex; align-items: center; gap: 12px; }
+.urlpill { height: 76px; padding: 0 34px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px #E0DCD6; font: 400 28px "Fragment Mono", monospace; display: flex; align-items: center; letter-spacing: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="launch" data-start="0" data-width="1920" data-height="1080" data-duration="30">
+
+  <audio id="bgm" src="assets/track.mp3" data-start="0" data-duration="30" data-track-index="9" data-volume="1"></audio>
+
+  <!-- 0-17.8: cold open, record, guide (light) -->
+  <section id="sc-a" class="clip" data-start="0" data-duration="17.9" data-track-index="0">
+    <div class="scene" id="scA">
+      <div class="lockup" id="lockA"><span data-mark></span>Showsteps</div>
+      <div class="hl" id="h1"><h1>You know this task.</h1></div>
+      <div class="hl" id="h2"><h1>Press Record. Do it once.</h1><p>Click through it. Showsteps screenshots every step and outlines what you touched.</p></div>
+      <div class="hl" id="h3"><h1>The steps write themselves.</h1><p>Titles are written for you. Passwords and card numbers are blurred as you go.</p></div>
+      <div class="hl" id="h4"><h1>Export it. Free.</h1><p>PDF, HTML, Markdown or Word. No watermark, no account.</p></div>
+      <div class="win" id="win">
+        <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><div class="url" id="url">acme-books.example</div><div class="ext" id="extbtn"><span data-mark></span></div></div>
+        <div class="tip" id="tip">Start recording</div>
+        <div class="view" id="view">
+          <div class="pv" id="pv">
+            <img class="pg" id="pg-clean-login" src="assets/light/screens/clean-login.png" />
+            <img class="pg" id="pg-clean-email" src="assets/light/screens/clean-email.png" />
+            <img class="pg" id="pg-clean-password" src="assets/light/screens/clean-password.png" />
+            <img class="pg" id="pg-clean-dashboard" src="assets/light/screens/clean-dashboard.png" />
+            <img class="pg" id="pg-r0" src="assets/light/screens/page-recording-bar.png" />
+            <img class="pg" id="pg-r1" src="assets/light/screens/page-s01-before.png" />
+            <img class="pg" id="pg-r2" src="assets/light/screens/page-s02-before.png" />
+            <img class="pg" id="pg-r3" src="assets/light/screens/page-s03-before.png" />
+            <img class="pg" id="pg-r4" src="assets/light/screens/page-s04-before.png" />
+          </div>
+          <div class="ed" id="ed">
+            <img id="ed-main" src="assets/light/screens/editor.png" />
+            <img id="ed-export" src="assets/light/screens/editor-export.png" />
+            <div class="ringbox" id="chipring"></div>
+            <div class="tagpill" id="chiptag"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#217A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Blurred automatically</div>
+            <div class="ringbox" id="fmtring"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17.4-25: the agent skill (dark) -->
+  <section id="sc-b" class="clip" data-start="17.4" data-duration="7.6" data-track-index="1">
+    <div class="scene dark" id="scB" style="opacity:0">
+      <div class="lockup"><span data-mark></span>Showsteps</div>
+      <div class="hl" id="h5"><h1>The same recording is a skill your agent can replay.</h1><p>SKILL.md, steps.json and a Playwright script. Read it, run it, no re-recording.</p></div>
+      <div class="code" id="code">
+        <div class="tabs"><div class="tab on" id="tabA">SKILL.md</div><div class="tab" id="tabB">steps.json</div><div class="tab" id="tabC">replay.spec.ts</div></div>
+        <div class="pane" id="paneA"></div>
+        <div class="pane" id="paneC" style="opacity:0"></div>
+        <div class="term" id="term"></div>
+        <div class="passbadge" id="pass"><svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#5BC98C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>1 passed</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24.6-27.8: stays on your computer (light) -->
+  <section id="sc-c" class="clip" data-start="24.5" data-duration="3.4" data-track-index="2">
+    <div class="scene" id="scC" style="opacity:0">
+      <div class="lockup"><span data-mark></span>Showsteps</div>
+      <div class="big">
+        <div class="row" id="n1"><span class="tick"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No account.</div>
+        <div class="row" id="n2"><span class="tick"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No upload.</div>
+        <div class="row" id="n3"><span class="tick"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>No server.</div>
+        <p id="npara">Everything stays on your computer, and the guide is a file you own.</p>
+      </div>
+      <div class="win" id="win2" style="top:168px">
+        <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><div class="url" style="min-width:420px">guide.html</div></div>
+        <div class="view" style="background:#F4F2EE"><img src="assets/light/screens/guide-html.png" style="position:absolute;left:0;top:0;width:1120px;height:auto" /></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 27.4-30: end card -->
+  <section id="sc-d" class="clip" data-start="27.4" data-duration="2.6" data-track-index="3">
+    <div class="scene" id="scD" style="opacity:0">
+      <div class="endc">
+        <div class="mk" id="endmark"></div>
+        <h2 id="endname">Showsteps</h2>
+        <div class="sub" id="endsub">Free. Open source. Local.</div>
+        <div class="row" id="endrow"><div class="btn"><span data-mark-white></span>Add to Chrome</div><div class="urlpill">showsteps.vercel.app</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/*__KIT__*/
+</script>
+<script>
+const DATA = /*__DATA__*/;
+(() => {
+  const { el, flag, cursor, camera, type } = Kit;
+  const T = DATA.T, B = DATA.boxes, E = DATA.editor;
+  const $ = (s) => document.querySelector(s);
+  const tl = gsap.timeline({ paused: true });
+
+  // mark svg into placeholders
+  document.querySelectorAll("[data-mark]").forEach((n) => (n.outerHTML = DATA.mark));
+  document.querySelectorAll("[data-mark-white]").forEach((n) => (n.outerHTML = DATA.markWhite));
+  document.querySelectorAll(".lockup svg, .ext svg").forEach((s) => s.removeAttribute("width"));
+  $("#endmark").innerHTML = DATA.mark;
+
+  const pv = $("#pv");
+  const cam = camera(pv, 1120, 700, 1280, 800, 0.875);
+  gsap.set(pv, { x: 0, y: 0, scale: 0.875 });
+  const cur = cursor(pv, { size: 34 });
+  const center = (b, fx = 0.5) => ({ x: b.x + b.width * fx, y: b.y + b.height * 0.55 });
+
+  const show = (id, t) => { tl.set(".pg", { opacity: 0 }, t); tl.set("#pg-" + id, { opacity: 1 }, t); };
+  const swapIn = (id, t, d = 0.18) => tl.fromTo("#pg-" + id, { opacity: 0 }, { opacity: 1, duration: d, ease: "none" }, t);
+  const hlIn = (id, t) => {
+    tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.01 }, t);
+    tl.from(id + " h1", { y: 34, opacity: 0, duration: 0.7, ease: "power3.out" }, t);
+    if (document.querySelector(id + " p")) tl.from(id + " p", { y: 22, opacity: 0, duration: 0.6, ease: "power3.out" }, t + 0.22);
+  };
+  const hlOut = (id, t) => tl.to(id, { opacity: 0, y: -18, duration: 0.3, ease: "power2.in" }, t);
+
+  // ---- window in ---------------------------------------------------------------------------
+  tl.fromTo("#lockA", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.1);
+  tl.fromTo("#win", { opacity: 0, y: 40, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }, 0.05);
+  hlIn("#h1", 0.25);
+
+  // ---- 0-4.6 cold open: the task, done by hand -----------------------------------------------
+  cur.place(tl, 0, 900, 640); cur.show(tl, 0.5);
+  const email = center(B.s01, 0.3), pw = center(B.s02, 0.3), sign = center(B.s03, 0.5);
+  cur.moveTo(tl, 0.55, 1.2, email.x, email.y); cur.click(tl, T.sfx.click[0]);
+  show("clean-email", 1.32);
+  cur.moveTo(tl, 1.5, 2.12, pw.x, pw.y); cur.click(tl, T.sfx.click[1]);
+  show("clean-password", 2.25);
+  cur.moveTo(tl, 2.45, 3.12, sign.x, sign.y); cur.click(tl, T.sfx.click[2]);
+  show("clean-dashboard", 3.34);
+  cur.moveTo(tl, 3.6, 4.4, 1180, 60, "power2.inOut");
+  hlOut("#h1", 4.25);
+
+  // ---- 4.6-10.6 Press Record: the same clicks, outlined --------------------------------------
+  hlIn("#h2", 4.7);
+  const eb = $("#extbtn");
+  tl.to(eb, { background: "#FCE6DD", duration: 0.15 }, 4.95).to(eb, { scale: 0.9, duration: 0.08 }, 5.0).to(eb, { scale: 1, background: "rgba(0,0,0,0)", duration: 0.3 }, 5.08);
+  tl.fromTo("#tip", { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }, 4.65).to("#tip", { opacity: 0, duration: 0.2 }, 5.25);
+  // the bar appears on the login page: a fresh page, recording
+  tl.set(cur.root, { opacity: 0 }, 5.0);
+  show("r0", 5.05);
+  cur.place(tl, 5.2, 900, 640); cur.show(tl, 5.3);
+  // 3 steps, with the flag drawn on and a camera push on each
+  const fl = [flag(pv, B.s01, 1, { corner: DATA.corners.s01, ring: 4 }), flag(pv, B.s02, 2, { corner: DATA.corners.s02, ring: 4 }), flag(pv, B.s03, 3, { corner: DATA.corners.s03, ring: 4 })];
+  const cl = T.sfx.click, fg = T.sfx.flag;
+  cur.moveTo(tl, 5.4, cl[4] - 0.06, email.x, email.y); cur.click(tl, cl[4]);
+  cam.to(tl, cl[4] - 0.1, 0.6, 640, B.s01.y + 40, 1.5);
+  show("r2", cl[4] + 0.4);
+  fl[0].draw(tl, fg[0], 0.5);
+  fl[0].hide(tl, cl[5] - 0.12, 0.18);
+  cam.home(tl, cl[5] - 0.5, 0.55);
+  cur.moveTo(tl, cl[5] - 0.75, cl[5] - 0.06, pw.x, pw.y); cur.click(tl, cl[5]);
+  cam.to(tl, cl[5] - 0.1, 0.6, 640, B.s02.y + 40, 1.5);
+  show("r3", cl[5] + 0.4);
+  fl[1].draw(tl, fg[1], 0.5);
+  fl[1].hide(tl, cl[6] - 0.12, 0.18);
+  cam.home(tl, cl[6] - 0.5, 0.55);
+  cur.moveTo(tl, cl[6] - 0.75, cl[6] - 0.06, sign.x, sign.y); cur.click(tl, cl[6]);
+  cam.to(tl, cl[6] - 0.1, 0.6, 640, B.s03.y + 20, 1.45);
+  fl[2].draw(tl, fg[2], 0.5);
+  fl[2].hide(tl, 9.3, 0.2);
+  show("r4", 9.35);
+  cam.home(tl, 9.2, 0.7);
+  tl.to(cur.root, { opacity: 0, duration: 0.2 }, 9.9);
+  hlOut("#h2", 10.35);
+
+  // ---- 10.6-17.6 The guide: real editor, blur, export -----------------------------------------
+  const ed = $("#ed"), edScale = 700 / E.viewport.height, edX = (1120 - E.viewport.width * edScale) / 2;
+  gsap.set(ed, { x: edX, y: 0, scale: edScale });
+  tl.to("#pv", { opacity: 0, duration: 0.35, ease: "power1.inOut" }, 10.5);
+  tl.set("#url", { textContent: "Showsteps" }, 10.6);
+  tl.set(cur.root, { opacity: 0 }, 10.5);
+  tl.fromTo("#ed-main", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 10.5);
+  tl.fromTo(ed, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 10.55);
+  hlIn("#h3", 10.75);
+  // cursor lives in the editor for this scene
+  const edCur = cursor(ed, { size: 34 / edScale * 0.9 });
+  const chip = E.chip;
+  const ring = $("#chipring"), tag = $("#chiptag");
+  Object.assign(ring.style, { left: (chip.x - 6) + "px", top: (chip.y - 5) + "px", width: (chip.width + 12) + "px", height: (chip.height + 10) + "px" });
+  Object.assign(tag.style, { left: (chip.x + chip.width + 18) + "px", top: (chip.y - 1) + "px", transform: "scale(" + (1 / edScale * 0.62) + ")", transformOrigin: "0 0" });
+  edCur.place(tl, 10.6, 640, 500); edCur.show(tl, 11.2);
+  edCur.moveTo(tl, 11.5, 12.6, chip.x + chip.width / 2, chip.y + chip.height + 30);
+  tl.fromTo(ring, { opacity: 0, scale: 1.1 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 12.75);
+  tl.fromTo(tag, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, T.sfx.pop[0] - 0.05);
+  const ecam = camera(ed, 1120, 700, E.viewport.width, E.viewport.height, edScale);
+  ecam.to(tl, 12.6, 0.8, chip.x + 440, 300, 1.4);
+  tl.to(ed, { scale: edScale, x: edX, y: 0, duration: 0.7, ease: "power3.inOut" }, 14.3);
+  tl.to([ring, tag], { opacity: 0, duration: 0.25 }, 14.3);
+  hlOut("#h3", 14.15);
+  hlIn("#h4", 14.35);
+  // export
+  const xb = E.exportBtn;
+  edCur.moveTo(tl, 14.4, 15.25, xb.x + xb.width * 0.5, xb.y + xb.height * 0.5);
+  edCur.click(tl, T.sfx.click[7]);
+  tl.fromTo("#ed-export", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 15.4);
+  const fr = $("#fmtring");
+  const fm = E.formats;
+  const fs = ["pdf", "html", "markdown", "docx", "skill"].map((k) => fm[k]);
+  Object.assign(fr.style, { left: "0px", top: "0px", width: fs[0].width + "px", height: fs[0].height + "px" });
+  gsap.set(fr, { x: fs[0].x, y: fs[0].y });
+  tl.fromTo(fr, { opacity: 0 }, { opacity: 1, duration: 0.2 }, T.sfx.tick[0] - 0.1);
+  fs.forEach((b, i) => { if (i) tl.to(fr, { x: b.x, y: b.y, duration: 0.18, ease: "power2.inOut" }, T.sfx.tick[i] - 0.18); });
+  tl.set(fr, { borderColor: "#EB4E26" }, 17.0);
+  tl.to(edCur.root, { opacity: 0, duration: 0.2 }, 16.8);
+  // chips row under the window
+  hlOut("#h4", 17.2);
+  tl.to("#win", { opacity: 0, y: -20, duration: 0.35, ease: "power2.in" }, 17.35);
+  tl.to("#lockA", { opacity: 0, duration: 0.3 }, 17.4);
+
+  // ---- 17.4-24.6 Agent skill (dark) ---------------------------------------------------------
+  tl.to("#scB", { opacity: 1, duration: 0.4, ease: "power1.out" }, 17.4);
+  hlIn("#h5", 17.75);
+  tl.fromTo("#code", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 17.55);
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const tok = (l, re, cls) => { let out = "", i = 0, m; re.lastIndex = 0; while ((m = re.exec(l))) { out += esc(l.slice(i, m.index)); const k = cls(m); out += k ? `<span class="${k}">${esc(m[0].replace(/^\*\*|\*\*$/g, ""))}</span>` : esc(m[0]); i = m.index + m[0].length; } return out + esc(l.slice(i)); };
+  const colour = esc;
+  const paint = (l, kind) => {
+    if (kind === "md") {
+      if (/^#/.test(l)) return `<span class="c-h">${esc(l)}</span>`;
+      if (/^---$/.test(l)) return `<span class="c-d">${l}</span>`;
+      if (/^(name|description):/.test(l)) return tok(l, /^(name|description):|:\s.*$/g, (m) => (m[0].startsWith(":") ? "c-s" : "c-k"));
+      return tok(l, /\*\*[^*]+\*\*|Find it by:|Value:/g, (m) => (m[0].startsWith("**") ? "c-h" : "c-d"));
+    }
+    return tok(l, /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(await|async|import|from|type|const)\b/g, (m) => (m[1] ? "c-d" : m[2] ? "c-s" : "c-k"));
+  };
+  const fill = (pane, lines, kind) => lines.map((l) => { const d = el("span", "ln", null, pane); d.innerHTML = paint(l, kind) || "&nbsp;"; return d; });
+  const la = fill($("#paneA"), DATA.skill.md, "md");
+  const lc = fill($("#paneC"), DATA.skill.spec, "ts");
+  la.forEach((d, i) => tl.fromTo(d, { opacity: 0, x: 10 }, { opacity: 1, x: 0, duration: 0.25, ease: "power2.out" }, 18.0 + i * 0.13));
+  // switch to the Playwright script
+  tl.to("#paneA", { opacity: 0, duration: 0.15 }, 20.15).to("#paneC", { opacity: 1, duration: 0.15 }, 20.2);
+  tl.set("#tabA", { className: "tab" }, 20.15).set("#tabC", { className: "tab on" }, 20.15);
+  lc.forEach((d, i) => tl.fromTo(d, { opacity: 0, x: 10 }, { opacity: 1, x: 0, duration: 0.22, ease: "power2.out" }, 20.3 + i * 0.1));
+  // terminal
+  const term = $("#term");
+  const prompt = el("span", "ln", null, term); prompt.innerHTML = '<span class="c-ok">$</span> <span id="cmd"></span><span class="cursorbar" id="cbar"></span>';
+  tl.to("#cbar", { opacity: 1, duration: 0.01 }, 21.45);
+  type(tl, $("#cmd"), DATA.skill.cmd, 21.55, 0.9);
+  tl.set(prompt, { opacity: 1 }, 21.45);
+  tl.to("#cbar", { opacity: 0, duration: 0.01 }, 22.5);
+  const tlines = DATA.skill.term.map((l) => { const d = el("span", "ln", null, term); d.innerHTML = l.ok ? `<span class="c-ok">${esc(l.t)}</span>` : esc(l.t); return d; });
+  tlines.forEach((d, i) => tl.fromTo(d, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.2 }, 22.6 + i * 0.28));
+  tl.fromTo("#pass", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.4)" }, T.sfx.pop[1]);
+  tl.to("#scB", { opacity: 0, duration: 0.35 }, 24.6);
+
+  // ---- 24.5-27.8 stays local ---------------------------------------------------------------
+  tl.to("#scC", { opacity: 1, duration: 0.3 }, 24.55);
+  ["#n1", "#n2", "#n3"].forEach((s, i) => tl.fromTo(s, { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 24.75 + i * 0.7));
+  tl.fromTo("#npara", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, 26.7);
+  tl.fromTo("#win2", { opacity: 0, y: 50, rotate: 0.6 }, { opacity: 1, y: 0, rotate: 0, duration: 0.8, ease: "power3.out" }, 24.7);
+  tl.to("#scC", { opacity: 0, duration: 0.3 }, 27.65);
+
+  // ---- 27.4-30 end card ----------------------------------------------------------------------
+  tl.to("#scD", { opacity: 1, duration: 0.3 }, 27.45);
+  tl.from("#endmark", { scale: 0.7, opacity: 0, duration: 0.6, ease: "back.out(2)" }, 27.6);
+  tl.from("#endname", { y: 26, opacity: 0, duration: 0.6, ease: "power3.out" }, 27.75);
+  tl.from("#endsub", { y: 20, opacity: 0, duration: 0.5, ease: "power3.out" }, 27.95);
+  tl.from("#endrow", { y: 20, opacity: 0, duration: 0.5, ease: "power3.out" }, 28.15);
+  tl.to({}, { duration: 0.01 }, 29.99);
+
+  window.__timelines["launch"] = tl;
+})();
+</script>
+</body>
+</html>

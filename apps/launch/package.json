@@ -1,0 +1,17 @@
+{
+  "name": "@stepsnap/launch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Launch video, README hero loop and store screenshots for Showsteps. Regenerate everything with ./render.sh.",
+  "scripts": {
+    "capture": "node capture/capture.mjs",
+    "store": "node store/make-store-shots.mjs",
+    "render": "./render.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "hyperframes": "0.8.79"
+  }
+}

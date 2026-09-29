@@ -1,0 +1,240 @@
+<!doctype html>
+<!-- Showsteps README hero loop, 10 s. Designed at 2000x1250 (2x of the 1000 px README width). GENERATED from apps/launch/hero/template.html by compose.mjs. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=2000, height=1250" />
+<title>Showsteps hero</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face { font-family: "Rethink Sans"; src: url("assets/fonts/RethinkSans-Variable-latin.woff2") format("woff2"); font-weight: 400 800; font-style: normal; }
+@font-face { font-family: "Fragment Mono"; src: url("assets/fonts/FragmentMono-Regular-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 2000px; height: 1250px; overflow: hidden; background: #F4F2EE; }
+body { font-family: "Rethink Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "liga" 0; }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.clip { position: absolute; inset: 0; }
+.scene { position: absolute; inset: 0; --bg:#F4F2EE; --surface:#fff; --surface2:#ECE9E4; --ink:#1F1C19; --ink2:#57514B; --ink3:#736B63; --line:#E0DCD6; --line2:#D2CDC6; --accent:#EB4E26; --accent-strong:#D13F19; --ok:#217A4F; --ok-soft:#E1F2E8; --rec:#E5341B; --shadow: 0 4px 12px rgba(31,28,25,.08), 0 40px 90px -28px rgba(31,28,25,.34); background: var(--bg); color: var(--ink); }
+.scene.dark { --bg:#141312; --surface:#1C1A18; --surface2:#25221F; --ink:#F3EFEA; --ink2:#B9B0A6; --ink3:#8F867C; --line:#2F2B28; --line2:#3D3935; --accent:#FF6337; --accent-strong:#FF6337; --ok:#5BC98C; --ok-soft:#173024; --rec:#FF5A3F; --shadow: 0 0 0 2px rgba(255,255,255,.06), 0 40px 90px -28px rgba(0,0,0,.7); }
+
+.win { position: absolute; left: 56px; top: 56px; width: 1240px; height: 1138px; border-radius: 30px; background: var(--surface); box-shadow: var(--shadow), 0 0 0 2px rgba(31,28,25,.08); overflow: hidden; }
+.scene.dark .win { box-shadow: var(--shadow); }
+.bar { position: absolute; left: 0; top: 0; width: 100%; height: 64px; background: var(--surface2); display: flex; align-items: center; padding: 0 26px; gap: 12px; border-bottom: 2px solid var(--line); z-index: 3; }
+.dot { width: 18px; height: 18px; border-radius: 50%; background: var(--line2); }
+.url { position: absolute; left: 50%; transform: translateX(-50%); height: 40px; min-width: 440px; border-radius: 20px; background: var(--bg); color: var(--ink2); font-size: 22px; display: flex; align-items: center; justify-content: center; }
+.ext { position: absolute; right: 20px; top: 10px; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; }
+.ext svg { width: 34px; height: 34px; }
+.view { position: absolute; left: 0; top: 64px; width: 1240px; height: 1074px; overflow: hidden; background: #F4F2EE; }
+.pv { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; }
+.pg { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; opacity: 0; }
+#pg-clean-login { opacity: 1; }
+
+.panel { position: absolute; left: 1330px; top: 56px; width: 614px; height: 1138px; border-radius: 30px; background: var(--bg); box-shadow: var(--shadow), 0 0 0 2px var(--line); overflow: hidden; opacity: 0; }
+.ph { position: absolute; left: 0; top: 0; width: 100%; height: 100px; display: flex; align-items: center; gap: 18px; padding: 0 32px; z-index: 3; background: var(--bg); }
+.ph svg { width: 50px; height: 50px; display: block; flex: none; }
+.ph .ttl { font-size: 32px; font-weight: 600; letter-spacing: -0.015em; color: var(--ink); flex: 1; white-space: nowrap; overflow: hidden; }
+.ph .sub { font-size: 22px; color: var(--ink3); font-weight: 500; }
+.list { position: absolute; left: 0; top: 100px; width: 100%; }
+.row { position: relative; padding: 0 32px 40px 32px; opacity: 0; }
+.row .t { display: flex; align-items: flex-start; gap: 18px; min-height: 52px; margin-bottom: 18px; }
+.num { flex: none; min-width: 52px; height: 52px; padding: 0 12px; border-radius: 14px 14px 14px 4px; background: var(--accent-strong); color: #fff; font: 700 28px/52px "Rethink Sans"; text-align: center; }
+.scene.dark .num { color: #1A0B05; }
+.row .t span.txt { font-size: 32px; line-height: 42px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); padding-top: 4px; }
+.row .t b { font-weight: 750; }
+.thumb { position: relative; width: 550px; height: 344px; border-radius: 20px; overflow: hidden; background: var(--surface2); box-shadow: 0 0 0 2px var(--line); }
+.thumb .ph-img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.thumb .dim { position: absolute; inset: 0; background: rgba(28,18,12,.16); pointer-events: none; }
+.chipok { position: absolute; right: 32px; top: 52px; height: 42px; padding: 0 16px; border-radius: 21px; background: var(--ok-soft); color: var(--ok); font: 600 22px/42px "Rethink Sans"; display: flex; align-items: center; gap: 8px; opacity: 0; }
+.foot { position: absolute; left: 0; bottom: 0; width: 100%; height: 132px; background: var(--bg); border-top: 2px solid var(--line); display: flex; align-items: center; padding: 0 32px; gap: 20px; z-index: 3; }
+.rec { display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600; color: var(--ink); flex: 1; }
+.rec i { width: 18px; height: 18px; border-radius: 50%; background: var(--rec); display: block; }
+.rec .cnt { min-width: 44px; height: 40px; padding: 0 10px; border-radius: 10px; background: var(--accent-strong); color: #fff; font: 700 24px/40px "Rethink Sans"; text-align: center; }
+.scene.dark .rec .cnt { color: #1A0B05; }
+.btn { height: 76px; padding: 0 34px; border-radius: 20px; font-weight: 700; font-size: 28px; display: flex; align-items: center; }
+.btn.stop { background: var(--accent-strong); color: #fff; }
+.scene.dark .btn.stop { color: #1A0B05; }
+.btn.ghost { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 2px var(--line2); }
+
+.sheet { position: absolute; left: 34px; top: 132px; width: 546px; border-radius: 26px; background: var(--surface); box-shadow: 0 0 0 2px var(--line), 0 40px 80px -20px rgba(0,0,0,.35); padding: 30px; z-index: 6; opacity: 0; }
+.sheet h4 { font-size: 30px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 22px; color: var(--ink); }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.tile { height: 106px; border-radius: 18px; background: var(--bg); box-shadow: inset 0 0 0 2px var(--line); padding: 18px 20px; }
+.tile b { display: block; font-size: 27px; font-weight: 650; color: var(--ink); letter-spacing: -0.01em; }
+.tile span { display: block; margin-top: 8px; font: 400 21px "Fragment Mono", monospace; color: var(--ink3); }
+.tile.sel { background: rgba(235,78,38,.10); box-shadow: inset 0 0 0 4px var(--accent); }
+.files { margin-top: 24px; border-radius: 18px; background: var(--bg); box-shadow: inset 0 0 0 2px var(--line); padding: 8px 22px; }
+.files div { height: 62px; display: flex; align-items: center; gap: 16px; font: 400 25px "Fragment Mono", monospace; color: var(--ink); opacity: 0; border-bottom: 2px solid var(--line); }
+.files div:last-child { border-bottom: 0; }
+.files svg { width: 28px; height: 28px; flex: none; }
+.sel-ring { position: absolute; border-radius: 18px; box-shadow: 0 0 0 4px var(--accent); opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="hero" data-start="0" data-width="2000" data-height="1250" data-duration="10" data-fps="15">
+  <section id="sc" class="clip" data-start="0" data-duration="10">
+    <div class="scene" id="S">
+      <div class="win" id="win">
+        <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><div class="url">acme-books.example</div><div class="ext" id="extbtn"><span data-mark></span></div></div>
+        <div class="view" id="view">
+          <div class="pv" id="pv">
+            <img class="pg" id="pg-clean-login" src="assets/light/screens/clean-login.png" />
+            <img class="pg" id="pg-r0" src="assets/light/screens/page-recording-bar.png" />
+            <img class="pg" id="pg-r1" src="assets/light/screens/page-s01-before.png" />
+            <img class="pg" id="pg-r2" src="assets/light/screens/page-s02-before.png" />
+            <img class="pg" id="pg-r3" src="assets/light/screens/page-s03-before.png" />
+            <img class="pg" id="pg-r4" src="assets/light/screens/page-s04-before.png" />
+            <img class="pg" id="pg-r5" src="assets/light/screens/page-s08-before.png" />
+            <img class="pg" id="pg-clean-settings" src="assets/light/screens/clean-settings.png" />
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="panel">
+        <div class="ph"><span class="mk" data-mark></span><span class="ttl" id="ptitle">Recording</span><span class="sub" id="psub"></span></div>
+        <div class="list" id="list"></div>
+        <div class="chipok" id="chipok"><svg width="22" height="22" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Password blurred</div>
+        <div class="foot" id="foot">
+          <div class="rec" id="recl"><i></i>Recording<span class="cnt" id="cnt">0</span></div>
+          <div class="btn stop" id="stopb">Stop and review</div>
+        </div>
+        <div class="foot" id="foot2" style="opacity:0"><div class="btn ghost">Record more</div><div style="flex:1"></div><div class="btn stop" id="expb">Export</div></div>
+        <div class="sheet" id="sheet">
+          <h4>Export</h4>
+          <div class="tiles" id="tiles"></div>
+          <div class="files" id="files"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+/*__KIT__*/
+</script>
+<script>
+const DATA = /*__DATA__*/;
+(() => {
+  const { el, flag, cursor, camera } = Kit;
+  const B = DATA.boxes, C = DATA.corners, TT = DATA.T;
+  const $ = (s) => document.querySelector(s);
+  const tl = gsap.timeline({ paused: true });
+  if (DATA.theme === "dark") $("#S").classList.add("dark");
+  document.querySelectorAll("[data-mark]").forEach((n) => (n.outerHTML = DATA.mark));
+
+  const pv = $("#pv");
+  const BASE = 1.4;
+  const cam = camera(pv, 1240, 1074, 1280, 800, BASE);
+  const HOME = cam.state(640, 400, 1);
+  gsap.set(pv, HOME);
+  const cur = cursor(pv, { size: 44 });
+  const ctr = (b, fx = 0.4) => ({ x: b.x + b.width * fx, y: b.y + b.height * 0.55 });
+  const show = (id, t) => { tl.set(".pg", { opacity: 0 }, t); tl.set("#pg-" + id, { opacity: 1 }, t); };
+
+  // steps in the panel: real recorded titles and stored screenshots
+  const S = DATA.steps; // [{n,title,id,image,w,h,hl}]
+  const list = $("#list");
+  const md = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  const rows = S.map((s) => {
+    const r = el("div", "row", null, list);
+    r.innerHTML = `<div class="t"><span class="num">${s.n}</span><span class="txt">${md(s.title)}</span></div><div class="thumb"><div class="ph-img"></div><div class="dim"></div></div>`;
+    // focus-frame crop of the real screenshot (16:10 around the highlight)
+    const th = r.querySelector(".thumb"), host = r.querySelector(".ph-img");
+    const hl = s.hl, W = 550, H = 344;
+    const ww = Math.min(s.w, Math.max(hl.width * 1.6, s.w * 0.3, 360 * s.dpr)), wh = ww / 1.6;
+    let cx = hl.x + hl.width / 2 - ww / 2, cy = hl.y + hl.height / 2 - wh / 2;
+    cx = Math.max(0, Math.min(s.w - ww, cx)); cy = Math.max(0, Math.min(s.h - wh, cy));
+    const k = W / ww;
+    host.style.cssText = `width:${s.w}px;height:${s.h}px;transform:scale(${k}) translate(${-cx}px,${-cy}px);transform-origin:0 0;background:url(${s.image}) 0 0/100% 100% no-repeat`;
+    const f = flag(host, { x: hl.x, y: hl.y, width: hl.width, height: hl.height }, s.n, { corner: s.corner, ring: 3 * s.dpr, pad: 4 * s.dpr, r: 8 * s.dpr });
+    f.tab.style.transform = "scale(" + s.dpr + ")"; f.tab.style.transformOrigin = "100% 100%";
+    gsap.set(f.root, { opacity: 1 });
+    gsap.set(f.tab, { opacity: 1 });
+    return { r, f };
+  });
+  // the flag tab was authored at CSS scale; enlarge the DPR-2 rings' tab via transform above
+
+  // ---- 0-0.7: still, then the toolbar icon -----------------------------------------------------
+  cur.place(tl, 0, 1000, 520);
+  tl.to(cur.root, { opacity: 1, duration: 0.2 }, 0.45);
+  // cursor is in page space; the toolbar icon is outside, so use a separate cursor for the icon
+  const iconCur = el("div", "", { position: "absolute", left: "0", top: "0", width: "40px", height: "40px", zIndex: 30, opacity: 0, pointerEvents: "none" }, $("#win"));
+  iconCur.innerHTML = `<svg viewBox="0 0 24 24" width="40" height="40" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.28))"><path d="M4 2.5 L4 19 L8.3 15 L11.2 21.4 L14 20.1 L11.1 13.8 L17 13.6 Z" fill="#1F1C19" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  gsap.set(cur.root, { opacity: 0 });
+  tl.set(iconCur, { x: 900, y: 420 }, 0);
+  tl.to(iconCur, { opacity: 1, duration: 0.2 }, 0.3);
+  tl.to(iconCur, { x: 1200, y: 34, duration: 0.7, ease: "power2.inOut" }, 0.5);
+  const eb = $("#extbtn");
+  tl.to(eb, { background: "rgba(235,78,38,.16)", duration: 0.12 }, 1.2).to(iconCur, { scale: 0.85, duration: 0.07 }, 1.22).to(iconCur, { scale: 1, duration: 0.15 }, 1.29);
+  tl.to(eb, { background: "rgba(235,78,38,0)", duration: 0.3 }, 1.4);
+  tl.to(iconCur, { opacity: 0, duration: 0.2 }, 1.55);
+  // panel slides in, the page shows the recording bar
+  tl.fromTo("#panel", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 1.3);
+  show("r0", 1.4);
+  $("#psub").textContent = "";
+  tl.set("#cnt", { textContent: "0" }, 0);
+
+  // ---- 1.9-5.6 five steps, each: click, ring draws on, row drops into the panel ---------------
+  const plan = [
+    { id: "s01", n: 1, page: "r1", after: "r2", target: B.s01, fx: 0.3 },
+    { id: "s02", n: 2, page: "r2", after: "r3", target: B.s02, fx: 0.3 },
+    { id: "s03", n: 3, page: "r3", after: "r4", target: B.s03, fx: 0.5 },
+    { id: "s07", n: 4, page: "r4", after: "r4", target: B.s07, fx: 0.5 },
+    { id: "s08", n: 5, page: "r5", after: "r5", target: B.s08, fx: 0.3 },
+  ];
+  cur.place(tl, 1.8, 1000, 520); tl.to(cur.root, { opacity: 1, duration: 0.2 }, 1.85);
+  const t0s = [2.0, 2.75, 3.5, 4.25, 5.0];
+  const ROWH = 344 + 52 + 18 + 40; // thumb + title + gaps
+  plan.forEach((p, i) => {
+    const t = t0s[i];
+    const tgt = ctr(p.target, p.fx);
+    if (i === 0) show("r1", 1.95);
+    else if (p.page !== plan[i - 1].after || i >= 3) show(p.page, t - 0.15);
+    cur.moveTo(tl, t - 0.05, t + 0.42, tgt.x, tgt.y);
+    cam.to(tl, t - 0.05, 0.55, 640 + (tgt.x - 640) * 0.45, 400 + (tgt.y - 400) * 0.6, 1, "power2.inOut");
+    cur.click(tl, t + 0.45);
+    const fl = flag(pv, p.target, p.n, { corner: C[p.id], ring: 4, pad: 5, r: 9 });
+    fl.draw(tl, t + 0.47, 0.32);
+    fl.hide(tl, t + 0.7, 0.15);
+    // row drops in; list scrolls so the newest row stays in view
+    const row = rows[i].r;
+    tl.fromTo(row, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, t + 0.6);
+    const overflow = Math.max(0, (i + 1) * ROWH - (1138 - 100 - 132));
+    tl.to(list, { y: -overflow, duration: 0.45, ease: "power3.out" }, t + 0.6);
+    tl.set("#cnt", { textContent: String(i + 1) }, t + 0.6);
+  });
+  // rows are stacked in flow layout; the first row's flag tab drops in with the others (already drawn in thumbs)
+
+  // ---- 5.9-7.3 stop, editor state: title, export, blur chip -------------------------------------
+  tl.to(cur.root, { opacity: 0, duration: 0.2 }, 5.7);
+  tl.to("#stopb", { scale: 0.96, duration: 0.08 }, 5.85).to("#stopb", { scale: 1, duration: 0.15 }, 5.93);
+  show("clean-settings", 5.95); // recording is over: no bar on the page
+  tl.set("#ptitle", { textContent: "Acme Books: Sign in" }, 6.05);
+  tl.set("#psub", { textContent: "5 steps" }, 6.05);
+  tl.to("#foot", { opacity: 0, duration: 0.2 }, 6.0).to("#foot2", { opacity: 1, duration: 0.25 }, 6.05);
+  tl.to(list, { y: 0, duration: 0.6, ease: "power3.inOut" }, 6.05);
+  tl.to(pv, { ...HOME, duration: 0.5, ease: "power2.inOut" }, 5.95);
+  // blur chip on step 2 (the password) once the list is back at the top
+  $("#chipok").style.top = (100 + ROWH + 6) + "px";
+  tl.fromTo("#chipok", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 6.7);
+  tl.to("#chipok", { opacity: 0, duration: 0.25 }, 7.35);
+
+  // ---- 7.4-9.3 Export -> Agent skill -> files -----------------------------------------------------
+  const FM = [["PDF", ".pdf"], ["HTML", ".html"], ["Markdown", ".md"], ["Word", ".docx"], ["Agent skill", "SKILL.md"], ["Project", ".showsteps"]];
+  const tiles = $("#tiles");
+  const tileEls = FM.map(([a, b]) => { const d = el("div", "tile", null, tiles); d.innerHTML = `<b>${a}</b><span>${b}</span>`; return d; });
+  const fileEls = ["SKILL.md", "steps.json", "replay.spec.ts"].map((f) => { const d = el("div", "", null, $("#files")); d.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><path d="M4 1.5h5l3.5 3.5V14a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 1.5V5h3.5" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>${f}`; return d; });
+  tl.fromTo("#sheet", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }, 7.5);
+  // selection moves across tiles
+  [0, 1, 2, 3, 4].forEach((i) => { tl.set(tileEls, { className: "tile" }, 7.85 + i * 0.16); tl.set(tileEls[i], { className: "tile sel" }, 7.85 + i * 0.16); });
+  fileEls.forEach((f, i) => tl.fromTo(f, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }, 8.75 + i * 0.16));
+
+  // ---- 9.35-10 dissolve back to the first frame ------------------------------------------------
+  tl.to("#panel", { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 9.45);
+  // page returns to the empty login (loop point): swap on the last frames
+  tl.set(".pg", { opacity: 0 }, 9.4); tl.set("#pg-clean-login", { opacity: 1 }, 9.4);
+  tl.to(pv, { ...HOME, duration: 0.01 }, 9.4);
+  tl.to({}, { duration: 0.01 }, 9.99);
+
+  window.__timelines["hero"] = tl;
+})();
+</script>
+</body>
+</html>
