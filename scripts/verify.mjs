@@ -57,7 +57,8 @@ steps.push({ name: "licences (all)", cmd: ["node", "scripts/check-licenses.mjs",
 steps.push({ name: "licence SPDX self-test", cmd: ["node", "scripts/check-licenses.mjs", "--self-test"], parse: (o) => o.trim() });
 steps.push({ name: "no-network preload self-test", cmd: ["node", "scripts/no-network.cjs", "--self-test"], parse: (o) => (o.match(/self-test: .*/) || [""])[0] });
 steps.push({ name: "site build", cmd: ["pnpm", "--filter", "@stepsnap/site", "build"], heavy: true, label: "showsteps-site-build", parse: (o) => (o.match(/(\d+) page\(s\) built/) || [])[0] || "" });
-steps.push({ name: "site no-network", cmd: ["node", "scripts/no-network.cjs", "site"], heavy: true, label: "showsteps-nonet-site", parse: (o) => (o.match(/\d+ pages x .*/) || [""])[0] });
+steps.push({ name: "site static checks (K2-K20)", cmd: ["node", "scripts/check-site.mjs"], parse: (o) => (o.match(/\d+\/\d+ static site checks pass/) || [""])[0] });
+steps.push({ name: "site no-network", cmd: ["node", "scripts/no-network.cjs", "site"], heavy: true, label: "showsteps-nonet-site", parse: (o) => o.split("\n").filter((l) => /pages x|external \(non-localhost\)/.test(l)).map((l) => l.trim()).join("; ") });
 steps.push({ name: "site axe", cmd: ["node", "scripts/axe.mjs"], heavy: true, label: "showsteps-site-axe", cwd: "apps/site", parse: (o) => (o.match(/axe: .*|\d+ serious.*/) || [""])[0] });
 steps.push({ name: "extension no-network", cmd: ["node", "scripts/no-network.cjs", "extension"], heavy: true, label: "showsteps-nonet-ext", pendingExit: 3, parse: (o) => (o.split("\n").find((l) => /pending|PASS|FAIL/i.test(l)) || "").trim() });
 

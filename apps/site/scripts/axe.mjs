@@ -27,20 +27,22 @@ for (const d of await readdir(dist, { withFileTypes: true })) {
 const uniq = [...new Set(paths.filter((p) => p !== "/docs/"))];
 const browser = await chromium.launch({ channel: "chrome" });
 let bad = 0;
-for (const scheme of ["light", "dark"]) {
-  const ctx = await browser.newContext({ colorScheme: scheme, viewport: { width: 1280, height: 800 } });
+let runs = 0;
+for (const [scheme, width] of [["light", 1280], ["dark", 1280], ["light", 375], ["dark", 375]]) {
+  const ctx = await browser.newContext({ colorScheme: scheme, viewport: { width, height: width === 375 ? 812 : 800 } });
   const page = await ctx.newPage();
   for (const p of uniq) {
     await page.goto("http://localhost:4632" + p, { waitUntil: "networkidle" });
     await page.evaluate(axeSrc);
     const r = await page.evaluate(() => axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "best-practice"] }));
     const hard = r.violations.filter((v) => ["serious", "critical"].includes(v.impact));
-    for (const v of r.violations) console.log(`${hard.includes(v) ? "FAIL" : "note"} ${scheme} ${p} ${v.id} (${v.impact}) x${v.nodes.length}: ${v.nodes[0].target.join(" ")}`);
+    runs++;
+    for (const v of r.violations) console.log(`${hard.includes(v) ? "FAIL" : "note"} ${scheme} ${width}px ${p} ${v.id} (${v.impact}) x${v.nodes.length}: ${v.nodes[0].target.join(" ")}`);
     bad += hard.length;
   }
   await ctx.close();
 }
 await browser.close();
 server.close();
-console.log(bad ? `${bad} serious/critical violations` : `axe: no serious violations on ${uniq.length} pages x 2 themes`);
+console.log(bad ? `${bad} serious/critical violations` : `axe: no serious violations on ${uniq.length} pages x 2 themes x 2 widths (${runs} runs)`);
 process.exit(bad ? 1 : 0);

@@ -238,7 +238,10 @@ async function siteMode() {
     { scheme: "light", width: 1280, height: 800 },
     { scheme: "dark", width: 1280, height: 800 },
     { scheme: "light", width: 375, height: 812 },
+    { scheme: "light", width: 768, height: 1024 },
   ];
+  const overflow = []; // K17
+  const smallTargets = new Map();
   try {
     for (const c of combos) {
       const ctx = await browser.newContext({ colorScheme: c.scheme, viewport: { width: c.width, height: c.height } });
@@ -264,6 +267,12 @@ async function siteMode() {
         });
         await page.waitForTimeout(400);
         loadedFaces += await page.evaluate(() => [...document.fonts].filter((f) => f.status === "loaded").length);
+        const m = await page.evaluate(() => ({
+          over: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          small: [...document.querySelectorAll("header a, header button, nav a, nav button")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.height < 44 || r.width < 44); }).map((e) => `${(e.textContent || e.getAttribute("aria-label") || e.tagName).trim().slice(0, 20)} ${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`),
+        }));
+        if (m.over) overflow.push(`${p} @${c.width}`);
+        if (c.width === 375) for (const t of m.small) smallTargets.set(`${p} ${t}`, 1);
       }
       await ctx.close();
     }
@@ -271,13 +280,15 @@ async function siteMode() {
     await browser.close();
     server.close();
   }
-  lines.push(`${pages.length} pages x ${combos.length} contexts (light, dark, 375px), ${total} requests observed`);
+  lines.push(`${pages.length} pages x ${combos.length} contexts (light+dark at 1280, 375, 768 px), ${total} requests observed`);
   lines.push(`fonts: ${fonts} font requests, ${fontsLocal} local, ${loadedFaces} FontFace loads across contexts`);
   lines.push(`external (non-localhost) requests: ${external.size}`);
   for (const [k, n] of external) lines.push(`  EXTERNAL x${n} ${k}`);
   if (failedLocal.length) { lines.push(`local failures: ${failedLocal.length}`); for (const f of failedLocal.slice(0, 10)) lines.push(`  ${f}`); }
   if (consoleErrors.length) { lines.push(`console errors: ${consoleErrors.length}`); for (const f of consoleErrors.slice(0, 5)) lines.push(`  ${f}`); }
-  const ok = external.size === 0 && fonts > 0 && fontsLocal === fonts && failedLocal.length === 0 && consoleErrors.length === 0;
+  lines.push(`horizontal overflow (K17): ${overflow.length} page/width combos${overflow.length ? " " + overflow.slice(0, 6).join(", ") : ""}`);
+  lines.push(`nav tap targets under 44 px at 375 wide (K17): ${smallTargets.size}${smallTargets.size ? " e.g. " + [...smallTargets.keys()].slice(0, 4).join("; ") : ""}`);
+  const ok = external.size === 0 && overflow.length === 0 && fonts > 0 && fontsLocal === fonts && failedLocal.length === 0 && consoleErrors.length === 0;
   if (fonts === 0) lines.push("no font request seen: fonts did not load, the font check is void");
   finish({ mode: "site", status: ok ? "pass" : "fail", pages, requests: total, external: [...external.keys()], fontRequests: fonts, lines });
 }
