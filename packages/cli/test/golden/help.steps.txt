@@ -1,0 +1,7 @@
+Usage: showsteps steps [options] <file>
+
+List the steps with ids, titles and actions.
+
+Options:
+  --json      print one JSON object
+  -h, --help  display help for command

@@ -51,11 +51,40 @@ describe("tool catalogue", () => {
     for (const t of tools) {
       expect(t.description!.length).toBeGreaterThan(40);
       expect(t.inputSchema.type).toBe("object");
+      expect(t.inputSchema.additionalProperties, `${t.name} rejects unknown arguments`).toBe(false);
+      expect(t.inputSchema.required?.length, `${t.name} has a required argument`).toBeGreaterThan(0);
     }
+    // nested step objects are strict too
+    const steps = tools.find((t) => t.name === "create_guide_from_steps")!.inputSchema.properties as any;
+    expect(steps.steps.items.additionalProperties).toBe(false);
     const exp = tools.find((t) => t.name === "export_guide")!;
-    expect((exp.inputSchema.properties as any).format.enum).toEqual(["md", "html", "pdf", "docx", "playwright", "skill", "all"]);
+    expect((exp.inputSchema.properties as any).format.enum).toEqual(["md", "html", "pdf", "docx", "playwright", "skill", "project", "all"]);
     expect(exp.inputSchema.required).toEqual(["path", "format", "out_dir"]);
+    expect((exp.inputSchema.properties as any).format.enum).toContain("project");
     expect(tools.find((t) => t.name === "guide_info")!.annotations?.readOnlyHint).toBe(true);
+  });
+});
+
+describe("files by path only (strict schemas)", () => {
+  const rejected = async (name: string, args: Record<string, unknown>) => {
+    const r = await call(name, args).catch((e) => ({ isError: true, content: [{ type: "text", text: String(e) }] }) as any);
+    expect(r.isError, `${name} ${JSON.stringify(Object.keys(args))}`).toBe(true);
+    return r;
+  };
+  it("an extra argument (a base64 image, or anything else) is rejected, not ignored", async () => {
+    await rejected("validate_guide", { path: sb.bundle, image: "iVBORw0KGgo=" });
+    await rejected("guide_info", { path: sb.bundle, extra: 1 });
+    await rejected("list_steps", { path: sb.bundle, image_base64: "AAAA" });
+    await rejected("edit_step", { path: sb.bundle, step_id: "s1", title: "x", image: "AAAA", out_path: join(sb.dir, "strict-a.showsteps") });
+    await rejected("regenerate_titles", { path: sb.bundle, data: "AAAA", out_path: join(sb.dir, "strict-b.showsteps") });
+    await rejected("export_guide", { path: sb.bundle, format: "md", out_dir: join(sb.dir, "strict-c"), image: "AAAA" });
+    await rejected("create_guide_from_steps", { out_path: join(sb.dir, "strict-d.showsteps"), title: "T", steps: [{ action: "click", target: "Save", image: "AAAA" }] });
+    await rejected("create_guide_from_steps", { out_path: join(sb.dir, "strict-e.showsteps"), title: "T", images: {}, steps: [{ action: "click", target: "Save" }] });
+    for (const f of ["strict-a.showsteps", "strict-b.showsteps", "strict-d.showsteps", "strict-e.showsteps"]) await expect(readFile(join(sb.dir, f))).rejects.toThrow();
+    await expect(readdir(join(sb.dir, "strict-c"))).rejects.toThrow();
+  });
+  it("the server keeps serving after a rejected call", async () => {
+    expect((await call("validate_guide", { path: sb.bundle })).structuredContent.valid).toBe(true);
   });
 });
 
@@ -97,6 +126,8 @@ describe("read tools", () => {
       redactions: 1,
     });
     expect(j.sensitiveSteps.map((s: any) => s.id)).toEqual(["s3"]);
+    expect(j.stepTitles).toHaveLength(6);
+    expect(j.sizeBytes).toBe((await readFile(sb.bundle)).length);
     expect(j.pages.map((p: any) => p.url)).toEqual(["https://app.example.test/login", "https://app.example.test/settings"]);
   });
   it("list_steps, with and without skipped, never shows a masked value", async () => {
@@ -144,11 +175,20 @@ describe("write tools", () => {
     const written = await walk(out);
     expect(new Set(r.structuredContent.files)).toEqual(new Set(written));
     const rel = written.map((p) => relative(out, p));
-    for (const f of ["guide.md", "guide.html", "guide.pdf", "guide.docx", "replay.spec.ts", "skill/SKILL.md", "skill/steps.json", "skill/replay.spec.ts"]) {
+    for (const f of ["guide.md", "guide.html", "guide.pdf", "guide.docx", "guide.showsteps", "replay.spec.ts", "skill/SKILL.md", "skill/steps.json", "skill/replay.spec.ts"]) {
       expect(rel).toContain(f);
     }
     expect((await readFile(join(out, "guide.pdf"))).subarray(0, 5).toString()).toBe("%PDF-");
     expect(r.structuredContent.skill).toEqual({ name: expect.stringMatching(/^[a-z0-9-]+$/), dir: join(out, "skill") });
+    for (const f of r.structuredContent.files) expect(r.structuredContent.sizes[f], f).toBe((await readFile(f)).length);
+  });
+  it("export_guide project writes a bundle that validates", async () => {
+    const out = join(sb.dir, "mcp-project");
+    const r = await call("export_guide", { path: sb.bundle, format: "project", out_dir: out });
+    expect(r.isError, r.content[0]?.text).toBeFalsy();
+    expect(r.structuredContent.files).toEqual([join(out, "guide.showsteps")]);
+    const v = await call("validate_guide", { path: join(out, "guide.showsteps") });
+    expect(v.structuredContent).toMatchObject({ valid: true, format: "bundle", steps: 6 });
   });
   it('export_guide adds the "Made with Showsteps" line only when credit is true', async () => {
     const off = join(sb.dir, "mcp-credit-off");

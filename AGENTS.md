@@ -30,11 +30,11 @@ npx -y @showsteps/cli --help
 | Command | What it does |
 | --- | --- |
 | `showsteps validate <file> [--json]` | Checks the file against the schema. Exit 1 lists every problem. |
-| `showsteps info <file> [--json]` | Title, step counts, actions, pages, sensitive steps, screenshot counts. |
+| `showsteps info <file> [--json]` | Title, step counts, every step title, actions, pages, sensitive steps, screenshot counts, file size in bytes. |
 | `showsteps steps <file> [--json]` | Steps with id, title, action, target, skipped and sensitive flags. |
 | `showsteps edit-step <file> --id <id> [--title T] [--description D] [--skip\|--unskip] [--out F]` | Edit one step. Overwrites `<file>` unless `--out` is given. |
 | `showsteps regen-titles <file> [--out F]` | Regenerate generated titles. Hand-edited titles are kept. |
-| `showsteps export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|all --out <dir> [--no-images] [--credit] [--skill-name N] [--skill-description D] [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
+| `showsteps export <file> --format md\|html\|pdf\|docx\|playwright\|skill\|project\|all --out <dir> [--no-images] [--credit] [--skill-name N] [--skill-description D] [--json]` | Write exports. Comma lists work: `--format md,pdf`. |
 | `showsteps new --from-steps <steps.json> --out <file.showsteps> [--title T]` | Create a guide from a step list. |
 
 Rules an agent can rely on:
@@ -57,8 +57,9 @@ Rules an agent can rely on:
 | `docx` | `guide.docx` |
 | `playwright` | `replay.spec.ts` |
 | `skill` | `skill/SKILL.md`, `skill/steps.json`, `skill/replay.spec.ts`, `skill/images/*.png` |
+| `project` | `guide.showsteps`: the whole guide again (every step, skipped ones too, and its screenshots) to reopen in the extension |
 
-`--json` returns `{"ok": true, "files": ["/abs/path", ...]}` and, for `skill`, `"skill": {"name": "...", "dir": "/abs/.../skill"}`. Steps with `skipped: true` are left out of every export. Screenshots are re-rendered on export with redactions baked into the pixels and the click target highlighted; the original screenshot bytes are never written. `--no-images` drops screenshots from `md` and `skill`. Exports carry no Showsteps branding unless you pass `--credit`, which adds a small "Made with Showsteps" line to `md`, `html`, `pdf`, `docx` and `skill`.
+`--json` returns `{"ok": true, "files": ["/abs/path", ...], "sizes": {"/abs/path": bytes, ...}}` and, for `skill`, `"skill": {"name": "...", "dir": "/abs/.../skill"}`. Steps with `skipped: true` are left out of every export except `project`. Screenshots are re-rendered on export with redactions baked into the pixels and the click target highlighted; the original screenshot bytes are never written. `--no-images` drops screenshots from `md` and `skill`. Exports carry no Showsteps branding unless you pass `--credit`, which adds a small "Made with Showsteps" line to `md`, `html`, `pdf`, `docx` and `skill`.
 
 ### Agent skill export
 
@@ -135,14 +136,14 @@ From a checkout, build first (`pnpm --filter @showsteps/mcp build`) and use `"co
 | Tool | Inputs | Returns |
 | --- | --- | --- |
 | `validate_guide` | `path` | `{valid, steps}` or `{valid: false, errors}` |
-| `guide_info` | `path` | title, counts, actions, pages, sensitive steps |
+| `guide_info` | `path` | title, counts, step titles, actions, pages, sensitive steps, file size |
 | `list_steps` | `path`, `include_skipped?` | ordered steps with ids |
 | `edit_step` | `path`, `step_id`, `title?`, `description?`, `skipped?`, `out_path?` | updated step and changed fields |
 | `regenerate_titles` | `path`, `out_path?` | number of titles changed |
-| `export_guide` | `path`, `format`, `out_dir` | absolute paths written |
+| `export_guide` | `path`, `format` (`md`, `html`, `pdf`, `docx`, `playwright`, `skill`, `project`, `all`), `out_dir`, `include_images?`, `credit?`, `skill_name?`, `skill_description?` | absolute paths written, with sizes |
 | `create_guide_from_steps` | `out_path`, `title`, `steps[]`, `description?`, `start_url?` | path, id, step count |
 
-Results are JSON in both the text content and `structuredContent`. Invalid guide content is reported as data by `validate_guide`; everything else that fails (missing file, unknown step id, relative path, malformed steps) returns `isError: true` with `error.code` of `invalid`, `usage` or `io` and the list of problems.
+Input schemas are strict (`additionalProperties: false`): an unknown argument, such as image bytes, is rejected instead of ignored. Results are JSON in both the text content and `structuredContent`. Invalid guide content is reported as data by `validate_guide`; everything else that fails (missing file, unknown step id, relative path, malformed steps) returns `isError: true` with `error.code` of `invalid`, `usage` or `io` and the list of problems.
 
 `edit_step` and `regenerate_titles` overwrite the file unless you pass `out_path`. Prefer `out_path` when a person has not asked you to change the original.
 

@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "error": {
+    "code": "invalid",
+    "message": "invalid guide: <TMP>/bad.json",
+    "errors": [
+      "guide.createdAt: is required (expected a string)",
+      "guide.updatedAt: is required (expected a string)",
+      "guide.steps: expected an array, got \"nope\""
+    ]
+  }
+}

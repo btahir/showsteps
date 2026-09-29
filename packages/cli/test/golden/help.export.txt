@@ -1,0 +1,15 @@
+Usage: showsteps export [options] <file>
+
+Export a guide: md, html, pdf, docx, playwright, skill, project, or all (comma-separated list
+allowed).
+
+Options:
+  --format <format>           md | html | pdf | docx | playwright | skill | project | all
+  --out <dir>                 output folder (created if missing)
+  --no-images                 leave screenshots out of the md and skill exports
+  --credit                    add a small "Made with Showsteps" line to the md, html, pdf, docx and
+                              skill exports (off by default)
+  --skill-name <name>         agent skill name (lowercase letters, digits, hyphens)
+  --skill-description <text>  agent skill description shown to the agent
+  --json                      print one JSON object
+  -h, --help                  display help for command

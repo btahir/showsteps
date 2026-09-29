@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SITE_URL } from "@showsteps/core";
 import { cli, json } from "./helpers.ts";
 import { PNG_SCREENSHOT, STEPS_INPUT, makeSandbox, type Sandbox } from "./fixture.ts";
 
@@ -44,6 +45,7 @@ describe("validate", () => {
     expect(j.error.code).toBe("invalid");
     expect(j.error.errors.length).toBeGreaterThan(0);
     expect(r.err).toContain("invalid guide");
+    await expect(pretty(j)).toMatchFileSnapshot(golden("validate.invalid.json"));
   });
   it("not JSON at all: exit 1", async () => {
     await writeFile(join(sb.dir, "junk.txt"), "hello");
@@ -257,6 +259,82 @@ describe("new --from-steps", () => {
     await writeFile(join(sb.dir, "notjson.json"), "{");
     expect((await cli(["new", "--from-steps", "notjson.json", "--out", "o.showsteps"], sb.dir)).code).toBe(1);
     expect((await cli(["new", "--out", "o.showsteps"], sb.dir)).code).toBe(2);
+  });
+});
+
+describe("export project and determinism", () => {
+  it("--format project writes guide.showsteps that validates and reports the same counts", async () => {
+    const out = join(sb.dir, "export-project");
+    const r = await cli(["export", "guide.showsteps", "--format", "project", "--out", out, "--json"], sb.dir);
+    expect(r.code, r.err).toBe(0);
+    const j = json(r);
+    expect(j.files).toEqual([join("<TMP>", "export-project", "guide.showsteps")]);
+    const file = join(out, "guide.showsteps");
+    expect(j.sizes[join("<TMP>", "export-project", "guide.showsteps")]).toBe((await readFile(file)).length);
+    expect((await readFile(file)).subarray(0, 2).toString()).toBe("PK");
+    expect((await cli(["validate", file], sb.dir)).code).toBe(0);
+    const a = json(await cli(["info", "guide.showsteps", "--json"], sb.dir));
+    const b = json(await cli(["info", file, "--json"], sb.dir));
+    for (const k of ["stepCount", "activeSteps", "skippedSteps", "screenshots", "redactions", "stepTitles", "actions", "pages"]) expect(b[k], k).toEqual(a[k]);
+    // and the copy exports like the original
+    expect((await cli(["export", file, "--format", "md", "--out", join(sb.dir, "from-project")], sb.dir)).code).toBe(0);
+  });
+  it("project export of a guide whose screenshots are missing fails cleanly (exit 1) and writes nothing", async () => {
+    const out = join(sb.dir, "export-project-bad");
+    const r = await cli(["export", "noimg/guide.json", "--format", "project", "--out", out, "--json"], sb.dir);
+    expect(r.code).toBe(1);
+    expect(json(r)).toMatchObject({ ok: false, error: { code: "invalid" } });
+    await expect(readdir(out)).rejects.toThrow();
+  });
+  it("two exports of the same input to different folders are byte-identical (md, html, pdf, docx, playwright, skill, project)", async () => {
+    const a = join(sb.dir, "det-a");
+    const b = join(sb.dir, "det-b");
+    for (const dir of [a, b]) expect((await cli(["export", "guide.showsteps", "--format", "all", "--out", dir], sb.dir)).code).toBe(0);
+    const [fa, fb] = [await walk(a), await walk(b)];
+    expect(fa.map((p) => relative(a, p))).toEqual(fb.map((p) => relative(b, p)));
+    expect(fa.length).toBeGreaterThan(10);
+    for (let i = 0; i < fa.length; i++) {
+      expect(Buffer.from(await readFile(fa[i]!)).equals(Buffer.from(await readFile(fb[i]!))), relative(a, fa[i]!)).toBe(true);
+    }
+  });
+  it("--json export lists a size for every file, equal to the bytes on disk", async () => {
+    const out = join(sb.dir, "export-sizes");
+    const j = json(await cli(["export", "guide.showsteps", "--format", "md,skill", "--out", out, "--json"], sb.dir));
+    expect(Object.keys(j.sizes)).toEqual(j.files);
+    for (const f of j.files as string[]) expect(j.sizes[f], f).toBe((await readFile(f.replace("<TMP>", sb.dir))).length);
+  });
+});
+
+describe("info details", () => {
+  it("info reports the file size and every step title", async () => {
+    const j = json(await cli(["info", "guide.showsteps", "--json"], sb.dir));
+    expect(j.sizeBytes).toBe((await readFile(join(sb.dir, "guide.showsteps"))).length);
+    expect(j.stepTitles).toHaveLength(6);
+    expect(j.hasSensitiveSteps).toBe(true);
+    const text = (await cli(["info", "guide.showsteps"], sb.dir)).out;
+    expect(text).toContain("Step titles:");
+    expect(text).toContain(`${j.sizeBytes} bytes`);
+  });
+});
+
+describe("help", () => {
+  const commands = ["validate", "info", "steps", "edit-step", "regen-titles", "export", "new"];
+  it("root --help equals its golden and names the docs URL from SITE_URL", async () => {
+    const r = await cli(["--help"], sb.dir);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain(`${SITE_URL}/docs/agents/`);
+    await expect(r.out).toMatchFileSnapshot(golden("help.txt"));
+  });
+  for (const c of commands) {
+    it(`${c} --help equals its golden`, async () => {
+      const r = await cli([c, "--help"], sb.dir);
+      expect(r.code).toBe(0);
+      await expect(r.out).toMatchFileSnapshot(golden(`help.${c}.txt`));
+    });
+  }
+  it("--version prints the package version", async () => {
+    const r = await cli(["--version"], sb.dir);
+    expect(r.out.trim()).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 

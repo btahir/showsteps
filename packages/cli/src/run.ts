@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { SITE_URL } from "@showsteps/core";
 import { Command, CommanderError } from "commander";
 import { EXIT, ShowstepsError, invalid, ioError, usage } from "./errors.ts";
 import { checkGuideFile, loadGuideFile } from "./files.ts";
@@ -32,7 +33,7 @@ Exit codes: 0 ok, 1 invalid input, 2 usage error, 3 file error.
 With --json every command prints exactly one JSON object on stdout ({"ok": true, ...} or
 {"ok": false, "error": {...}}); human messages go to stderr.
 Files: a .showsteps bundle (zip: guide.json + images/) or a bare guide.json.
-Docs: https://showsteps.vercel.app/docs/agents/`;
+Docs: ${SITE_URL}/docs/agents/`;
 
 export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> {
   const out = io?.stdout ?? ((t: string) => void process.stdout.write(t));
@@ -56,7 +57,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
     .name("showsteps")
     .description("Validate, inspect, edit and export Showsteps guides. Local only, no network.")
     .version(VERSION, "-v, --version")
-    .configureOutput({ writeOut: out, writeErr: err })
+    .configureOutput({ writeOut: out, writeErr: err, getOutHelpWidth: () => 100, getErrHelpWidth: () => 100 })
     .exitOverride()
     .showHelpAfterError("(run with --help for usage)")
     .addHelpText("after", HELP_FOOTER);
@@ -80,13 +81,13 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
 
   program
     .command("info")
-    .description("Summarise a guide: title, step count, actions, pages, sensitive steps.")
+    .description("Summarise a guide: title, step count, step titles, actions, pages, sensitive steps, size.")
     .argument("<file>")
     .option("--json", "print one JSON object")
     .action((file: string, o: { json?: boolean }) =>
       finish(async () => {
         const l = await loadGuideFile(file, cwd);
-        const info = guideInfo(l.guide, l.images);
+        const info = guideInfo(l.guide, l.images, { sizeBytes: l.sizeBytes });
         const acts = Object.entries(info.actions).map(([k, n]) => `${k} ${n}`).join(", ") || "none";
         const row = (k: string, v: string) => `${(k + ":").padEnd(13)}${v}`;
         const lines = [
@@ -97,6 +98,9 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
           ...info.pages.map((p) => `  ${p.url}${p.title ? ` (${p.title})` : ""}: ${p.steps} step${p.steps === 1 ? "" : "s"}`),
           row("Sensitive", info.sensitiveSteps.length ? info.sensitiveSteps.map((s) => s.index).join(", ") : "none"),
           row("Screenshots", `${info.screenshots.imagesFound}/${info.screenshots.steps} images found, ${info.redactions} redactions`),
+          row("Size", `${info.sizeBytes} bytes`),
+          "Step titles:",
+          ...info.stepTitles.map((t, i) => `  ${String(i + 1).padStart(2)}. ${t}`),
         ];
         return { json: { file: l.path, format: l.kind, ...info, warnings: l.warnings }, text: [...lines, ...l.warnings.map((w) => `warning: ${w}`)].join("\n") };
       }, o.json),
@@ -156,9 +160,9 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
 
   program
     .command("export")
-    .description("Export a guide: md, html, pdf, docx, playwright, skill, or all (comma-separated list allowed).")
+    .description("Export a guide: md, html, pdf, docx, playwright, skill, project, or all (comma-separated list allowed).")
     .argument("<file>")
-    .requiredOption("--format <format>", "md | html | pdf | docx | playwright | skill | all")
+    .requiredOption("--format <format>", "md | html | pdf | docx | playwright | skill | project | all")
     .requiredOption("--out <dir>", "output folder (created if missing)")
     .option("--no-images", "leave screenshots out of the md and skill exports")
     .option("--credit", 'add a small "Made with Showsteps" line to the md, html, pdf, docx and skill exports (off by default)')
@@ -171,7 +175,7 @@ export async function run(argv: string[], io?: Partial<RunIO>): Promise<number> 
         const l = await loadGuideFile(file, cwd);
         const r = await exportGuideFiles(l, formats, resolve(cwd, o.out), { images: o.images, credit: o.credit === true, skillName: o.skillName, skillDescription: o.skillDescription });
         return {
-          json: { file: l.path, format: formats, out: resolve(cwd, o.out), files: r.files, ...(r.skill ? { skill: r.skill } : {}) },
+          json: { file: l.path, format: formats, out: resolve(cwd, o.out), files: r.files, sizes: r.sizes, ...(r.skill ? { skill: r.skill } : {}) },
           text: r.files.join("\n"),
         };
       }, o.json),

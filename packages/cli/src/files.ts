@@ -22,6 +22,8 @@ export interface LoadedGuide {
   images: ImageSource;
   /** Non-fatal problems found while reading, e.g. a screenshot the guide references that is missing. */
   warnings: string[];
+  /** Size of the guide file on disk, in bytes. */
+  sizeBytes: number;
 }
 
 export type CheckResult =
@@ -92,7 +94,7 @@ export async function checkGuideFile(file: string, cwd = process.cwd()): Promise
     }
     const v = validated(unpacked.guide);
     if (!v.ok) return { ok: false, path, errors: v.errors };
-    return { ok: true, loaded: { path, kind: "bundle", guide: v.guide, images: unpacked.images ?? {}, warnings: unpacked.warnings ?? [] } };
+    return { ok: true, loaded: { path, kind: "bundle", guide: v.guide, images: unpacked.images ?? {}, warnings: unpacked.warnings ?? [], sizeBytes: bytes.length } };
   }
   let raw: unknown;
   try {
@@ -103,7 +105,7 @@ export async function checkGuideFile(file: string, cwd = process.cwd()): Promise
   const v = validated(raw);
   if (!v.ok) return { ok: false, path, errors: v.errors };
   const { images, warnings } = await readSiblingImages(dirname(path), v.guide);
-  return { ok: true, loaded: { path, kind: "json", guide: v.guide, images, warnings } };
+  return { ok: true, loaded: { path, kind: "json", guide: v.guide, images, warnings, sizeBytes: bytes.length } };
 }
 
 /** Like checkGuideFile but throws exit-code-1 errors for an invalid guide. */
@@ -133,7 +135,7 @@ export async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-/** Save a guide. Format follows the output extension (.json bare, .showsteps bundle; legacy .stepsnap also a bundle), else the input kind. */
+/** Save a guide. Format follows the output extension (.json bare, .showsteps bundle), else the input kind. */
 export async function saveGuideFile(
   guide: Guide,
   images: ImageSource,
@@ -141,7 +143,7 @@ export async function saveGuideFile(
   fallbackKind: GuideFileKind,
 ): Promise<GuideFileKind> {
   const lower = outPath.toLowerCase();
-  const kind: GuideFileKind = lower.endsWith(".json") ? "json" : /\.(showsteps|stepsnap)$/.test(lower) ? "bundle" : fallbackKind;
+  const kind: GuideFileKind = lower.endsWith(".json") ? "json" : lower.endsWith(".showsteps") ? "bundle" : fallbackKind;
   if (kind === "json") {
     await writeFileSafe(outPath, JSON.stringify(guide, null, 2) + "\n");
     return kind;

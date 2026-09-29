@@ -53,7 +53,7 @@ async function guarded(fn: () => Promise<Data>) {
   }
 }
 
-const stepSchema = z.object({
+const stepSchema = z.strictObject({
   action: z
     .enum(["navigate", "click", "type", "select", "check", "press", "scroll", "hover", "note"])
     .optional()
@@ -66,7 +66,7 @@ const stepSchema = z.object({
   target: z
     .union([
       z.string(),
-      z.object({
+      z.strictObject({
         name: z.string().optional(),
         role: z.string().optional(),
         label: z.string().optional(),
@@ -83,7 +83,7 @@ const stepSchema = z.object({
   key: z.string().optional().describe('Key for press, e.g. "Enter" or "Control+K".'),
   checked: z.boolean().optional().describe("For check: true (default) checks, false unchecks."),
   masked: z.boolean().optional().describe("For type: true hides the value (passwords, codes). The value is dropped."),
-  page: z.object({ url: z.string(), title: z.string().optional() }).optional().describe("Page URL and title for this step."),
+  page: z.strictObject({ url: z.string(), title: z.string().optional() }).optional().describe("Page URL and title for this step."),
   skipped: z.boolean().optional().describe("Keep the step in the file but hide it from exports."),
 });
 
@@ -98,7 +98,7 @@ export function createServer(): McpServer {
       title: "Validate a guide",
       description:
         "Check that a .showsteps bundle or guide.json is a valid Showsteps guide (schema v1). Returns { valid: true, steps } or { valid: false, errors: [...] } listing every problem with its JSON path. Errors here mean the file is unusable; a missing file is a tool error.",
-      inputSchema: { path: guidePath },
+      inputSchema: z.strictObject({ path: guidePath }),
       annotations: { title: "Validate a guide", ...readOnly },
     },
     ({ path }) =>
@@ -114,14 +114,14 @@ export function createServer(): McpServer {
     {
       title: "Summarise a guide",
       description:
-        "Summarise a guide: title, step count (active and skipped), counts per action type, pages visited with step counts, sensitive steps (passwords etc.; their values are never included), and screenshot/redaction counts. Use it before editing or exporting.",
-      inputSchema: { path: guidePath },
+        "Summarise a guide: title, step count (active and skipped), every step title, counts per action type, pages visited with step counts, sensitive steps (passwords etc.; their values are never included), screenshot/redaction counts and the file size in bytes. Use it before editing or exporting.",
+      inputSchema: z.strictObject({ path: guidePath }),
       annotations: { title: "Summarise a guide", ...readOnly },
     },
     ({ path }) =>
       guarded(async () => {
         const l = await loadGuideFile(path);
-        return { file: l.path, format: l.kind, ...guideInfo(l.guide, l.images), warnings: l.warnings };
+        return { file: l.path, format: l.kind, ...guideInfo(l.guide, l.images, { sizeBytes: l.sizeBytes }), warnings: l.warnings };
       }),
   );
 
@@ -131,7 +131,7 @@ export function createServer(): McpServer {
       title: "List steps",
       description:
         "List a guide's steps in order with id, 1-based index, title, description, action, target name, page URL, skipped and sensitive flags. Use the ids with edit_step. Typed values of sensitive fields are shown as •••.",
-      inputSchema: { path: guidePath, include_skipped: z.boolean().default(true).describe("Include steps hidden from exports (default true).") },
+      inputSchema: z.strictObject({ path: guidePath, include_skipped: z.boolean().default(true).describe("Include steps hidden from exports (default true).") }),
       annotations: { title: "List steps", ...readOnly },
     },
     ({ path, include_skipped }) =>
@@ -148,14 +148,14 @@ export function createServer(): McpServer {
       title: "Edit a step",
       description:
         "Change one step's title, description or skipped flag. Give at least one of title, description, skipped. A title set here is marked hand-edited so regenerate_titles keeps it. description \"\" removes the description. Overwrites the file unless out_path is given (then the source is untouched). Returns the updated step and which fields changed.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         path: guidePath,
         step_id: z.string().describe("Step id from list_steps, e.g. \"s3\"."),
         title: z.string().min(1).optional().describe("New title (Markdown inline allowed)."),
         description: z.string().optional().describe('New description; "" removes it.'),
         skipped: z.boolean().optional().describe("true hides the step from exports, false shows it again."),
         out_path: absPath("write the edited guide to instead of overwriting `path`").optional(),
-      },
+      }),
       annotations: { title: "Edit a step", ...writes, destructiveHint: true },
     },
     ({ path, step_id, title, description, skipped, out_path }) =>
@@ -171,7 +171,7 @@ export function createServer(): McpServer {
       title: "Regenerate step titles",
       description:
         "Rewrite every generated step title from its action and target (for example 'Click **Save**'). Titles a person or edit_step already set are kept. Overwrites the file unless out_path is given. Returns how many titles changed.",
-      inputSchema: { path: guidePath, out_path: absPath("write the result to instead of overwriting `path`").optional() },
+      inputSchema: z.strictObject({ path: guidePath, out_path: absPath("write the result to instead of overwriting `path`").optional() }),
       annotations: { title: "Regenerate step titles", ...writes, destructiveHint: true },
     },
     ({ path, out_path }) =>
@@ -186,8 +186,8 @@ export function createServer(): McpServer {
     {
       title: "Export a guide",
       description:
-        "Export a guide into a folder (created if missing) and return the absolute paths written. Formats: md (guide.md + images/), html (one self-contained guide.html), pdf (guide.pdf), docx (guide.docx), playwright (replay.spec.ts), skill (skill/SKILL.md + skill/steps.json + skill/replay.spec.ts + skill/images/, a replayable agent skill; result includes skill.name and skill.dir so you can install the folder), or all. Skipped steps are left out and redactions are always baked into exported images.",
-      inputSchema: {
+        "Export a guide into a folder (created if missing) and return the absolute paths written. Formats: md (guide.md + images/), html (one self-contained guide.html), pdf (guide.pdf), docx (guide.docx), playwright (replay.spec.ts), skill (skill/SKILL.md + skill/steps.json + skill/replay.spec.ts + skill/images/, a replayable agent skill; result includes skill.name and skill.dir so you can install the folder), project (guide.showsteps, the whole guide again for reopening in the extension), or all. Skipped steps are left out and redactions are always baked into exported images.",
+      inputSchema: z.strictObject({
         path: guidePath,
         format: z.enum([...EXPORT_FORMATS, "all"]).describe("Export format, or \"all\"."),
         out_dir: absPath("the output folder"),
@@ -195,7 +195,7 @@ export function createServer(): McpServer {
         credit: z.boolean().default(false).describe('Add a small "Made with Showsteps" line to the md, html, pdf, docx and skill exports (default false).'),
         skill_name: z.string().optional().describe("Agent skill name for format skill: lowercase letters, digits, hyphens."),
         skill_description: z.string().optional().describe("Agent skill description for format skill: when an agent should use it."),
-      },
+      }),
       annotations: { title: "Export a guide", ...writes },
     },
     ({ path, format, out_dir, include_images, credit, skill_name, skill_description }) =>
@@ -207,7 +207,7 @@ export function createServer(): McpServer {
           skillName: skill_name,
           skillDescription: skill_description,
         });
-        return { format, out_dir, files: r.files, ...(r.skill ? { skill: r.skill } : {}) };
+        return { format, out_dir, files: r.files, sizes: r.sizes, ...(r.skill ? { skill: r.skill } : {}) };
       }),
   );
 
@@ -217,18 +217,18 @@ export function createServer(): McpServer {
       title: "Create a guide from a step list",
       description:
         "Create a new guide (no screenshots) from steps you write, saved to out_path (.showsteps bundle, or .json if the path ends in .json). Titles are generated from action and target unless given. Fails with every problem listed if a step is malformed. Type steps with masked: true never store a value. Use export_guide afterwards to turn it into docs or a Playwright script.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         out_path: absPath("the guide to create, ending in .showsteps or .json"),
         title: z.string().min(1).describe("Guide title."),
         description: z.string().optional().describe("Guide description (Markdown)."),
         start_url: z.string().optional().describe("Page URL for steps that name none."),
         steps: z.array(stepSchema).min(1).describe("Ordered steps."),
-      },
+      }),
       annotations: { title: "Create a guide from a step list", ...writes },
     },
     ({ out_path, title, description, start_url, steps }) =>
       guarded(async () => {
-        if (!/\.(showsteps|stepsnap|json)$/i.test(out_path)) throw invalid("out_path must end in .showsteps or .json");
+        if (!/\.(showsteps|json)$/i.test(out_path)) throw invalid("out_path must end in .showsteps or .json");
         const r = await createGuideFile({ title, description, startUrl: start_url, steps }, out_path);
         return { out: r.out, format: r.kind, id: r.id, title: r.title, steps: r.steps };
       }),

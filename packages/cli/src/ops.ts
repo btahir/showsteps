@@ -9,6 +9,7 @@ import {
   exportPdf,
   exportPlaywright,
   generateStepTitle,
+  packBundle,
   regenerateTitles,
   validateGuide,
   type Guide,
@@ -89,9 +90,15 @@ export interface GuideInfo {
   sensitiveSteps: { index: number; id: string; title: string }[];
   screenshots: { steps: number; imagesFound: number; imagesMissing: number };
   redactions: number;
+  /** Titles of every step in order (skipped ones included), sensitive values never appear in a title. */
+  stepTitles: string[];
+  /** True when at least one step types into a password or other sensitive field (its value is not stored). */
+  hasSensitiveSteps: boolean;
+  /** Size of the guide file on disk, when read from a file. */
+  sizeBytes?: number;
 }
 
-export function guideInfo(guide: Guide, images: ImageSource): GuideInfo {
+export function guideInfo(guide: Guide, images: ImageSource, meta: { sizeBytes?: number } = {}): GuideInfo {
   const actions: Record<string, number> = {};
   const pages = new Map<string, { url: string; title?: string; steps: number }>();
   const sensitiveSteps: GuideInfo["sensitiveSteps"] = [];
@@ -126,6 +133,9 @@ export function guideInfo(guide: Guide, images: ImageSource): GuideInfo {
     sensitiveSteps,
     screenshots: { steps: shots, imagesFound: found, imagesMissing: shots - found },
     redactions,
+    stepTitles: guide.steps.map((s) => s.title),
+    hasSensitiveSteps: sensitiveSteps.length > 0,
+    ...(meta.sizeBytes !== undefined ? { sizeBytes: meta.sizeBytes } : {}),
   };
 }
 
@@ -361,7 +371,7 @@ export function createGuideFromSteps(input: unknown, opts: { title?: string; now
 
 // ---------------------------------------------------------------- export
 
-export const EXPORT_FORMATS = ["md", "html", "pdf", "docx", "playwright", "skill"] as const;
+export const EXPORT_FORMATS = ["md", "html", "pdf", "docx", "playwright", "skill", "project"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 type Blob = string | Uint8Array;
@@ -380,14 +390,17 @@ export interface ExportOptions {
 export interface ExportOutcome {
   /** Absolute paths written, sorted. */
   files: string[];
+  /** Size in bytes of every file in `files`, keyed by the same absolute path. */
+  sizes: Record<string, number>;
   /** Present when the skill format was exported: the skill name and its folder. */
   skill?: { name?: string; dir: string };
 }
 
 /**
  * Write exports into `outDir`. Layout: md -> guide.md + images/, html -> guide.html, pdf -> guide.pdf,
- * docx -> guide.docx, playwright -> replay.spec.ts, skill -> skill/{SKILL.md,steps.json,replay.spec.ts,images/}.
- * Redactions are baked into every exported screenshot by core; raw screenshots are never written.
+ * docx -> guide.docx, playwright -> replay.spec.ts, skill -> skill/{SKILL.md,steps.json,replay.spec.ts,images/},
+ * project -> guide.showsteps (the whole guide again, every step and screenshot, for reopening in the extension).
+ * Redactions are baked into every exported document screenshot by core; raw screenshots are never written there.
  */
 export async function exportGuideFiles(
   loaded: Pick<LoadedGuide, "guide" | "images">,
@@ -420,6 +433,9 @@ export async function exportGuideFiles(
         case "playwright":
           planned.push(["replay.spec.ts", exportPlaywright(guide)]);
           break;
+        case "project":
+          planned.push(["guide.showsteps", packBundle(guide, images)]);
+          break;
         case "skill": {
           const skill = exportAgentSkill(guide, { images: withImages, name: opts.skillName, description: opts.skillDescription, branding });
           for (const [p, data] of Object.entries(skill.files)) planned.push([`skill/${p}`, data]);
@@ -434,13 +450,16 @@ export async function exportGuideFiles(
     }
   }
   const written: string[] = [];
+  const byteLengths = new Map<string, number>();
   for (const [rel, data] of planned) {
     const abs = confinedJoin(outDir, rel);
     await writeFileSafe(abs, data);
     written.push(abs);
+    byteLengths.set(abs, typeof data === "string" ? Buffer.byteLength(data) : data.byteLength);
   }
   const files = written.sort();
-  if (skillMd === undefined) return { files };
+  const sizes = Object.fromEntries(files.map((f) => [f, byteLengths.get(f) as number]));
+  if (skillMd === undefined) return { files, sizes };
   const name = /^name:\s*(.+)$/m.exec(skillMd)?.[1];
   let parsed: string | undefined;
   try {
@@ -448,7 +467,7 @@ export async function exportGuideFiles(
   } catch {
     parsed = name;
   }
-  return { files, skill: { ...(parsed ? { name: parsed } : {}), dir: join(outDir, "skill") } };
+  return { files, sizes, skill: { ...(parsed ? { name: parsed } : {}), dir: join(outDir, "skill") } };
 }
 
 export function parseFormats(spec: string): ExportFormat[] | "all" {

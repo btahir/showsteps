@@ -43,5 +43,15 @@
     "imagesMissing": 0
   },
   "redactions": 1,
+  "stepTitles": [
+    "Go to **Sign in – Acme**",
+    "Type \"jane@example.test\" in **Email**",
+    "Type in **Password**",
+    "Click **Sign in**",
+    "Select **Monthly** in **Billing period**",
+    "Press **Enter**"
+  ],
+  "hasSensitiveSteps": true,
+  "sizeBytes": 2248,
   "warnings": []
 }

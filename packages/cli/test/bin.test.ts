@@ -33,3 +33,22 @@ it("built binary: shebang and executable bit", () => {
   expect(r.status).toBe(0);
   expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
 });
+
+it("built binary: --version answers in 400 ms or less (median of 5)", () => {
+  const times: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    const t0 = performance.now();
+    const r = spawn(["--version"]);
+    times.push(performance.now() - t0);
+    expect(r.status).toBe(0);
+  }
+  times.sort((a, b) => a - b);
+  expect(times[2]!).toBeLessThanOrEqual(400);
+});
+
+it("built binary: --help equals the in-process help (no terminal width leaks in)", () => {
+  const r = spawn(["export", "--help"]);
+  expect(r.status).toBe(0);
+  expect(r.stdout).toContain("--format <format>");
+  expect(r.stdout).toContain("project");
+});

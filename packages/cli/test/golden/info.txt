@@ -6,3 +6,11 @@ Pages:       2
   https://app.example.test/settings (Settings – Acme): 2 steps
 Sensitive:   3
 Screenshots: 4/4 images found, 1 redactions
+Size:        2248 bytes
+Step titles:
+   1. Go to **Sign in – Acme**
+   2. Type "jane@example.test" in **Email**
+   3. Type in **Password**
+   4. Click **Sign in**
+   5. Select **Monthly** in **Billing period**
+   6. Press **Enter**

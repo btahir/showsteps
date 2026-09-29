@@ -1,0 +1,13 @@
+Usage: showsteps edit-step [options] <file>
+
+Change a step's title, description or skipped flag. Edits in place unless --out is given.
+
+Options:
+  --id <id>             step id (see `showsteps steps`)
+  --title <text>        new title; marks it as hand-edited so regen-titles keeps it
+  --description <text>  new description; "" removes it
+  --skip                hide the step from exports
+  --unskip              show the step in exports again
+  --out <file>          write the result here instead of overwriting the input
+  --json                print one JSON object
+  -h, --help            display help for command

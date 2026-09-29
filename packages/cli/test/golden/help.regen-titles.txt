@@ -1,0 +1,8 @@
+Usage: showsteps regen-titles [options] <file>
+
+Regenerate generated step titles. Titles a person edited are kept.
+
+Options:
+  --out <file>  write the result here instead of overwriting the input
+  --json        print one JSON object
+  -h, --help    display help for command

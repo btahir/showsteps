@@ -1,0 +1,10 @@
+Usage: showsteps validate [options] <file>
+
+Check that a guide file is valid. Exit 1 if not.
+
+Arguments:
+  file        .showsteps bundle or guide.json
+
+Options:
+  --json      print one JSON object
+  -h, --help  display help for command

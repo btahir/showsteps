@@ -1,0 +1,26 @@
+Usage: showsteps [options] [command]
+
+Validate, inspect, edit and export Showsteps guides. Local only, no network.
+
+Options:
+  -v, --version                  output the version number
+  -h, --help                     display help for command
+
+Commands:
+  validate [options] <file>      Check that a guide file is valid. Exit 1 if not.
+  info [options] <file>          Summarise a guide: title, step count, step titles, actions, pages,
+                                 sensitive steps, size.
+  steps [options] <file>         List the steps with ids, titles and actions.
+  edit-step [options] <file>     Change a step's title, description or skipped flag. Edits in place
+                                 unless --out is given.
+  regen-titles [options] <file>  Regenerate generated step titles. Titles a person edited are kept.
+  export [options] <file>        Export a guide: md, html, pdf, docx, playwright, skill, project, or
+                                 all (comma-separated list allowed).
+  new [options]                  Create a guide (no screenshots) from a steps.json an agent wrote.
+  help [command]                 display help for command
+
+Exit codes: 0 ok, 1 invalid input, 2 usage error, 3 file error.
+With --json every command prints exactly one JSON object on stdout ({"ok": true, ...} or
+{"ok": false, "error": {...}}); human messages go to stderr.
+Files: a .showsteps bundle (zip: guide.json + images/) or a bare guide.json.
+Docs: https://showsteps.vercel.app/docs/agents/

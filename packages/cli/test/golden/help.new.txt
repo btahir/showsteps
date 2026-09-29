@@ -1,0 +1,10 @@
+Usage: showsteps new [options]
+
+Create a guide (no screenshots) from a steps.json an agent wrote.
+
+Options:
+  --from-steps <file>  steps.json: an array of steps or {title, steps: [...]}
+  --out <file>         where to write the guide (.showsteps bundle or .json)
+  --title <text>       guide title (overrides the one in the steps file)
+  --json               print one JSON object
+  -h, --help           display help for command

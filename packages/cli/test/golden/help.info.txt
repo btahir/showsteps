@@ -1,0 +1,7 @@
+Usage: showsteps info [options] <file>
+
+Summarise a guide: title, step count, step titles, actions, pages, sensitive steps, size.
+
+Options:
+  --json      print one JSON object
+  -h, --help  display help for command
