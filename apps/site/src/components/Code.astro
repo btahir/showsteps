@@ -1,8 +1,20 @@
 ---
-interface Props { code: string; caption?: string }
-const { code, caption } = Astro.props;
+interface Props { code: string; caption?: string; maxLines?: number }
+const { code, caption, maxLines } = Astro.props;
+const lines = code.replace(/\n$/, "").split("\n");
+const clipped = maxLines !== undefined && lines.length > maxLines;
 ---
 <figure class="codeblock" style="margin:0">
   {caption && <figcaption class="cap">{caption}</figcaption>}
-  <pre tabindex="0"><code>{code}</code></pre>
+  {clipped ? (
+    <>
+      <pre tabindex="0"><code>{lines.slice(0, maxLines).join("\n")}</code></pre>
+      <details class="more">
+        <summary>Show the whole file ({lines.length} lines)</summary>
+        <pre tabindex="0"><code>{lines.join("\n")}</code></pre>
+      </details>
+    </>
+  ) : (
+    <pre tabindex="0"><code>{code}</code></pre>
+  )}
 </figure>

@@ -1,19 +1,19 @@
 ---
 import Logo from "./Logo.astro";
-import { SUPPORT_URL, GITHUB_URL } from "../config/site";
+import { SUPPORT_URL, GITHUB_URL, CHROME_STORE_URL } from "../config/site";
 const { path = "/" } = Astro.props;
 const link = (href: string) => (path === href ? { "aria-current": "page" } : {});
 ---
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="Showsteps home"><Logo />Showsteps</a>
+    <a class="brand" href="/" aria-label="Showsteps home"><Logo /></a>
     <nav class="nav" aria-label="Main">
-      <a class="hide-sm" href="/#how" >How it works</a>
+      <a class="hide-sm" href="/#how">How it works</a>
       <a class="hide-sm" href="/docs/agents/" {...link("/docs/agents/")}>For agents</a>
-      <a class="hide-sm" href="/scribe-alternative/" {...link("/scribe-alternative/")}>Compare</a>
+      <a class="hide-sm" href="/#compare">Compare</a>
       <a class="hide-sm" href={GITHUB_URL}>GitHub</a>
       <a href={SUPPORT_URL} {...link(SUPPORT_URL)}>Support</a>
-      <a class="btn btn-primary btn-sm" href="/#install">Get Showsteps</a>
+      <a class="btn btn-primary btn-sm" href={CHROME_STORE_URL || GITHUB_URL}>{CHROME_STORE_URL ? "Add to Chrome" : "Get it on GitHub"}</a>
     </nav>
   </div>
 </header>

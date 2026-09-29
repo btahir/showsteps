@@ -14,6 +14,11 @@ export type Block =
   | { callout: string }
   | { compare: true };
 
+export type Figure =
+  | { kind: "themed"; name: "editor" | "panel-guide" | "panel-recording" | "panel-export" | "panel-support"; alt: string; caption: string }
+  | { kind: "blur"; alt: string; caption: string }
+  | { kind: "step"; name: "sample-step-email" | "sample-step-signin"; alt: string; caption: string };
+
 export interface Section {
   h2: string;
   blocks: Block[];
@@ -31,6 +36,10 @@ export interface KeywordPage {
   related: string[];
   /** Short label for nav/footer/related lists */
   label: string;
+  /** Eyebrow: the page type */
+  kind: "Comparison" | "How-to" | "Guide" | "Template" | "Privacy" | "Developers";
+  /** One real product figure above the fold (assets in public/img, made by scripts/make-assets.mjs) */
+  figure: Figure;
   updated: string;
 }
 
@@ -40,6 +49,8 @@ export const KEYWORD_PAGES: KeywordPage[] = [
   {
     slug: "open-source-scribe-alternative",
     label: "Open-source Scribe alternative",
+    kind: "Comparison",
+    figure: { kind: "themed", name: "editor", alt: "The Showsteps editor showing a recorded sign-in guide, with the password field blurred and the target of each step outlined.", caption: "The editor: numbered steps on the left, the selected step on the right. Mock data." },
     title: "Open-source Scribe alternative: free, local, and it exports for agents",
     h1: "An open-source Scribe alternative that also writes the agent skill",
     description:
@@ -101,7 +112,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
             p: "The guides people write are usually about internal things: the admin console, the billing back end, the way you approve an expense. The screenshots show customer names, account numbers and URLs that are not meant for anyone outside the company. Scribe's documentation describes blurring sensitive data before a screenshot is taken so that it never reaches Scribe's servers, which is a sensible design and also tells you where the unblurred version would otherwise go.",
           },
           {
-            p: "With Showsteps the screenshot is captured by the browser, stored in your browser's IndexedDB, and only leaves when you export a file and send it yourself. There is nothing to procure: no vendor questionnaire, no data processing agreement, no account for a contractor. The <a href=\"/scribe-alternative-without-cloud-upload/\">privacy comparison</a> goes into it in more detail.",
+            p: "With Showsteps the screenshot is captured by the browser, stored in your browser's IndexedDB, and only leaves when you export a file and send it yourself. There is nothing to procure: no vendor questionnaire, no data processing agreement, no account for a contractor. The <a href=\"/scribe-alternative-no-cloud-upload/\">privacy comparison</a> goes into it in more detail.",
           },
         ],
       },
@@ -156,12 +167,14 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "No. Showsteps records what happens in Chrome tabs. For a native app, use a screen recorder.",
       },
     ],
-    related: ["scribe-alternative-without-cloud-upload", "tango-alternative", "record-workflow-as-agent-skill"],
+    related: ["scribe-alternative-no-cloud-upload", "tango-alternative", "record-workflow-as-agent-skill"],
   },
 
   {
-    slug: "scribe-alternative-without-cloud-upload",
+    slug: "scribe-alternative-no-cloud-upload",
     label: "Scribe alternative without cloud upload",
+    kind: "Privacy",
+    figure: { kind: "blur", alt: "Two crops of the same screenshot. Left: the raw capture of a sign-in form. Right: the exported screenshot with the password field blurred and outlined.", caption: "The same screenshot before and after export. The sensitive value is blurred into the picture, not hidden behind an overlay." },
     title: "A Scribe alternative that never uploads your screenshots",
     h1: "A Scribe alternative that never uploads your screenshots",
     description:
@@ -265,6 +278,8 @@ export const KEYWORD_PAGES: KeywordPage[] = [
   {
     slug: "tango-alternative",
     label: "Tango alternative",
+    kind: "Comparison",
+    figure: { kind: "themed", name: "editor", alt: "The Showsteps editor showing a recorded guide.", caption: "Recorded, edited and exported on your own machine. Mock data." },
     title: "A free Tango alternative: local, unlimited, no export paywall",
     h1: "A free Tango alternative with no workflow limit",
     description:
@@ -351,12 +366,14 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "It is built and tested for Chrome. Other Chromium browsers can install Chrome extensions and may work, but we do not test them.",
       },
     ],
-    related: ["open-source-scribe-alternative", "free-step-by-step-guide-maker", "record-clicks-to-playwright-test"],
+    related: ["open-source-scribe-alternative", "free-step-by-step-guide-maker", "convert-clicks-to-playwright-test"],
   },
 
   {
     slug: "free-step-by-step-guide-maker",
     label: "Free step-by-step guide maker",
+    kind: "Guide",
+    figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel listing the steps of a recorded guide with an Export button.", caption: "The side panel after you press Stop: every click is a step. Mock data." },
     title: "Free step-by-step guide maker for any web task",
     h1: "A free step-by-step guide maker that writes the steps for you",
     description:
@@ -443,12 +460,14 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "Yes. Steps get generated titles and an optional description. Once you edit a title, regenerating titles leaves your version alone.",
       },
     ],
-    related: ["how-to-create-sop-with-screenshots", "steps-recorder-chrome-extension", "work-instructions-template"],
+    related: ["how-to-create-an-sop-with-screenshots", "steps-recorder-chrome-extension", "work-instructions-template"],
   },
 
   {
-    slug: "how-to-create-sop-with-screenshots",
+    slug: "how-to-create-an-sop-with-screenshots",
     label: "How to create an SOP with screenshots",
+    kind: "How-to",
+    figure: { kind: "step", name: "sample-step-email", alt: "One step of an exported guide: the Email field of a sign-in form outlined with a numbered tab.", caption: "One step of an exported guide: the target outlined and numbered, the password field below it blurred. Mock data." },
     title: "How to create an SOP with screenshots (with a checklist)",
     h1: "How to create an SOP with screenshots",
     description:
@@ -558,6 +577,8 @@ export const KEYWORD_PAGES: KeywordPage[] = [
   {
     slug: "steps-recorder-chrome-extension",
     label: "Steps recorder Chrome extension",
+    kind: "Guide",
+    figure: { kind: "themed", name: "panel-recording", alt: "The Showsteps side panel while recording.", caption: "Recording in Chrome: each action drops in as a step. Mock data." },
     title: "Steps recorder Chrome extension: what to look for before you install",
     h1: "A steps recorder for Chrome, and how to pick one",
     description:
@@ -649,6 +670,8 @@ export const KEYWORD_PAGES: KeywordPage[] = [
   {
     slug: "work-instructions-template",
     label: "Work instructions template",
+    kind: "Template",
+    figure: { kind: "step", name: "sample-step-signin", alt: "One step of an exported guide: the Sign in button outlined and numbered.", caption: "A step of an exported guide, ready to paste under Steps in the template. Mock data." },
     title: "Work instructions template you can copy (plus how to fill it in)",
     h1: "A work instructions template you can copy",
     description:
@@ -724,12 +747,14 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "The template does. The recording part does not: Showsteps records browser tasks only.",
       },
     ],
-    related: ["how-to-create-sop-with-screenshots", "free-step-by-step-guide-maker", "steps-recorder-alternative"],
+    related: ["how-to-create-an-sop-with-screenshots", "free-step-by-step-guide-maker", "steps-recorder-alternative"],
   },
 
   {
     slug: "steps-recorder-alternative",
     label: "Steps Recorder alternative",
+    kind: "Guide",
+    figure: { kind: "themed", name: "panel-recording", alt: "The Showsteps side panel while recording.", caption: "Press Record, do the task, press Stop. Mock data." },
     title: "Steps Recorder alternative for Windows 11 (for web tasks)",
     h1: "An alternative to Windows Steps Recorder for web tasks",
     description:
@@ -817,12 +842,14 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "If your organisation lets you install Chrome extensions, yes. There is no separate installer and no server to reach.",
       },
     ],
-    related: ["record-clicks-to-playwright-test", "free-step-by-step-guide-maker", "work-instructions-template"],
+    related: ["convert-clicks-to-playwright-test", "free-step-by-step-guide-maker", "work-instructions-template"],
   },
 
   {
-    slug: "record-clicks-to-playwright-test",
+    slug: "convert-clicks-to-playwright-test",
     label: "Convert clicks to a Playwright test",
+    kind: "Developers",
+    figure: { kind: "themed", name: "panel-export", alt: "The Showsteps export sheet with formats including the agent skill.", caption: "Export sheet: the agent skill includes replay.spec.ts. Mock data." },
     title: "Convert clicks to a Playwright test: record in Chrome, get replay.spec.ts",
     h1: "Record clicks in Chrome and convert them to a Playwright test",
     description:
@@ -915,6 +942,8 @@ export const KEYWORD_PAGES: KeywordPage[] = [
   {
     slug: "record-workflow-as-agent-skill",
     label: "Record a workflow as an agent skill",
+    kind: "Developers",
+    figure: { kind: "themed", name: "panel-export", alt: "The Showsteps export sheet with formats including the agent skill.", caption: "Export sheet: one recording, several formats, including the agent skill. Mock data." },
     title: "Record a workflow as an agent skill (SKILL.md generator)",
     h1: "Record a workflow once, get a SKILL.md your agent can follow",
     description:
@@ -1016,7 +1045,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         a: "Yes. The same recording gives you a PDF, HTML, Markdown or DOCX guide for people.",
       },
     ],
-    related: ["record-clicks-to-playwright-test", "open-source-scribe-alternative", "free-step-by-step-guide-maker"],
+    related: ["convert-clicks-to-playwright-test", "open-source-scribe-alternative", "free-step-by-step-guide-maker"],
   },
 ];
 

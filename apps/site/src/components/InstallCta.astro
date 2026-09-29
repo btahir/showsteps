@@ -4,12 +4,10 @@ interface Props { size?: "lg" | "md" }
 const { size = "lg" } = Astro.props;
 const cls = size === "lg" ? "btn btn-lg" : "btn";
 ---
-{CHROME_STORE_URL
-  ? <>
-      <a class={`${cls} btn-primary`} href={CHROME_STORE_URL}>Add to Chrome, free</a>
-      <a class={`${cls} btn-secondary`} href={GITHUB_URL}>View source on GitHub</a>
-    </>
-  : <>
-      <a class={`${cls} btn-primary`} href={GITHUB_URL}>Get it on GitHub</a>
-      <span class={`${cls} btn-secondary`} role="link" aria-disabled="true" title="The Chrome Web Store listing is not live yet">Chrome Web Store: coming soon</span>
-    </>}
+<div class="cta">
+  <div class="cta-row">
+    <a class={`${cls} btn-primary`} href={CHROME_STORE_URL || GITHUB_URL}>{CHROME_STORE_URL ? "Add to Chrome, it's free" : "Get it on GitHub"}</a>
+    <a class={`${cls} btn-secondary`} href="/sample/">See an example guide</a>
+  </div>
+  {!CHROME_STORE_URL && <p class="store-note">Chrome Web Store listing coming soon.</p>}
+</div>

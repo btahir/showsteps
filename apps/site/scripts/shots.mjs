@@ -27,6 +27,7 @@ for (const scheme of ["light", "dark"]) {
     page.on("request", (r) => { if (!r.url().startsWith("http://localhost:4631")) ext.push(r.url()); });
     for (const p of paths) {
       await page.goto("http://localhost:4631" + p, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1400); // let one-shot hero animations finish
       const name = (p === "/" ? "home" : p.replace(/\//g, "_").replace(/^_|_$/g, "")) + `-${scheme}-${tag}.png`;
       await page.screenshot({ path: join(out, name), fullPage: true });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);

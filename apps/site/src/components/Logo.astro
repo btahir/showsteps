@@ -1,7 +1,8 @@
 ---
-// Brand mark from packages/brand/mark.svg (a tab-flag over a highlighted target).
+// Brand logo (packages/brand/logo.svg, logo-on-dark.svg); the file is copied to /public. Height is set by CSS.
+interface Props { class?: string }
 ---
-<svg viewBox="12 12 104 104" aria-hidden="true" focusable="false">
-  <path d="M33 44.5H111.5V91A16.5 16.5 0 0 1 95 107.5H33A16.5 16.5 0 0 1 16.5 91V61A16.5 16.5 0 0 1 33 44.5ZM33 55.5H95A5.5 5.5 0 0 1 100.5 61V91A5.5 5.5 0 0 1 95 96.5H33A5.5 5.5 0 0 1 27.5 91V61A5.5 5.5 0 0 1 33 55.5Z" fill="var(--ss-accent)" fill-rule="evenodd"/>
-  <path d="M111.5 44.51V22.5A8 8 0 0 0 103.5 14.5H79.5A8 8 0 0 0 71.5 22.5V36.5A8 8 0 0 1 63.5 44.5Z" fill="var(--ss-accent)"/>
-</svg>
+<picture class={Astro.props.class ?? "logo"}>
+  <source srcset="/logo-on-dark.svg" media="(prefers-color-scheme: dark)" />
+  <img src="/logo.svg" alt="Showsteps" width="284" height="64" />
+</picture>

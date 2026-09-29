@@ -1,11 +1,10 @@
 ---
 import Base from "../layouts/Base.astro";
-import GuideMock from "../components/GuideMock.astro";
 import Code from "../components/Code.astro";
 import Faq from "../components/Faq.astro";
 import CompareTable from "../components/CompareTable.astro";
 import InstallCta from "../components/InstallCta.astro";
-import { SITE_NAME, SITE_DESCRIPTION, SUPPORT_URL } from "../config/site";
+import { SITE_DESCRIPTION, SUPPORT_URL } from "../config/site";
 import { SAMPLE_SKILL_MD, SAMPLE_REPLAY_TS, LANDING_FAQ } from "../data/samples";
 import { softwareApplication, faqPage } from "../data/jsonld";
 
@@ -14,17 +13,32 @@ const title = "Showsteps: free step-by-step guides from a click-through";
 <Base title={title} absoluteTitle description={SITE_DESCRIPTION} path="/" jsonLd={[softwareApplication(), faqPage(LANDING_FAQ)]}>
   <section class="hero">
     <div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow">Free and open source · Chrome</span>
-        <h1>Record a task once. Get a guide for people and a skill for your agent.</h1>
+      <div class="hero-copy">
+        <h1>
+          Do it once.<br />
+          Send the <span class="ring-word">guide.<span class="ring-tab" aria-hidden="true">1</span></span>
+        </h1>
         <p class="lede">
-          {SITE_NAME} turns a click-through in Chrome into an annotated step-by-step guide, and into a script an AI agent can replay.
-          Passwords and card fields are blurred as you record. Everything stays on your computer.
+          Click through a task in Chrome. Showsteps turns every click into a numbered step with a marked-up screenshot, blurs passwords and
+          card numbers, and hands you a guide you can send in a minute. The same recording becomes a skill your agent can replay.
         </p>
-        <div class="cta-row"><InstallCta /></div>
-        <p class="fine">MIT licensed. No account, no watermark, no upload.</p>
+        <InstallCta />
+        <ul class="proof">
+          <li>Stays on your computer</li>
+          <li>PDF, Word, Markdown</li>
+          <li>No account</li>
+        </ul>
       </div>
-      <GuideMock />
+      <div class="stage">
+        <div class="stage-guide">
+          <div class="stage-head"><span class="flag-num">2</span><span>Type “jane@example.com” in <b>Email</b></span></div>
+          <img src="/img/sample-step-email.webp" width="1544" height="864" alt="A step from an exported guide: the Email field of a sign-in form outlined with a numbered tab, and the password field below it blurred." fetchpriority="high" />
+        </div>
+        <picture class="stage-panel">
+          <source srcset="/img/panel-guide-dark.webp" media="(prefers-color-scheme: dark)" />
+          <img src="/img/panel-guide-light.webp" width="400" height="900" alt="The Showsteps side panel listing the steps of the guide." />
+        </picture>
+      </div>
     </div>
   </section>
 
@@ -32,22 +46,36 @@ const title = "Showsteps: free step-by-step guides from a click-through";
     <div class="wrap">
       <div class="section-head">
         <span class="eyebrow">How it works</span>
-        <h2>Three steps, about a minute of your time</h2>
+        <h2>Record, review, send</h2>
       </div>
-      <ol class="steps3">
+      <ol class="steps3 shots3">
         <li>
           <h3>Record</h3>
           <p>Press Record and do the task the way you normally would, across as many tabs as it takes. Pause whenever you need to.</p>
+          <picture class="panel-crop">
+            <source srcset="/img/panel-recording-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img src="/img/panel-recording-light.webp" width="400" height="900" alt="The side panel while recording." loading="lazy" />
+          </picture>
         </li>
         <li>
-          <h3>Tidy up</h3>
+          <h3>Review</h3>
           <p>Every step has a screenshot and a plain title such as Click <b>Save</b>. Rewrite a title, merge or delete steps, add a note, draw a blur.</p>
+          <picture class="panel-crop">
+            <source srcset="/img/panel-guide-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img src="/img/panel-guide-light.webp" width="400" height="900" alt="The side panel listing the recorded steps." loading="lazy" />
+          </picture>
         </li>
         <li>
-          <h3>Export</h3>
-          <p>Send a PDF, a single HTML file, Markdown, or a DOCX. Or export the agent skill and let something else do the clicking.</p>
+          <h3>Send</h3>
+          <p>Send a PDF, a single HTML file, Markdown or a DOCX. Or export the agent skill and let something else do the clicking.</p>
+          <picture class="panel-crop">
+            <source srcset="/img/panel-export-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img src="/img/panel-export-light.webp" width="400" height="900" alt="The export sheet with the format choices." loading="lazy" />
+          </picture>
         </li>
       </ol>
+      <p class="formats" aria-label="Export formats"><span>PDF</span><span>HTML</span><span>Markdown</span><span>DOCX</span><span>SKILL.md</span><span>.showsteps</span></p>
+      <p style="margin-top:28px"><a href="/sample/">See an example guide</a>, exported by Showsteps from a recording of a mock app.</p>
     </div>
   </section>
 
@@ -57,7 +85,7 @@ const title = "Showsteps: free step-by-step guides from a click-through";
         <span class="eyebrow">Privacy</span>
         <h2>Your screenshots stay on your computer</h2>
         <p>
-          Guides about internal tools contain customer names, account numbers and URLs. Showsteps has no server to send them to.
+          Guides about internal tools contain customer names, account numbers and URLs. Showsteps has no server to send them to.{" "}
           <a href="/privacy/">Read the details</a>.
         </p>
       </div>
@@ -69,6 +97,15 @@ const title = "Showsteps: free step-by-step guides from a click-through";
         <li><strong>No network after install.</strong> The extension does not phone home.</li>
         <li><strong>Readable source.</strong> MIT licensed, and the file format is documented.</li>
       </ul>
+    </div>
+    <div class="wrap">
+      <figure class="blur-fig">
+        <div class="blur-pair">
+          <div><img src="/img/blur-before.webp" alt="" width="1200" height="340" loading="lazy" /><span>Before: the raw capture</span></div>
+          <div><img src="/img/blur-after.webp" alt="" width="1200" height="340" loading="lazy" /><span>After: the exported guide</span></div>
+        </div>
+        <figcaption>The same screenshot before and after export. The password field is blurred into the picture, not hidden under an overlay. You can draw your own blur over anything else. Mock data.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -84,10 +121,10 @@ const title = "Showsteps: free step-by-step guides from a click-through";
         </p>
       </div>
       <div class="code-pair">
-        <Code code={SAMPLE_SKILL_MD} caption="SKILL.md" />
-        <Code code={SAMPLE_REPLAY_TS} caption="replay.spec.ts" />
+        <Code code={SAMPLE_SKILL_MD} caption="SKILL.md" maxLines={16} />
+        <Code code={SAMPLE_REPLAY_TS} caption="replay.spec.ts" maxLines={16} />
       </div>
-      <p style="margin-top:20px"><a href="/docs/agents/">CLI and MCP usage for agents</a> · <a href="/record-clicks-to-playwright-test/">Recording clicks as a Playwright test</a></p>
+      <p style="margin-top:20px"><a href="/docs/agents/">CLI and MCP usage for agents</a> · <a href="/convert-clicks-to-playwright-test/">Convert clicks to a Playwright test</a> · <a href="/record-workflow-as-agent-skill/">Record a workflow as an agent skill</a></p>
     </div>
   </section>
 
@@ -95,11 +132,11 @@ const title = "Showsteps: free step-by-step guides from a click-through";
     <div class="wrap">
       <div class="section-head">
         <span class="eyebrow">Compared</span>
-        <h2>Showsteps, Scribe and Tango</h2>
-        <p>Scribe and Tango do things we do not: desktop capture, hosted links, team workspaces. If you need those, use them. If you need a guide you own, here is the difference.</p>
+        <h2>Showsteps, Mimik, Scribe and Tango</h2>
+        <p>Scribe and Tango do things we do not: desktop capture, hosted links, team workspaces. Mimik is a free, local option that also exports video and GIF. If you need those, use them. If you want a guide you own, plus a script an agent can run, here is the difference.</p>
       </div>
       <CompareTable />
-      <p style="margin-top:20px"><a href="/open-source-scribe-alternative/">Open-source Scribe alternative, with Mimik compared</a> · <a href="/tango-alternative/">A Tango alternative</a> · <a href="/scribe-alternative-without-cloud-upload/">Without cloud upload</a></p>
+      <p style="margin-top:20px"><a href="/open-source-scribe-alternative/">Open-source Scribe alternative, with Mimik compared</a> · <a href="/tango-alternative/">A Tango alternative</a> · <a href="/scribe-alternative-no-cloud-upload/">Without cloud upload</a></p>
     </div>
   </section>
 
@@ -116,8 +153,8 @@ const title = "Showsteps: free step-by-step guides from a click-through";
         <h2>Get Showsteps</h2>
         <p>Scribe puts PDF export and redaction on a plan it lists at $35 a month. Showsteps does both for nothing, and keeps your screenshots to itself.</p>
       </div>
-      <div class="cta-row" style="display:flex;gap:12px;flex-wrap:wrap"><InstallCta /></div>
-      <p class="fine" style="margin-top:18px;color:var(--ink-3)">
+      <InstallCta />
+      <p style="margin-top:22px;color:var(--ink-2)">
         It stays free because people chip in. If it saves you time, <a href={SUPPORT_URL}>support Showsteps</a>.
       </p>
     </div>

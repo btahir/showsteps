@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import Blocks from "../components/Blocks.astro";
 import Faq from "../components/Faq.astro";
 import InstallCta from "../components/InstallCta.astro";
+import Shot from "../components/Shot.astro";
 import { KEYWORD_PAGES, bySlug } from "../data/keyword-pages";
 import { SUPPORT_URL } from "../config/site";
 import { softwareApplication, faqPage, breadcrumbs, article } from "../data/jsonld";
@@ -23,10 +24,11 @@ const ld = [
 <Base title={page.title} description={page.description} path={path} jsonLd={ld}>
   <div class="wrap">
     <div class="page-head">
-      <span class="eyebrow">Showsteps</span>
+      <span class="eyebrow">{page.kind}</span>
       <h1>{page.h1}</h1>
       <p class="lede">{page.lede}</p>
-      <div class="cta-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><InstallCta size="md" /></div>
+      <div style="margin-top:24px"><InstallCta size="md" /></div>
+      <Shot figure={page.figure} />
     </div>
     <div class="prose-wrap">
       <article class="prose">
@@ -48,7 +50,7 @@ const ld = [
           <h2>Free, and staying free</h2>
           <p>If Showsteps saves you an afternoon, you can <a href={SUPPORT_URL}>support the project</a>. Nothing depends on it.</p>
         </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap"><InstallCta size="md" /></div>
+        <div><InstallCta size="md" /></div>
       </div>
 
       <nav class="related" aria-label="Related pages">

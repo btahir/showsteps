@@ -22,8 +22,8 @@ function table(head: string[], rows: string[][]): string {
 
 export function compareMd(): string {
   return [
-    table(["", "Showsteps", "Scribe", "Tango"], COMPARE_ROWS.map((r) => [r.feature, r.showsteps, r.scribe, r.tango])),
-    `\nCompetitor details are from each vendor's own pages as of ${COMPARE_DATE}. Plans and prices change.`,
+    table(["", "Showsteps", "Mimik", "Scribe", "Tango"], COMPARE_ROWS.map((r) => [r.feature, r.showsteps, r.mimik, r.scribe, r.tango])),
+    `\nCompetitor details are from each vendor's own pages (Mimik: its README) as of ${COMPARE_DATE}. Plans and prices change.`,
   ].join("\n");
 }
 

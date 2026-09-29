@@ -1,4 +1,5 @@
 ---
+import Logo from "./Logo.astro";
 import { SITE_NAME, SUPPORT_URL, GITHUB_URL, LICENSE_NAME } from "../config/site";
 import { KEYWORD_PAGES } from "../data/keyword-pages";
 ---
@@ -6,7 +7,7 @@ import { KEYWORD_PAGES } from "../data/keyword-pages";
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <a class="brand" href="/" aria-label="Showsteps home">{SITE_NAME}</a>
+        <a class="brand" href="/" aria-label="Showsteps home"><Logo class="logo logo-sm" /></a>
         <p class="foot-note">Free, open-source, local-first step-by-step guides from a click-through.</p>
       </div>
       <div>

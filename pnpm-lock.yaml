@@ -68,6 +68,9 @@ importers:
       '@stepsnap/brand':
         specifier: workspace:*
         version: link:../../packages/brand
+      '@stepsnap/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       astro:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@25.9.8)(jiti@2.7.0)
