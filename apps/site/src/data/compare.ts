@@ -5,6 +5,8 @@
  * Cells that say "mentioned" are absence claims: worded as what the vendor's page does or does not list.
  */
 export const COMPARE_DATE = "28 September 2026";
+/** Same date, machine-readable. Every competitor figure on the site sits inside an element with data-asof set to this. */
+export const COMPARE_ASOF = "2026-09-28";
 
 export interface CompareRow {
   feature: string;

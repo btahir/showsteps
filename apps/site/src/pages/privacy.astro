@@ -2,6 +2,7 @@
 import Base from "../layouts/Base.astro";
 import { GITHUB_URL } from "../config/site";
 import { breadcrumbs } from "../data/jsonld";
+import { PERMISSIONS } from "../data/permissions";
 const desc = "Showsteps stores everything on your device, has no account and no analytics, and makes no network requests after install. Every permission explained.";
 ---
 <Base title="Privacy" description={desc} path="/privacy/" jsonLd={[breadcrumbs([{ name: "Showsteps", path: "/" }, { name: "Privacy", path: "/privacy/" }])]}>
@@ -16,7 +17,7 @@ const desc = "Showsteps stores everything on your device, has no account and no 
         <h2 style="margin-top:0">What Showsteps stores, and where</h2>
         <ul>
           <li>Guides, step text and screenshots are stored in your browser's IndexedDB on your computer.</li>
-          <li>Settings (for example highlight colour) are stored in the extension's local storage.</li>
+          <li>Your settings (for example the highlight colour and which kinds of data to mask) are stored in the extension's local storage. While a recording runs, its state is kept in Chrome's session storage, which lives in memory and is cleared when the browser closes, so a recording survives Chrome suspending the extension's background worker.</li>
           <li>Exports are files you save. Showsteps does not track where you send them.</li>
         </ul>
         <h2>What leaves your computer</h2>
@@ -34,19 +35,39 @@ const desc = "Showsteps stores everything on your device, has no account and no 
           screenshot before sharing, and use the blur and crop tools.
         </p>
         <h2>Permissions, and why</h2>
+        <p>
+          These are the sentences we give Chrome Web Store reviewers for each permission, word for word. Showsteps asks for nothing else:
+          no <code>tabs</code>, <code>webNavigation</code>, <code>downloads</code>, <code>webRequest</code> or <code>cookies</code>.
+        </p>
         <div class="table-scroll" role="region" aria-label="Permissions" tabindex="0">
           <table class="compare">
             <thead><tr><th scope="col">Permission</th><th scope="col">Why Showsteps needs it</th></tr></thead>
             <tbody>
-              <tr><th scope="row"><code>activeTab</code></th><td>Lets Showsteps capture and act on the tab you are working in when you press Record.</td></tr>
-              <tr><th scope="row"><code>scripting</code></th><td>Injects the small script that notices clicks, typing and selections and describes the element.</td></tr>
-              <tr><th scope="row"><code>storage</code></th><td>Keeps your settings.</td></tr>
-              <tr><th scope="row"><code>sidePanel</code></th><td>Shows the step list and editor beside the page.</td></tr>
-              <tr><th scope="row"><code>unlimitedStorage</code></th><td>Guides with many screenshots are large. This stops the browser from clearing them to save space.</td></tr>
-              <tr><th scope="row">Access to all sites (optional)</th><td>Requested only when you start recording, so Showsteps can follow you across tabs and page changes. You can decline it and record a single tab.</td></tr>
+              {PERMISSIONS.map((p) => (
+                <tr><th scope="row">{p.code ? <code>{p.name}</code> : p.name}</th><td>{p.why}</td></tr>
+              ))}
             </tbody>
           </table>
         </div>
+        <h2 id="check">Check it yourself: no network</h2>
+        <p>
+          You do not have to take our word for it. Chrome will show you every request the extension makes. It takes about five minutes.
+        </p>
+        <ol>
+          <li>Open <code>chrome://extensions</code> and switch on Developer mode (top right).</li>
+          <li>Find Showsteps and click <strong>service worker</strong> next to <em>Inspect views</em>. DevTools opens for the extension&rsquo;s background worker.</li>
+          <li>Open the <strong>Network</strong> tab and leave the window open. Keep <em>Preserve log</em> ticked.</li>
+          <li>Record a short task on any page, using made-up data, then stop, edit a step and export a file.</li>
+          <li>Look at the list. It should hold no requests to any domain. Do the same in the side panel or editor: right-click inside it, choose <strong>Inspect</strong>, and watch its Network tab.</li>
+        </ol>
+        <p>
+          For a check that covers the whole browser, open <code>chrome://net-export</code>, start logging, do the same recording, stop
+          and read the saved log for the extension&rsquo;s traffic. To see it work offline, turn Wi-Fi off and repeat the recording;
+          nothing should change.
+        </p>
+        <p>
+          Pressing a support link is the one exception, and it is not the extension talking: Chrome opens this website in a normal tab.
+        </p>
         <h2>This website</h2>
         <p>
           The site you are reading has no analytics, no cookies and no third-party requests. Its fonts are served from the same origin.

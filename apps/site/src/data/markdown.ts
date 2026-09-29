@@ -4,7 +4,7 @@ import { COMPARE_ROWS, COMPARE_DATE } from "./compare";
 import type { Block, KeywordPage } from "./keyword-pages";
 import { GITHUB_URL, SITE_DESCRIPTION, SITE_URL, SUPPORT_URL, abs, fill } from "../config/site";
 
-const ENT: Record<string, string> = { "&ldquo;": '"', "&rdquo;": '"', "&rsquo;": "'", "&lsquo;": "'", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&mdash;": "-" };
+const ENT: Record<string, string> = { "&ldquo;": '"', "&rdquo;": '"', "&rsquo;": "'", "&lsquo;": "'", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&mdash;": "-", "&ndash;": "-" };
 
 /** Convert the small HTML subset used in content strings to Markdown. */
 export function md(html: string): string {

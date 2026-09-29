@@ -51,10 +51,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Open-source Scribe alternative",
     kind: "Comparison",
     figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel showing step 2 of a recorded guide: the Email field outlined with a numbered tab, and step 3 selected with its editing tools.", caption: "The side panel after you press Stop: each step is zoomed to its target. Mock data." },
-    title: "Open-source Scribe alternative: free, local, and it exports for agents",
+    title: "Open-source Scribe alternative, free and local",
     h1: "An open-source Scribe alternative that also writes the agent skill",
     description:
-      "Showsteps is a free, MIT-licensed Chrome extension that records a click-through into a step-by-step guide and a replayable agent skill. Local-first, with redaction on by default. Compared with Scribe and Mimik.",
+      "Showsteps is a free, MIT-licensed Chrome extension that turns a click-through into a guide and an agent skill. Local-first. Compared with Scribe and Mimik.",
     lede:
       "Record a task once and get two things: a guide people can read, and a script an agent can replay. It runs in your browser, keeps everything on your computer and does not ask for a plan.",
     updated: UPDATED,
@@ -63,7 +63,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "What you get for free, and what Scribe asks for",
         blocks: [
           {
-            p: "Scribe's free Basic plan lets you capture guides in web apps and share them by link or embed. Its pricing page lists PDF, HTML and Markdown export and screenshot redaction under Pro Personal, which was listed at $35 a month, or $25 a month billed yearly, when we checked on 28 September 2026.",
+            p: "<span data-asof=\"2026-09-28\">Scribe's free Basic plan lets you capture guides in web apps and share them by link or embed. Its pricing page lists PDF, HTML and Markdown export and screenshot redaction under Pro Personal, which was listed at $35 a month, or $25 a month billed yearly, when we checked on 28 September 2026.</span>",
           },
           {
             p: "Showsteps has no plans. You install it, press Record, click through the task and export in any format it supports. Nothing is locked, watermarked or capped, and the source is on GitHub under the MIT licence.",
@@ -75,7 +75,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "Other free, open-source options: Mimik",
         blocks: [
           {
-            p: "Showsteps is not the only free one. <a href=\"https://github.com/westpoint-io/mimik\">Mimik</a> is an MIT-licensed browser extension that also keeps guides on your device with no account, and it is further along than we are in some ways. Here is what its README says, next to what we do.",
+            p: "Showsteps is not the only free one. <a href=\"https://github.com/westpoint-io/mimik\">Mimik</a> is an MIT-licensed browser extension that also keeps guides on your device with no account, and it is further along than we are in some ways. Here is what its README said on <span data-asof=\"2026-09-28\">28 September 2026</span>, next to what we do.",
           },
           {
             table: {
@@ -175,10 +175,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Scribe alternative without cloud upload",
     kind: "Privacy",
     figure: { kind: "blur", alt: "A mock account page showing a card number, tax ID, IBAN, session token and API key, next to the same step in the guide with those values masked.", caption: "Left: what the page showed. Right: what the guide keeps. Fake data throughout." },
-    title: "A Scribe alternative that never uploads your screenshots",
+    title: "A Scribe alternative with no cloud upload",
     h1: "A Scribe alternative that never uploads your screenshots",
     description:
-      "Where guide-recorder extensions send your screenshots, how to check any extension yourself, and how Showsteps keeps captures in your browser. For teams whose security rules block cloud uploads.",
+      "Where guide recorders send your screenshots, how to check any extension yourself, and how Showsteps keeps captures in your browser. For teams that ban uploads.",
     lede:
       "If your security team asked where the screenshots go, the answer for cloud tools is a vendor's servers. Here is what that means, how to verify any extension, and a local option.",
     updated: UPDATED,
@@ -186,6 +186,9 @@ export const KEYWORD_PAGES: KeywordPage[] = [
       {
         h2: "Where the screenshots go",
         blocks: [
+          {
+            p: "What each tool's own pages said on <span data-asof=\"2026-09-28\">28 September 2026</span>. Vendors change these, so check the current pages before you decide.",
+          },
           {
             table: {
               head: ["Tool", "What its own pages say"],
@@ -280,10 +283,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Tango alternative",
     kind: "Comparison",
     figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel showing recorded steps with their targets outlined.", caption: "Recorded, edited and exported on your own machine. Mock data." },
-    title: "A free Tango alternative: local, unlimited, no export paywall",
+    title: "A free Tango alternative with no limits",
     h1: "A free Tango alternative with no workflow limit",
     description:
-      "Showsteps records your clicks in Chrome into a step-by-step guide, stores it on your machine and exports PDF, HTML, Markdown and DOCX for free. No workflow cap, no cloud, no account.",
+      "Showsteps records clicks in Chrome into a step-by-step guide, keeps it on your machine and exports PDF, HTML, Markdown and DOCX. No cap, no cloud, no account.",
     lede:
       "Tango's free plan gives you a taste. Showsteps gives you the whole thing, on your own computer, with no cap on how many guides you make.",
     updated: UPDATED,
@@ -292,7 +295,7 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         h2: "The free plan comparison",
         blocks: [
           {
-            p: "Tango's free plan, as listed on its pricing page on 28 September 2026, includes browser capture, link and embed sharing and five shared workflows. PDF, HTML and Markdown export, screenshot blurring and unlimited workflows are on the Pro plan, listed at $26 per user a month, or $22 billed yearly, for one or two users.",
+            p: "<span data-asof=\"2026-09-28\">Tango's free plan, as listed on its pricing page on 28 September 2026, includes browser capture, link and embed sharing and five shared workflows. PDF, HTML and Markdown export, screenshot blurring and unlimited workflows are on the Pro plan, listed at $26 per user a month, or $22 billed yearly, for one or two users.</span>",
           },
           {
             p: "Showsteps has one tier and it is free: unlimited guides, every export format, blur and manual redaction.",
@@ -374,10 +377,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Free step-by-step guide maker",
     kind: "Guide",
     figure: { kind: "themed", name: "panel-guide", alt: "The Showsteps side panel listing the steps of a recorded guide with an Export button.", caption: "The side panel after you press Stop: every click is a step. Mock data." },
-    title: "Free step-by-step guide maker for any web task",
+    title: "Free step-by-step guide maker for web tasks",
     h1: "A free step-by-step guide maker that writes the steps for you",
     description:
-      "Record a task in Chrome and get a step-by-step guide with annotated screenshots. Edit the text, blur sensitive fields, and export to PDF, HTML, Markdown or DOCX. Free and local.",
+      "Record a task in Chrome and get a step-by-step guide with annotated screenshots. Edit the text, blur sensitive fields, export to PDF, HTML, Markdown or DOCX.",
     lede:
       "Press Record, do the task once, press Stop. You get a numbered guide with a screenshot and a plain-English title for every step.",
     updated: UPDATED,
@@ -391,6 +394,29 @@ export const KEYWORD_PAGES: KeywordPage[] = [
               "<strong>Edit.</strong> The side panel lists every step with its screenshot. The click target is outlined. Titles are written for you (<em>Click Save</em>, <em>Type in Email</em>, <em>Go to Settings</em>) and you can rewrite any of them. Reorder, delete, skip or merge steps, and add a note where a click is not enough.",
               "<strong>Export.</strong> Pick the format that fits where the guide is going.",
             ],
+          },
+        ],
+      },
+      {
+        h2: "What the generated steps look like",
+        blocks: [
+          {
+            p: "Titles come from the element you touched, using its accessible name, so they read like instructions rather than coordinates. There is no AI service involved; the wording follows fixed rules, which means the same recording always gives the same text.",
+          },
+          {
+            table: {
+              head: ["What you did", "Title Showsteps writes"],
+              rows: [
+                ["Clicked a button labelled Save", "Click <strong>Save</strong>"],
+                ["Typed an email address into the Email field", "Type &ldquo;jane@example.com&rdquo; in <strong>Email</strong>"],
+                ["Chose Monthly in a Billing period menu", "Select <strong>Monthly</strong> in <strong>Billing period</strong>"],
+                ["Pressed the Enter key", "Press <strong>Enter</strong>"],
+                ["Opened a new page", "Go to <strong>Settings &ndash; Acme</strong>"],
+              ],
+            },
+          },
+          {
+            p: "Text typed into a password or card field never appears in a title, and neither does the value you typed into any field the extension marked as sensitive. Typing is grouped: a whole email address is one step, not one step per key.",
           },
         ],
       },
@@ -468,10 +494,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "How to create an SOP with screenshots",
     kind: "How-to",
     figure: { kind: "step", name: "sample-step-email", alt: "One step of an exported guide: the Email field of a sign-in form outlined with a numbered tab.", caption: "One step of an exported guide: the target outlined and numbered, the password field below it masked. Mock data." },
-    title: "How to create an SOP with screenshots (with a checklist)",
+    title: "How to create an SOP with screenshots",
     h1: "How to create an SOP with screenshots",
     description:
-      "A practical method for writing a standard operating procedure for a software task: scope it, record it, write clear steps, redact, test it on someone new, and keep it current.",
+      "A method for writing a standard operating procedure for a software task: scope it, record it, write clear steps, redact, test it on a newcomer, keep it current.",
     lede:
       "A good SOP is short, specific and tested by someone who did not write it. Here is a method that works for software tasks, and where a click-recorder saves you the tedious part.",
     updated: UPDATED,
@@ -579,10 +605,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Steps recorder Chrome extension",
     kind: "Guide",
     figure: { kind: "themed", name: "panel-recording", alt: "The Showsteps side panel while recording.", caption: "Recording in Chrome: each action drops in as a step. Mock data." },
-    title: "Steps recorder Chrome extension: what to look for before you install",
+    title: "Steps recorder Chrome extension: what to check",
     h1: "A steps recorder for Chrome, and how to pick one",
     description:
-      "How a steps recorder Chrome extension captures screenshots for documentation, which permissions it needs, what to check about privacy and export, and how Showsteps handles each.",
+      "How a steps recorder Chrome extension captures screenshots, which permissions it needs, what to check about privacy and export, and how Showsteps handles each.",
     lede:
       "Documenting a web task by taking screenshots yourself is slow. A steps recorder extension captures them as you go. Before you install one, here is what it needs to do and what to ask it.",
     updated: UPDATED,
@@ -619,12 +645,12 @@ export const KEYWORD_PAGES: KeywordPage[] = [
             table: {
               head: ["Permission", "Why"],
               rows: [
-                ["activeTab", "Lets Showsteps act on the tab you are working in when you start recording."],
-                ["scripting", "Injects the small script that notices your clicks and describes the element."],
-                ["storage", "Remembers settings such as highlight colour."],
+                ["activeTab", "Lets you start a recording on the current tab with one click, and lets Showsteps screenshot browser-internal pages that extensions cannot otherwise capture."],
+                ["scripting", "Injects the recorder into the pages you visit while a recording runs, and removes it when you press Stop."],
+                ["storage", "Keeps your settings and the in-progress recording state if Chrome suspends the background worker."],
                 ["sidePanel", "Shows the step list and editor beside the page."],
                 ["unlimitedStorage", "Guides with many screenshots are large; this stops the browser evicting them."],
-                ["Site access (optional)", "Requested only when you start recording, so it can follow you across tabs and navigation."],
+                ["Site access (optional)", "Requested only when you press Record, so it can screenshot and notice clicks in every tab you visit. You can revoke it in Chrome at any time."],
               ],
             },
           },
@@ -638,6 +664,20 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         blocks: [
           {
             p: "Showsteps marks password, card and similar fields as sensitive while recording. Their values are never stored, and the field is masked before the screenshot is stored. It cannot know that a name in a table or an email in a header belongs to a real person, so it lets you draw a blur or crop on any screenshot before you export. Read each image before you send the file.",
+          },
+        ],
+      },
+      {
+        h2: "What a recording session looks like",
+        blocks: [
+          {
+            p: "You press Record, and a small indicator stays on the page so you always know it is running. Every click, selection, key such as Enter and page change adds a step. Typing is grouped, so filling in an email address makes one step rather than one per key. If you open a link in a new tab, or a sign-in redirect changes the site, the recording follows you.",
+          },
+          {
+            p: "You can pause while you deal with something that should not be in the guide, such as a message from a colleague, and resume afterwards. When you press Stop the steps appear in the editor, where you can delete a stray click before anything is exported.",
+          },
+          {
+            p: "Try any recorder on a throwaway task first, with made-up data, and export the result. That tells you in a few minutes whether the screenshots are readable, whether the step text needs much editing and whether the file opens where you need it.",
           },
         ],
       },
@@ -672,10 +712,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Work instructions template",
     kind: "Template",
     figure: { kind: "step", name: "sample-step-signin", alt: "One step of an exported guide: the Sign in button outlined and numbered.", caption: "A step of an exported guide, ready to paste under Steps in the template. Mock data." },
-    title: "Work instructions template you can copy (plus how to fill it in)",
+    title: "Work instructions template you can copy",
     h1: "A work instructions template you can copy",
     description:
-      "A plain work instructions template with purpose, prerequisites, numbered steps, checks and a change log, plus writing rules and how to fill the steps section from a recording.",
+      "A plain work instructions template: purpose, prerequisites, numbered steps, checks, change log. Plus rules for the steps and how to fill them from a recording.",
     lede:
       "Work instructions tell one person how to do one task, the same way every time. Use the template below as it is, or trim it. The rules under it are what make the steps usable.",
     updated: UPDATED,
@@ -713,6 +753,18 @@ export const KEYWORD_PAGES: KeywordPage[] = [
           },
           {
             p: "Export as Markdown and you get a <code>guide.md</code> plus an images folder. Paste the steps under <em>Steps</em> in the template, keep the images beside the file, and fill in the other sections by hand. Those sections need someone who knows why the task exists, which a recorder cannot supply.",
+          },
+        ],
+      },
+      {
+        h2: "A filled-in example",
+        blocks: [
+          {
+            p: "Here is the same template for a small admin task, so you can see how much text each section needs. It is mock content. Note that the steps name the control exactly as it appears and say what should happen next.",
+          },
+          {
+            code: "# Reset a user's password in the admin console\n\nOwner: IT support lead     Version: 1.0     Last reviewed: 2026-09-28\nApplies to: IT support agents\n\n## Purpose\nA locked-out employee can sign in again within five minutes.\n\n## Before you start\n- You have the Support Agent role.\n- You have confirmed the employee's identity by video call.\n\n## Steps\n1. Click Users. The user list opens.\n2. Type the employee's email in Search, then press Enter.\n3. Click the employee's name. Their profile opens.\n4. Click Reset password. A confirmation dialog opens.\n5. Click Send reset link. A banner reads Reset link sent.\n\n## Check your work\n- The profile shows Password reset requested with today's date.\n\n## If something goes wrong\n| Symptom | Likely cause | What to do |\n|---|---|---|\n| Reset password is greyed out | The account is managed by single sign-on | Ask the employee to use their company login page |\n",
+            caption: "A completed example (mock content)",
           },
         ],
       },
@@ -755,10 +807,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Steps Recorder alternative",
     kind: "Guide",
     figure: { kind: "themed", name: "panel-recording", alt: "The Showsteps side panel while recording.", caption: "Press Record, do the task, press Stop. Mock data." },
-    title: "Steps Recorder alternative for Windows 11 (for web tasks)",
+    title: "Steps Recorder alternative for Windows 11",
     h1: "An alternative to Windows Steps Recorder for web tasks",
     description:
-      "Microsoft has deprecated Steps Recorder (psr.exe). Showsteps records clicks in Chrome into an annotated step list, on Windows, macOS and Linux, and exports PDF, HTML, Markdown and DOCX.",
+      "Microsoft has deprecated Steps Recorder (psr.exe). Showsteps records web tasks in Chrome into an annotated step list and exports PDF, HTML, Markdown and DOCX.",
     lede:
       "Steps Recorder was the quiet, useful tool that turned a few minutes of clicking into a numbered list with screenshots. Microsoft has deprecated it. If your tasks are in a browser, Showsteps does the same job.",
     updated: UPDATED,
@@ -820,6 +872,22 @@ export const KEYWORD_PAGES: KeywordPage[] = [
         ],
       },
       {
+        h2: "Moving your routine across",
+        blocks: [
+          {
+            ol: [
+              "Install Showsteps in Chrome. It runs the same way on Windows, macOS and Linux, wherever Chrome does.",
+              "Open the web app you want to document and press Record. Do the task once at a normal pace.",
+              "Press Stop and read the steps in the editor. Delete stray clicks and rewrite any title that describes the mechanics rather than the point.",
+              "Export. Where Steps Recorder gave you one zipped web archive, you choose the format that suits the reader: PDF for a ticket, HTML for a single file, Markdown for a wiki, DOCX for someone who will edit it.",
+            ],
+          },
+          {
+            p: "Showsteps records web apps in Chrome and does not record desktop apps. If half of a task happens in a desktop program, record the browser half with Showsteps and describe the rest in a note step.",
+          },
+        ],
+      },
+      {
         h2: "Recording a bug report",
         blocks: [
           {
@@ -850,10 +918,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Convert clicks to a Playwright test",
     kind: "Developers",
     figure: { kind: "themed", name: "panel-export", alt: "The Showsteps export sheet with formats including the agent skill.", caption: "Export sheet: the agent skill includes replay.spec.ts. Mock data." },
-    title: "Convert clicks to a Playwright test: record in Chrome, get replay.spec.ts",
+    title: "Convert clicks to a Playwright test",
     h1: "Record clicks in Chrome and convert them to a Playwright test",
     description:
-      "How to convert a click-through into a Playwright test, compared with Playwright codegen, and how Showsteps exports a replay.spec.ts and an agent skill from the same recording as your guide.",
+      "Turn a click-through into a Playwright test, compared with codegen. Showsteps exports replay.spec.ts and an agent skill from the same recording as your guide.",
     lede:
       "Playwright can write a test while you click. Showsteps does that too, in your normal Chrome, and at the same time gives you the documentation for the flow.",
     updated: UPDATED,
@@ -944,10 +1012,10 @@ export const KEYWORD_PAGES: KeywordPage[] = [
     label: "Record a workflow as an agent skill",
     kind: "Developers",
     figure: { kind: "themed", name: "panel-export", alt: "The Showsteps export sheet with formats including the agent skill.", caption: "Export sheet: one recording, several formats, including the agent skill. Mock data." },
-    title: "Record a workflow as an agent skill (SKILL.md generator)",
+    title: "Record a workflow as an agent skill",
     h1: "Record a workflow once, get a SKILL.md your agent can follow",
     description:
-      "How to turn a browser task you do by hand into a SKILL.md, a steps.json and a Playwright replay script, using a Chrome extension. Free, local, no API key.",
+      "Turn a browser task you do by hand into a SKILL.md, a steps.json and a Playwright replay script with a Chrome extension. Free and local, no API key.",
     lede:
       "Agents are good at following instructions and bad at guessing which button you meant. A recording of you doing the task gives them exact names, order and URLs.",
     updated: UPDATED,

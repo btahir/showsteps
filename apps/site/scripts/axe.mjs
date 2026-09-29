@@ -19,7 +19,7 @@ const server = createServer(async (req, res) => {
 
 const paths = ["/"];
 for (const d of await readdir(dist, { withFileTypes: true })) {
-  if (d.isDirectory() && !["_astro", "img"].includes(d.name)) {
+  if (d.isDirectory() && !["_astro", "img", "schema"].includes(d.name)) {
     paths.push(`/${d.name}/`);
     if (d.name === "docs") paths.push("/docs/agents/");
   }

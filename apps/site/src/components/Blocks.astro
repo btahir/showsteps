@@ -13,7 +13,7 @@ const { blocks } = Astro.props;
   if ("code" in b) return <Code code={b.code} caption={b.caption} />;
   if ("callout" in b) return <div class="callout"><p set:html={fill(b.callout)} /></div>;
   if ("table" in b) return (
-    <div class="table-scroll" role="region" aria-label="Table" tabindex="0">
+    <div class="table-scroll" role="region" aria-label={`Table: ${b.table.head.filter(Boolean).join(", ")}`} tabindex="0">
       <table class="compare">
         <thead><tr>{b.table.head.map((h) => <th scope="col">{h === "" ? <span class="sr-only">Aspect</span> : h}</th>)}</tr></thead>
         <tbody>{b.table.rows.map((r) => <tr>{r.map((c, i) => i === 0 ? <th scope="row" set:html={fill(c)} /> : <td set:html={fill(c)} />)}</tr>)}</tbody>

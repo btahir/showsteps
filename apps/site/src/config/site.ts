@@ -16,7 +16,7 @@ export const APP_VERSION = "0.1.0";
 export const LICENSE_NAME = "MIT";
 export const SITE_TAGLINE = "Click through it once. Get the guide, and a script your agent can replay.";
 export const SITE_DESCRIPTION =
-  "Free Chrome extension that turns a click-through into an annotated step-by-step guide with screenshots. Local-first: nothing is uploaded. Exports PDF, HTML, Markdown, DOCX and a replayable agent skill.";
+  "Free Chrome extension that turns a click-through into a step-by-step guide with screenshots. Nothing uploaded. Exports PDF, HTML, Markdown, DOCX, agent skill.";
 
 export const DONATION_LINKS = {
   once: "https://buy.stripe.com/fZu14m0FO3v050PfqP3ks00",

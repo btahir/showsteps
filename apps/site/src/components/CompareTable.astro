@@ -1,5 +1,5 @@
 ---
-import { COMPARE_ROWS, COMPARE_DATE } from "../data/compare";
+import { COMPARE_ROWS, COMPARE_DATE, COMPARE_ASOF } from "../data/compare";
 ---
 <div class="table-scroll" role="region" aria-label="Comparison table" tabindex="0">
   <table class="compare compare-4">
@@ -17,16 +17,16 @@ import { COMPARE_ROWS, COMPARE_DATE } from "../data/compare";
         <tr>
           <th scope="row">{r.feature}</th>
           <td class="us">{r.showsteps}</td>
-          <td>{r.mimik}</td>
-          <td>{r.scribe}</td>
-          <td>{r.tango}</td>
+          <td data-asof={COMPARE_ASOF}>{r.mimik}</td>
+          <td data-asof={COMPARE_ASOF}>{r.scribe}</td>
+          <td data-asof={COMPARE_ASOF}>{r.tango}</td>
         </tr>
       ))}
     </tbody>
   </table>
 </div>
 <p class="table-note">
-  Details come from each vendor's own pricing, security and documentation pages, and from Mimik's README, as they were on {COMPARE_DATE}.
+  Details come from each vendor's own pricing, security and documentation pages, and from Mimik's README, as they were on <time datetime={COMPARE_ASOF}>{COMPARE_DATE}</time>.
   Plans and prices change; check their sites before deciding. Mimik is a free, MIT-licensed extension with video and GIF export and Firefox
   and Edge support that Showsteps does not have; see the <a href="/open-source-scribe-alternative/">full comparison</a>. Scribe, Tango and Mimik
   are trademarks of their owners, and Showsteps is not affiliated with any of them.

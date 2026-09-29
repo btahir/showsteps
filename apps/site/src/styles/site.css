@@ -161,6 +161,8 @@ kbd,
   font-weight: 750;
   font-size: 1.15rem;
   letter-spacing: -0.02em;
+  min-height: 44px;
+  min-width: 44px;
 }
 .logo {
   display: block;
@@ -184,6 +186,11 @@ kbd,
   font-size: 0.95rem;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
 }
 .nav a:hover,
 .nav a[aria-current="page"] {
@@ -701,8 +708,14 @@ table.compare {
   list-style: none;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 0;
   margin: 12px 0 0;
+}
+.related a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* ---- support ---- */

@@ -1,7 +1,7 @@
 import { abs } from "../config/site";
 import { KEYWORD_PAGES } from "../data/keyword-pages";
 
-const STATIC = ["/", "/support/", "/about/", "/privacy/", "/docs/agents/", "/changelog/"];
+const STATIC = ["/", "/support/", "/about/", "/privacy/", "/docs/agents/", "/changelog/", "/sample/"];
 
 export function GET() {
   const urls = [...STATIC, ...KEYWORD_PAGES.map((p) => `/${p.slug}/`)];

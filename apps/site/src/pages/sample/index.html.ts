@@ -18,6 +18,8 @@ export function GET() {
   guide.updatedAt = guide.createdAt;
   guide.title = "Switch a workspace to yearly billing";
   guide.description = "Sign in to Acme Books, find the help centre, then change the billing period. Sample guide made with Showsteps; every name and value is mock data.";
-  const html = exportHtml(guide, images, { branding: false });
+  let html = exportHtml(guide, images, { branding: false });
+  // Same-origin icon so browsers do not request /favicon.ico (a 404 on this site).
+  if (!/<link[^>]+rel="icon"/.test(html)) html = html.replace("</head>", '<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n</head>');
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
