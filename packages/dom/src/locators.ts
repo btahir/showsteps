@@ -2,7 +2,7 @@
 // scope: the element's own root (document, or shadow root plus everything nested below it), inside its
 // own frame. Playwright locators pierce open shadow roots, so nested shadow content counts too.
 import type { Locator } from "@stepsnap/core";
-import { accessibleName, getRole, isHidden, isLabelable, labelElements, visibleText } from "./aria";
+import { accessibleName, getRole, isHidden, isLabelable, labelElements } from "./aria";
 import { attrValue, byId, clip, cssEscape, isElement, isShadowRoot, norm, rootOf, xpathString, type RootNode } from "./util";
 
 /** Attributes Playwright's getByTestId understands by default. */
@@ -194,8 +194,9 @@ export function xpathFor(el: Element): string | undefined {
   return `/${parts.join("/")}`;
 }
 
+/** Text as Playwright's text engine sees it: textContent, whitespace-normalised, hidden nodes included. */
 function textOfNode(el: Element): string {
-  return visibleText(el);
+  return norm(el.textContent);
 }
 
 function isTextControl(el: Element): boolean {
@@ -249,7 +250,7 @@ export function buildLocators(input: LocatorInput, scope = new Scope(rootOf(inpu
     const want = lc(labelValue);
     const hits = scope.all.filter((e) => {
       const texts: string[] = [];
-      if (isLabelable(e)) for (const l of labelElements(e)) texts.push(lc(visibleText(l)));
+      if (isLabelable(e)) for (const l of labelElements(e)) texts.push(lc(norm(l.textContent)));
       const al = e.getAttribute("aria-label");
       if (al) texts.push(lc(al));
       const lb = e.getAttribute("aria-labelledby");
@@ -257,7 +258,7 @@ export function buildLocators(input: LocatorInput, scope = new Scope(rootOf(inpu
         const root = rootOf(e);
         for (const id of norm(lb).split(" ")) {
           const r = byId(root, id);
-          if (r) texts.push(lc(visibleText(r)));
+          if (r) texts.push(lc(norm(r.textContent)));
         }
       }
       return texts.some((t) => t.includes(want));
@@ -273,9 +274,10 @@ export function buildLocators(input: LocatorInput, scope = new Scope(rootOf(inpu
   }
 
   // 5. visible text (smallest element containing it)
-  if (input.text && input.textFull && !input.sensitive && !isTextControl(el)) {
+  // Only when the human-readable text equals Playwright's view of it (block children can differ by a space).
+  if (input.text && input.textFull && !input.sensitive && !isTextControl(el) && textOfNode(el) === input.text) {
     const want = lc(input.text);
-    const containing = scope.all.filter((e) => !isHidden(e) && lc(textOfNode(e)).includes(want));
+    const containing = scope.all.filter((e) => lc(textOfNode(e)).includes(want));
     const smallest = containing.filter((e) => !Array.from(e.children).some((c) => containing.includes(c)));
     if (smallest.length === 1 && smallest[0] === el) {
       out.push({ kind: "text", value: input.text });

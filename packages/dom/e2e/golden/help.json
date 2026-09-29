@@ -1,0 +1,79 @@
+{
+  "help-search": {
+    "tag": "input",
+    "role": "searchbox",
+    "name": "Search help",
+    "placeholder": "Search help",
+    "inputType": "search",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "searchbox",
+        "name": "Search help"
+      },
+      {
+        "kind": "placeholder",
+        "value": "Search help"
+      },
+      {
+        "kind": "css",
+        "value": "#help-search"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"help-search\"]"
+      }
+    ]
+  },
+  "contact-support": {
+    "tag": "button",
+    "role": "button",
+    "name": "Contact support",
+    "text": "Contact support",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Contact support"
+      },
+      {
+        "kind": "text",
+        "value": "Contact support"
+      },
+      {
+        "kind": "css",
+        "value": "#contact-support"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"contact-support\"]"
+      }
+    ]
+  },
+  "article-link": {
+    "tag": "a",
+    "role": "link",
+    "name": "Reading the quarterly report",
+    "text": "Reading the quarterly report",
+    "href": "http://127.0.0.1:4517/help.html#reports",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Reading the quarterly report"
+      },
+      {
+        "kind": "text",
+        "value": "Reading the quarterly report"
+      },
+      {
+        "kind": "css",
+        "value": "a[href=\"#reports\"]"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"articles\"]/li[2]/a"
+      }
+    ]
+  }
+}

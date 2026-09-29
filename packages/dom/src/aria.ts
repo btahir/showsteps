@@ -18,6 +18,20 @@ const NAME_FROM_CONTENT = new Set(
 const INLINE_TAGS = new Set(
   "a abbr b bdi bdo cite code data dfn em i kbd label mark q s samp small span strong sub sup time u var svg text tspan font".split(" "),
 );
+/** Inline formatting decides whether children are joined with or without a space. Computed style wins. */
+function isInline(el: Element): boolean {
+  const w = winOf(el);
+  if (w) {
+    try {
+      const d = w.getComputedStyle(el).display;
+      if (d) return d.startsWith("inline") || d === "contents";
+    } catch {
+      /* fall through to the tag list */
+    }
+  }
+  return INLINE_TAGS.has(el.localName);
+}
+
 const SKIP_TAGS = new Set(["script", "style", "noscript", "template", "head", "link", "meta"]);
 
 export function explicitRole(el: Element): string | undefined {
@@ -234,7 +248,7 @@ function childrenText(el: Element, t: Trav): string {
       if (k === t.skip) continue;
       const s = nameOf(k, { ...t, recursive: true, depth: t.depth + 1 });
       if (!s) continue;
-      out += INLINE_TAGS.has(k.localName) ? s : ` ${s} `;
+      out += isInline(k) ? s : ` ${s} `;
     }
   }
   return out;
@@ -370,7 +384,7 @@ export function visibleText(el: Element): string {
         if (SKIP_TAGS.has(k.localName) || isHidden(k)) continue;
         if (k.localName === "title" && k.parentElement?.localName === "svg") continue;
         if (k.localName === "input" || k.localName === "textarea" || k.localName === "select") continue;
-        const inline = INLINE_TAGS.has(k.localName);
+        const inline = isInline(k);
         if (!inline) out += " ";
         walk(k, depth + 1);
         if (!inline) out += " ";

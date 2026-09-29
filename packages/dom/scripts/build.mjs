@@ -14,5 +14,7 @@ await build({
   target: "es2022",
   minify: false,
   legalComments: "none",
+  // Some injectors (Playwright init scripts) evaluate the file inside a function, so `var` would not be global.
+  footer: { js: "globalThis.StepsnapDom = StepsnapDom;" },
 });
 console.log("built dist/stepsnap-dom.iife.js");

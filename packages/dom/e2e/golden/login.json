@@ -1,0 +1,157 @@
+{
+  "email": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Email",
+    "label": "Email",
+    "placeholder": "you@acme.test",
+    "inputType": "email",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Email"
+      },
+      {
+        "kind": "label",
+        "value": "Email"
+      },
+      {
+        "kind": "placeholder",
+        "value": "you@acme.test"
+      },
+      {
+        "kind": "css",
+        "value": "#email"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"email\"]"
+      }
+    ]
+  },
+  "password": {
+    "tag": "input",
+    "name": "Password",
+    "label": "Password",
+    "inputType": "password",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "label",
+        "value": "Password"
+      },
+      {
+        "kind": "css",
+        "value": "#password"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"password\"]"
+      }
+    ]
+  },
+  "remember": {
+    "tag": "input",
+    "role": "checkbox",
+    "name": "Keep me signed in",
+    "label": "Keep me signed in",
+    "inputType": "checkbox",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "checkbox",
+        "name": "Keep me signed in"
+      },
+      {
+        "kind": "label",
+        "value": "Keep me signed in"
+      },
+      {
+        "kind": "css",
+        "value": "#remember"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"remember\"]"
+      }
+    ]
+  },
+  "sign-in": {
+    "tag": "button",
+    "role": "button",
+    "name": "Sign in",
+    "text": "Sign in",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Sign in"
+      },
+      {
+        "kind": "text",
+        "value": "Sign in",
+        "exact": true
+      },
+      {
+        "kind": "css",
+        "value": "#sign-in"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"sign-in\"]"
+      }
+    ]
+  },
+  "forgot": {
+    "tag": "a",
+    "role": "link",
+    "name": "Forgot password?",
+    "text": "Forgot password?",
+    "href": "http://127.0.0.1:4517/index.html#forgot",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Forgot password?"
+      },
+      {
+        "kind": "text",
+        "value": "Forgot password?"
+      },
+      {
+        "kind": "css",
+        "value": "#forgot"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"forgot\"]"
+      }
+    ]
+  },
+  "heading": {
+    "tag": "h1",
+    "role": "heading",
+    "name": "Sign in to Acme Books",
+    "text": "Sign in to Acme Books",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "heading",
+        "name": "Sign in to Acme Books"
+      },
+      {
+        "kind": "text",
+        "value": "Sign in to Acme Books"
+      },
+      {
+        "kind": "css",
+        "value": "h1"
+      },
+      {
+        "kind": "xpath",
+        "value": "/html/body/main/h1"
+      }
+    ]
+  }
+}

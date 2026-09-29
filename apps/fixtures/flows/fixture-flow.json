@@ -1,0 +1,20 @@
+{
+  "name": "Acme Books: sign in, ask for help in a second tab, open settings",
+  "description": "Canonical 10-step scripted flow across two tabs. Drive it with real user input (click, type key by key, selectOption, check); recorders must not need any page cooperation. Selectors are Playwright CSS selectors, resolved in the named tab.",
+  "baseUrl": "http://127.0.0.1:4517",
+  "start": "/index.html",
+  "tabs": ["main", "help"],
+  "secrets": ["Correct-Horse-9"],
+  "steps": [
+    { "id": "s01", "tab": "main", "do": "type", "selector": "#email", "value": "jane@example.com" },
+    { "id": "s02", "tab": "main", "do": "type", "selector": "#password", "value": "Correct-Horse-9" },
+    { "id": "s03", "tab": "main", "do": "click", "selector": "#sign-in", "then": { "navigatesTo": "/dashboard.html" } },
+    { "id": "s04", "tab": "main", "do": "click", "selector": "#help-link", "then": { "opensTab": "help", "path": "/help.html" } },
+    { "id": "s05", "tab": "help", "do": "type", "selector": "#help-search", "value": "invoices" },
+    { "id": "s06", "tab": "main", "do": "click", "selector": "#nav-reports", "then": { "pushState": "/dashboard/reports" } },
+    { "id": "s07", "tab": "main", "do": "click", "selector": "#settings-link", "then": { "navigatesTo": "/settings.html" } },
+    { "id": "s08", "tab": "main", "do": "select", "selector": "#billing-period", "value": "yearly" },
+    { "id": "s09", "tab": "main", "do": "check", "selector": "#email-invoices", "checked": true },
+    { "id": "s10", "tab": "main", "do": "click", "selector": "#save", "then": { "statusText": "Settings saved" } }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "description": "What a correct recording of fixture-flow.json contains. `title` follows the BRIEF grammar (generateStepTitle); `highlight` is the CSS selector whose bounding box (CSS px, viewport of the step's tab, times devicePixelRatio) the step's screenshot.highlight must match within 2 px; `target` is the subset of ElementDescriptor that must be present. Navigation steps are optional and listed separately: a recorder may add `navigate` steps but must not add other extra steps.",
+  "flow": "fixture-flow.json",
+  "steps": [
+    {
+      "flowStep": "s01",
+      "action": { "type": "type", "value": "jane@example.com" },
+      "title": "Type \"jane@example.com\" in **Email**",
+      "page": { "path": "/index.html", "title": "Sign in – Acme Books" },
+      "target": { "tag": "input", "role": "textbox", "name": "Email", "label": "Email", "inputType": "email" },
+      "highlight": "#email",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s02",
+      "action": { "type": "type", "masked": true },
+      "valueMustBeOneOf": ["", "•••"],
+      "title": "Enter your password",
+      "page": { "path": "/index.html", "title": "Sign in – Acme Books" },
+      "target": { "tag": "input", "name": "Password", "label": "Password", "inputType": "password", "sensitive": true },
+      "highlight": "#password",
+      "sensitive": true
+    },
+    {
+      "flowStep": "s03",
+      "action": { "type": "click" },
+      "title": "Click **Sign in**",
+      "page": { "path": "/index.html", "title": "Sign in – Acme Books" },
+      "target": { "tag": "button", "role": "button", "name": "Sign in" },
+      "highlight": "#sign-in",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s04",
+      "action": { "type": "click" },
+      "title": "Click **Help centre**",
+      "page": { "path": "/dashboard.html", "title": "Dashboard – Acme Books" },
+      "target": { "tag": "a", "role": "link", "name": "Help centre", "href": "http://127.0.0.1:4517/help.html" },
+      "highlight": "#help-link",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s05",
+      "action": { "type": "type", "value": "invoices" },
+      "title": "Search for \"invoices\"",
+      "page": { "path": "/help.html", "title": "Help centre – Acme Books", "tab": "help" },
+      "target": { "tag": "input", "role": "searchbox", "name": "Search help", "placeholder": "Search help", "inputType": "search" },
+      "highlight": "#help-search",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s06",
+      "action": { "type": "click" },
+      "title": "Click **Reports**",
+      "page": { "path": "/dashboard.html", "title": "Dashboard – Acme Books" },
+      "target": { "tag": "a", "role": "link", "name": "Reports" },
+      "highlight": "#nav-reports",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s07",
+      "action": { "type": "click" },
+      "title": "Click **Settings**",
+      "page": { "path": "/dashboard/reports", "title": "Reports – Acme Books" },
+      "target": { "tag": "a", "role": "link", "name": "Settings", "href": "http://127.0.0.1:4517/settings.html" },
+      "highlight": "#settings-link",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s08",
+      "action": { "type": "select", "value": "yearly", "optionText": "Yearly" },
+      "title": "Select **Yearly** in **Billing period**",
+      "page": { "path": "/settings.html", "title": "Settings – Acme Books" },
+      "target": { "tag": "select", "role": "combobox", "name": "Billing period", "label": "Billing period" },
+      "highlight": "#billing-period",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s09",
+      "action": { "type": "check", "checked": true },
+      "title": "Check **Email me invoices**",
+      "page": { "path": "/settings.html", "title": "Settings – Acme Books" },
+      "target": { "tag": "input", "role": "checkbox", "name": "Email me invoices", "label": "Email me invoices", "inputType": "checkbox" },
+      "highlight": "#email-invoices",
+      "sensitive": false
+    },
+    {
+      "flowStep": "s10",
+      "action": { "type": "click" },
+      "title": "Click **Save**",
+      "page": { "path": "/settings.html", "title": "Settings – Acme Books" },
+      "target": { "tag": "button", "role": "button", "name": "Save" },
+      "highlight": "#save",
+      "sensitive": false,
+      "firstLocator": { "kind": "testid", "value": "save-settings" }
+    }
+  ],
+  "optionalNavigateSteps": [
+    { "afterFlowStep": "s03", "url": "http://127.0.0.1:4517/dashboard.html", "title": "Go to **Dashboard – Acme Books**" },
+    { "afterFlowStep": "s04", "url": "http://127.0.0.1:4517/help.html", "title": "Go to **Help centre – Acme Books**", "tab": "help" },
+    { "afterFlowStep": "s06", "url": "http://127.0.0.1:4517/dashboard/reports", "title": "Go to **Reports – Acme Books**" },
+    { "afterFlowStep": "s07", "url": "http://127.0.0.1:4517/settings.html", "title": "Go to **Settings – Acme Books**" }
+  ],
+  "mustNotAppearInAnyExport": ["Correct-Horse-9"],
+  "autoRedact": { "onFlowSteps": ["s01", "s02", "s03"], "selectors": ["#password"], "note": "The password field is on screen for s01-s03 and must be covered by an automatic redaction on each screenshot." }
+}

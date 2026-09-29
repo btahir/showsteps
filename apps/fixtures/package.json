@@ -6,6 +6,6 @@
   "license": "MIT",
   "scripts": {
     "serve": "node server.mjs",
-    "test": "node --test test/"
+    "test": "node --test"
   }
 }

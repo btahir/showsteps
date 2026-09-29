@@ -1,0 +1,478 @@
+{
+  "full-name": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Full name",
+    "label": "Full name",
+    "inputType": "text",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Full name"
+      },
+      {
+        "kind": "label",
+        "value": "Full name"
+      },
+      {
+        "kind": "css",
+        "value": "#full-name"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"full-name\"]"
+      }
+    ]
+  },
+  "email-testid": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Email",
+    "label": "Email",
+    "inputType": "email",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "settings-email"
+      },
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Email"
+      },
+      {
+        "kind": "css",
+        "value": "#settings-email"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"settings-email\"]"
+      }
+    ]
+  },
+  "billing-period-select": {
+    "tag": "select",
+    "role": "combobox",
+    "name": "Billing period",
+    "label": "Billing period",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "combobox",
+        "name": "Billing period"
+      },
+      {
+        "kind": "label",
+        "value": "Billing period"
+      },
+      {
+        "kind": "css",
+        "value": "#billing-period"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"billing-period\"]"
+      }
+    ]
+  },
+  "plan-group": {
+    "tag": "fieldset",
+    "role": "group",
+    "name": "Plan",
+    "text": "Plan Free Pro",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "group",
+        "name": "Plan"
+      },
+      {
+        "kind": "text",
+        "value": "Plan Free Pro"
+      },
+      {
+        "kind": "css",
+        "value": "#plan-group"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"plan-group\"]"
+      }
+    ]
+  },
+  "plan-pro-radio": {
+    "tag": "input",
+    "role": "radio",
+    "name": "Pro",
+    "label": "Pro",
+    "inputType": "radio",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "radio",
+        "name": "Pro"
+      },
+      {
+        "kind": "css",
+        "value": "#plan-pro"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"plan-pro\"]"
+      }
+    ]
+  },
+  "email-invoices-checkbox": {
+    "tag": "input",
+    "role": "checkbox",
+    "name": "Email me invoices",
+    "label": "Email me invoices",
+    "inputType": "checkbox",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "checkbox",
+        "name": "Email me invoices"
+      },
+      {
+        "kind": "label",
+        "value": "Email me invoices"
+      },
+      {
+        "kind": "css",
+        "value": "#email-invoices"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"email-invoices\"]"
+      }
+    ]
+  },
+  "notes-textarea": {
+    "tag": "textarea",
+    "role": "textbox",
+    "name": "Notes",
+    "label": "Notes",
+    "placeholder": "Anything else we should know?",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Notes"
+      },
+      {
+        "kind": "label",
+        "value": "Notes"
+      },
+      {
+        "kind": "placeholder",
+        "value": "Anything else we should know?"
+      },
+      {
+        "kind": "css",
+        "value": "#notes"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"notes\"]"
+      }
+    ]
+  },
+  "signature-contenteditable": {
+    "tag": "div",
+    "role": "textbox",
+    "name": "Signature",
+    "label": "Signature",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "signature"
+      },
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Signature"
+      },
+      {
+        "kind": "label",
+        "value": "Signature"
+      },
+      {
+        "kind": "css",
+        "value": "#signature"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"signature\"]"
+      }
+    ]
+  },
+  "card-number": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Card number",
+    "label": "Card number",
+    "placeholder": "1234 1234 1234 1234",
+    "inputType": "text",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Card number"
+      },
+      {
+        "kind": "label",
+        "value": "Card number"
+      },
+      {
+        "kind": "placeholder",
+        "value": "1234 1234 1234 1234"
+      },
+      {
+        "kind": "css",
+        "value": "#card-number"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"card-number\"]"
+      }
+    ]
+  },
+  "card-expiry": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Expiry",
+    "label": "Expiry",
+    "placeholder": "MM / YY",
+    "inputType": "text",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Expiry"
+      },
+      {
+        "kind": "label",
+        "value": "Expiry"
+      },
+      {
+        "kind": "placeholder",
+        "value": "MM / YY"
+      },
+      {
+        "kind": "css",
+        "value": "#card-expiry"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"card-expiry\"]"
+      }
+    ]
+  },
+  "card-cvc": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Security code",
+    "label": "Security code",
+    "placeholder": "CVC",
+    "inputType": "text",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Security code"
+      },
+      {
+        "kind": "label",
+        "value": "Security code"
+      },
+      {
+        "kind": "placeholder",
+        "value": "CVC"
+      },
+      {
+        "kind": "css",
+        "value": "#card-cvc"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"card-cvc\"]"
+      }
+    ]
+  },
+  "confirm-iframe-element": {
+    "tag": "iframe",
+    "name": "Confirmation frame",
+    "locators": [
+      {
+        "kind": "css",
+        "value": "#confirm-frame"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"confirm-frame\"]"
+      }
+    ]
+  },
+  "frame-confirm-button": {
+    "tag": "button",
+    "role": "button",
+    "name": "Confirm in frame",
+    "text": "Confirm in frame",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Confirm in frame"
+      },
+      {
+        "kind": "text",
+        "value": "Confirm in frame"
+      },
+      {
+        "kind": "css",
+        "value": "#frame-confirm"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"frame-confirm\"]"
+      }
+    ],
+    "frame": [
+      "#confirm-frame"
+    ]
+  },
+  "frame-verification-code": {
+    "tag": "input",
+    "role": "textbox",
+    "name": "Verification code",
+    "label": "Verification code",
+    "inputType": "text",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "role",
+        "role": "textbox",
+        "name": "Verification code"
+      },
+      {
+        "kind": "label",
+        "value": "Verification code"
+      },
+      {
+        "kind": "css",
+        "value": "#frame-code"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"frame-code\"]"
+      }
+    ],
+    "frame": [
+      "#confirm-frame"
+    ]
+  },
+  "shadow-tip-button": {
+    "tag": "button",
+    "role": "button",
+    "name": "Show tip",
+    "text": "Show tip",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Show tip"
+      },
+      {
+        "kind": "css",
+        "value": "#tip-btn"
+      }
+    ],
+    "shadow": [
+      "acme-tip"
+    ]
+  },
+  "shadow-backup-pin": {
+    "tag": "input",
+    "name": "Backup PIN",
+    "label": "Backup PIN",
+    "placeholder": "PIN",
+    "inputType": "password",
+    "sensitive": true,
+    "locators": [
+      {
+        "kind": "label",
+        "value": "Backup PIN"
+      },
+      {
+        "kind": "placeholder",
+        "value": "PIN"
+      },
+      {
+        "kind": "css",
+        "value": "#tip-pin"
+      }
+    ],
+    "shadow": [
+      "acme-tip"
+    ]
+  },
+  "cancel-no-testid": {
+    "tag": "button",
+    "role": "button",
+    "name": "Cancel",
+    "text": "Cancel",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Cancel"
+      },
+      {
+        "kind": "text",
+        "value": "Cancel"
+      },
+      {
+        "kind": "css",
+        "value": "#cancel"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"cancel\"]"
+      }
+    ]
+  },
+  "save-testid": {
+    "tag": "button",
+    "role": "button",
+    "name": "Save",
+    "text": "Save",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "save-settings"
+      },
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Save"
+      },
+      {
+        "kind": "text",
+        "value": "Save"
+      },
+      {
+        "kind": "css",
+        "value": "#save"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"save\"]"
+      }
+    ]
+  }
+}

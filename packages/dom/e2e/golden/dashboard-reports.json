@@ -1,0 +1,31 @@
+{
+  "download-report": {
+    "tag": "button",
+    "role": "button",
+    "name": "Download report",
+    "text": "Download report",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "download-report"
+      },
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Download report"
+      },
+      {
+        "kind": "text",
+        "value": "Download report"
+      },
+      {
+        "kind": "css",
+        "value": "#download-report"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"download-report\"]"
+      }
+    ]
+  }
+}

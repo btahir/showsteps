@@ -1,0 +1,271 @@
+{
+  "brand": {
+    "tag": "a",
+    "role": "link",
+    "name": "Acme Books",
+    "text": "Acme Books",
+    "href": "http://127.0.0.1:4517/dashboard.html",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Acme Books"
+      },
+      {
+        "kind": "text",
+        "value": "Acme Books",
+        "exact": true
+      },
+      {
+        "kind": "css",
+        "value": "a[href=\"/dashboard.html\"]"
+      },
+      {
+        "kind": "xpath",
+        "value": "/html/body/header/a"
+      }
+    ]
+  },
+  "nav-reports": {
+    "tag": "a",
+    "role": "link",
+    "name": "Reports",
+    "text": "Reports",
+    "href": "http://127.0.0.1:4517/dashboard/reports",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Reports"
+      },
+      {
+        "kind": "text",
+        "value": "Reports"
+      },
+      {
+        "kind": "css",
+        "value": "#nav-reports"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"nav-reports\"]"
+      }
+    ]
+  },
+  "search-icon-button": {
+    "tag": "button",
+    "role": "button",
+    "name": "Search",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Search"
+      },
+      {
+        "kind": "css",
+        "value": "#search-btn"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"search-btn\"]"
+      }
+    ]
+  },
+  "notifications-icon-button": {
+    "tag": "button",
+    "role": "button",
+    "name": "Notifications",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "notifications"
+      },
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Notifications"
+      },
+      {
+        "kind": "css",
+        "value": "#notifications-btn"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"notifications-btn\"]"
+      }
+    ]
+  },
+  "add-book-icon-button": {
+    "tag": "button",
+    "role": "button",
+    "name": "Add book",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Add book"
+      },
+      {
+        "kind": "css",
+        "value": "#add-book"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"add-book\"]"
+      }
+    ]
+  },
+  "settings-icon-link": {
+    "tag": "a",
+    "role": "link",
+    "name": "Settings",
+    "href": "http://127.0.0.1:4517/settings.html",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Settings"
+      },
+      {
+        "kind": "css",
+        "value": "#settings-link"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"settings-link\"]"
+      }
+    ]
+  },
+  "edit-first-row": {
+    "tag": "button",
+    "role": "button",
+    "name": "Edit Dune",
+    "text": "Edit",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Edit Dune"
+      },
+      {
+        "kind": "css",
+        "value": "button[aria-label=\"Edit Dune\"]"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"view\"]/section[1]/table/tbody/tr[1]/td[4]/button"
+      }
+    ]
+  },
+  "edit-last-row": {
+    "tag": "button",
+    "role": "button",
+    "name": "Edit Kindred",
+    "text": "Edit",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Edit Kindred"
+      },
+      {
+        "kind": "css",
+        "value": "button[aria-label=\"Edit Kindred\"]"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"view\"]/section[1]/table/tbody/tr[3]/td[4]/button"
+      }
+    ]
+  },
+  "book-cell": {
+    "tag": "td",
+    "role": "cell",
+    "name": "Middlemarch",
+    "text": "Middlemarch",
+    "locators": [
+      {
+        "kind": "text",
+        "value": "Middlemarch"
+      },
+      {
+        "kind": "css",
+        "value": "tr:nth-of-type(2) > td:nth-of-type(1)"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"view\"]/section[1]/table/tbody/tr[2]/td[1]"
+      }
+    ]
+  },
+  "stat-with-testid": {
+    "tag": "div",
+    "text": "7 Overdue",
+    "locators": [
+      {
+        "kind": "testid",
+        "value": "stat-overdue"
+      },
+      {
+        "kind": "css",
+        "value": "[data-testid=\"stat-overdue\"]"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"view\"]/div/div[3]"
+      }
+    ]
+  },
+  "help-link-new-tab": {
+    "tag": "a",
+    "role": "link",
+    "name": "Help centre",
+    "text": "Help centre",
+    "href": "http://127.0.0.1:4517/help.html",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "link",
+        "name": "Help centre"
+      },
+      {
+        "kind": "text",
+        "value": "Help centre"
+      },
+      {
+        "kind": "css",
+        "value": "#help-link"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"help-link\"]"
+      }
+    ]
+  },
+  "export-csv-slow": {
+    "tag": "button",
+    "role": "button",
+    "name": "Export CSV",
+    "text": "Export CSV",
+    "locators": [
+      {
+        "kind": "role",
+        "role": "button",
+        "name": "Export CSV"
+      },
+      {
+        "kind": "text",
+        "value": "Export CSV"
+      },
+      {
+        "kind": "css",
+        "value": "#export-csv"
+      },
+      {
+        "kind": "xpath",
+        "value": "//*[@id=\"export-csv\"]"
+      }
+    ]
+  }
+}

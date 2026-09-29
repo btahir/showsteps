@@ -10,6 +10,8 @@
   <div style="padding:16px">
     <p class="muted" style="margin-top:0">Embedded confirmation widget (same-origin iframe).</p>
     <button id="frame-confirm" class="btn" type="button">Confirm in frame</button>
+    <label for="frame-code">Verification code</label>
+    <input id="frame-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="width:9em">
     <p id="frame-status" role="status"></p>
   </div>
   <script>
