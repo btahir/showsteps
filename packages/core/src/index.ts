@@ -4,6 +4,7 @@ export * from "./validate";
 export * from "./titles";
 export * from "./redact";
 export * from "./geometry";
+export { flagLayout, minRingBox, flagRingPath, flagTabPath, flagTabCenter, type FlagLayout, type FlagLayoutInput } from "./flag";
 export * from "./png";
 export * from "./raster";
 export { parseInline, plainTitle, escapeInline, typographicQuotes, type InlineRun } from "./text";

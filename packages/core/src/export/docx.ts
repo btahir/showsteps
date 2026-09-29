@@ -81,8 +81,8 @@ export async function exportDocx(
   body.push(
     new Paragraph({
       children: [
-        new TextRun({ text: metaLine(guide, steps.length), bold: true, color: ACCENT, size: 20 }),
-        ...(opts.branding !== false ? [new TextRun({ text: "   ·   Made with Showsteps", color: FAINT, size: 18 })] : []),
+        new TextRun({ text: metaLine(guide, steps.length), color: FAINT, size: 20 }),
+        ...(opts.branding === true ? [new TextRun({ text: "   ·   Made with Showsteps", color: FAINT, size: 18 })] : []),
       ],
       spacing: { before: 60, after: 360 },
       border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "E0DCD6", space: 10 } },
@@ -122,7 +122,7 @@ export async function exportDocx(
               alignment: AlignmentType.LEFT,
               style: {
                 paragraph: { indent: { left: 567, hanging: 567 } },
-                run: { bold: true, color: ACCENT },
+                run: { bold: true, color: "B63A14" }, // brand accent-ink: accent-coloured text that passes 4.5:1 on white
               },
             },
           ],
@@ -177,6 +177,17 @@ function reproducible(zip: Uint8Array, dates: { created: Date; modified: Date })
       .replace(/(<dcterms:created[^>]*>)[^<]*(<\/dcterms:created>)/, `$1${iso(dates.created)}$2`)
       .replace(/(<dcterms:modified[^>]*>)[^<]*(<\/dcterms:modified>)/, `$1${iso(dates.modified)}$2`);
     files["docProps/core.xml"] = strToU8(xml);
+  }
+  // The styles name Calibri but docx writes an empty font table, so viewers without Calibri (Quick Look, Pages)
+  // fell back to Times. Describe it as a swiss sans with Arial as the stand-in.
+  const fonts = files["word/fontTable.xml"];
+  if (fonts) {
+    const xml = strFromU8(fonts);
+    const entry =
+      '<w:font w:name="Calibri"><w:altName w:val="Arial"/><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>';
+    if (!xml.includes('w:name="Calibri"')) {
+      files["word/fontTable.xml"] = strToU8(/\/>\s*$/.test(xml) ? xml.replace(/\/>\s*$/, `>${entry}</w:fonts>`) : xml.replace("</w:fonts>", `${entry}</w:fonts>`));
+    }
   }
   // [Content_Types].xml first (Office convention), then the rest by name
   const names = Object.keys(files).sort((a, b) => (a === "[Content_Types].xml" ? -1 : b === "[Content_Types].xml" ? 1 : a < b ? -1 : a > b ? 1 : 0));

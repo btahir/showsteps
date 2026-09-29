@@ -2,9 +2,9 @@
 
 Sign in, switch to **monthly** billing, and pay the open invoice.
 
-## 1. Go to **Sign in – Acme**
+## 1. Go to **Sign in** on Acme
 
-![Step 1: Go to Sign in – Acme](images/s_open.png)
+![Step 1: Go to Sign in on Acme](images/s_open.png)
 
 *Page: [Sign in – Acme](https://app.acme.test/login)*
 
@@ -44,16 +44,12 @@ Choose how often you want to be billed.
 
 ![Step 8: Click Pay now](images/s_pay.png)
 
-## 9. Go to **Invoices – Acme Help**
+## 9. Go to **Invoices** on Acme Help
 
-![Step 9: Go to Invoices – Acme Help](images/s_help.png)
+![Step 9: Go to Invoices on Acme Help](images/s_help.png)
 
 *Page: [Invoices – Acme Help](https://help.acme.test/invoices)*
 
 ## 10. Press **Enter** to search
 
 ![Step 10: Press Enter to search](images/s_search.png)
-
----
-
-*Made with [Showsteps](https://showsteps.vercel.app)*

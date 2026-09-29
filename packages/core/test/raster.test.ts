@@ -120,6 +120,53 @@ describe("redactions on a 1440x900 text-like image", () => {
   });
 });
 
+describe("mask redaction (auto redactions of form fields)", () => {
+  // a white field on a light page with a blue focus ring and dark text inside
+  const W = 400, H = 120;
+  const img: RgbaImage = { width: W, height: H, data: new Uint8Array(W * H * 4) };
+  for (let i = 0; i < W * H; i++) { img.data[i * 4] = 244; img.data[i * 4 + 1] = 242; img.data[i * 4 + 2] = 238; img.data[i * 4 + 3] = 255; }
+  const field = { x: 40, y: 40, width: 320, height: 44 };
+  for (let y = field.y; y < field.y + field.height; y++) for (let x = field.x; x < field.x + field.width; x++) {
+    const edge = x < field.x + 3 || x >= field.x + field.width - 3 || y < field.y + 3 || y >= field.y + field.height - 3;
+    const p = (y * W + x) * 4;
+    const [r, g, b] = edge ? [66, 133, 244] : [255, 255, 255]; // focus ring, then white
+    img.data[p] = r; img.data[p + 1] = g; img.data[p + 2] = b;
+  }
+  for (let x = 60; x < 200; x += 9) for (let y = 54; y < 70; y++) for (let dx = 0; dx < 5; dx++) { const p = (y * W + x + dx) * 4; img.data[p] = 20; img.data[p + 1] = 20; img.data[p + 2] = 20; }
+  const bytes = encodePng(img, 3);
+  const redacted = decodePng(renderStepImage(bytes, shot(img, { devicePixelRatio: 2, viewport: { width: 200, height: 60, scrollX: 0, scrollY: 0 }, redactions: [{ rect: { x: 36, y: 36, width: 328, height: 52 }, style: "mask", auto: true }] })));
+
+  it("replaces the field with its own background colour: no text, no focus ring", () => {
+    for (const [x, y] of [[100, 60], [340, 50], [200, 78]] as const) expect(px(redacted, x, y).slice(0, 3)).toEqual([255, 255, 255]);
+    let blue = 0, dark = 0;
+    for (let y = 36; y < 88; y++) for (let x = 36; x < 364; x++) { const p = px(redacted, x, y); if ((p[2] as number) > (p[0] as number) + 60) blue++; if ((p[0] as number) < 60) dark++; }
+    expect(blue).toBe(0);
+    expect(dark).toBe(0);
+  });
+
+  it("draws eight ink-3 dots and a darker 1 px border, and leaves the outside alone", () => {
+    const dots = new Set<number>();
+    for (let x = 40; x < 240; x++) { const p = px(redacted, x, 62); if (Math.abs((p[0] as number) - 0x73) < 12 && Math.abs((p[2] as number) - 0x63) < 12) dots.add(Math.floor((x - 40) / 16)); }
+    expect(dots.size).toBe(8);
+    expect(px(redacted, 200, 37)[0]).toBeLessThan(255); // border row is a shade darker than the fill
+    const orig = decodePng(bytes);
+    expect(px(redacted, 10, 10)).toEqual(px(orig, 10, 10));
+    expect(px(redacted, 390, 110)).toEqual(px(orig, 390, 110));
+  });
+
+  it("is stable when applied twice", () => {
+    const again = decodePng(renderStepImage(encodePng(redacted, 3), shot(img, { devicePixelRatio: 2, viewport: { width: 200, height: 60, scrollX: 0, scrollY: 0 }, redactions: [{ rect: { x: 36, y: 36, width: 328, height: 52 }, style: "mask", auto: true }] })));
+    let big = 0;
+    for (let i = 0; i < again.data.length; i++) if (Math.abs((again.data[i] as number) - (redacted.data[i] as number)) > 12) big++;
+    expect(big).toBeLessThan(40);
+  });
+
+  it("fits fewer dots in a narrow field and never throws on tiny ones", () => {
+    const tiny = decodePng(renderStepImage(bytes, shot(img, { devicePixelRatio: 2, viewport: { width: 200, height: 60, scrollX: 0, scrollY: 0 }, redactions: [{ rect: { x: 40, y: 40, width: 60, height: 20 }, style: "mask" }, { rect: { x: 200, y: 90, width: 3, height: 3 }, style: "mask" }] })));
+    expect(tiny.width).toBe(W);
+  });
+});
+
 describe("highlight", () => {
   const src = stripes(1440, 900);
   const bytes = encodePng(src, 3);
@@ -140,11 +187,11 @@ describe("highlight", () => {
     expect(px(ring, target.x + 200, target.y + 40)).toEqual(px(decodePng(bytes), target.x + 200, target.y + 40));
   });
 
-  it("dims the rest of the screenshot by 16% and keeps the inside of the ring bright", () => {
+  it("dims the rest of the screenshot by 12% and keeps the inside of the ring bright", () => {
     const before = decodePng(bytes);
     const far = px(ring, 30, 30);
     const orig = px(before, 30, 30);
-    for (let c = 0; c < 3; c++) expect(far[c]).toBe(Math.round((orig[c] as number) * 0.84 + [28, 18, 12][c]! * 0.16));
+    for (let c = 0; c < 3; c++) expect(far[c]).toBe(Math.round((orig[c] as number) * 0.88 + [28, 18, 12][c]! * 0.12));
     expect(px(ring, 400, 340)).toEqual(px(before, 400, 340));
     const off = decodePng(renderStepImage(bytes, sh, { spotlight: false, stepNumber: 7 }));
     expect(px(off, 30, 30)).toEqual(orig);

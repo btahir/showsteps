@@ -2,7 +2,7 @@
 // the pixel renderer (raster.ts) and the vector renderers (PDF). Same numbers as packages/brand/tokens.ts.
 
 import { FLAG } from "./geometry";
-import type { Rect } from "./schema";
+import type { Rect, TabCorner } from "./schema";
 
 export interface FlagLayout {
   /** The ring's centre line: target grown by the padding. */
@@ -39,6 +39,18 @@ export interface FlagLayoutInput {
   imageWidth: number;
   imageHeight: number;
   rtl?: boolean;
+  /** Corner the recorder chose at capture (least text underneath); edge rules still apply. */
+  corner?: TabCorner;
+}
+
+/**
+ * Smallest ring box that can carry the tab without the tab or its fillet leaving the ring: width at least
+ * tab width + 2 x radius + 4 CSS px, height at least 0.75 x tab height, grown symmetrically around `box`.
+ */
+export function minRingBox(box: Rect, tabW: number, tabH: number, radius: number, scale: number): Rect {
+  const w = Math.max(box.width, tabW + 2 * radius + 4 * scale);
+  const h = Math.max(box.height, 0.75 * tabH);
+  return { x: box.x - (w - box.width) / 2, y: box.y - (h - box.height) / 2, width: w, height: h };
 }
 
 export function flagLayout(o: FlagLayoutInput): FlagLayout {
@@ -46,20 +58,23 @@ export function flagLayout(o: FlagLayoutInput): FlagLayout {
   const pad = FLAG.pad * k;
   const sw = FLAG.ringWidth * k;
   const halo = FLAG.haloWidth * k;
-  const x = o.target.x - pad, y = o.target.y - pad, w = o.target.width + pad * 2, h = o.target.height + pad * 2;
+  const padded: Rect = { x: o.target.x - pad, y: o.target.y - pad, width: o.target.width + pad * 2, height: o.target.height + pad * 2 };
+  const T = FLAG.tab;
+  const th = T.height * k, fs = th * T.fontSizeRatio, rt = T.cornerRadius * k, f = T.fillet * k;
+  const digits = o.n === undefined ? "" : String(Math.max(0, Math.floor(o.n)));
+  const advance = fs * 0.6;
+  const tw = digits ? Math.max(T.minWidth * k, digits.length * advance + T.paddingX * 2 * k) : 0;
+  const box = digits ? minRingBox(padded, tw, th, FLAG.radius * k, k) : padded;
+  const { x, y } = box, w = box.width, h = box.height;
   const rad = Math.min(FLAG.radius * k, h / 2, w / 2);
   const radii: [number, number, number, number] = [rad, rad, rad, rad];
   const layout: FlagLayout = { ring: { x, y, w, h, radii }, sw, halo };
-  if (o.n === undefined) return layout;
+  if (!digits) return layout;
 
-  const T = FLAG.tab;
-  const th = T.height * k, fs = th * T.fontSizeRatio, rt = T.cornerRadius * k, f = T.fillet * k;
-  const digits = String(Math.max(0, Math.floor(o.n)));
-  const advance = fs * 0.6;
-  const tw = Math.max(T.minWidth * k, digits.length * advance + T.paddingX * 2 * k);
-  // brand tabCorner(): flip below near the top edge; to the left near the right edge (or for RTL)
-  const top = !(y - th < 0);
-  let right = !o.rtl;
+  // brand tabCorner(): the stored corner if any, else top-right (top-left for RTL); the tab stays inside the image
+  let top = o.corner ? o.corner.startsWith("top") : true;
+  if (top && y - th < 0) top = false;
+  let right = o.corner ? o.corner.endsWith("right") : !o.rtl;
   if (right && x + w + tw * 0.25 > o.imageWidth) right = false;
   if (!right && x - tw * 0.25 < 0) right = true;
   radii[top ? (right ? 1 : 0) : right ? 2 : 3] = 0;

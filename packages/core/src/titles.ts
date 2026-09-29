@@ -356,19 +356,47 @@ function scrollTitle(a: Extract<StepAction, { type: "scroll" }>): string {
   return "Scroll the page";
 }
 
-function navigateTitle(a: Extract<StepAction, { type: "navigate" }>, page: Step["page"]): string {
-  const title = clean(page?.title);
-  if (title) return `Go to ${bold(title)}`;
+const TITLE_SEPARATOR = /\s+[\u2013\u2014|\u00b7-]\s+/;
+
+/** Split a page title such as "Settings \u2013 Acme Books" into the page name and the site name. */
+export function splitPageTitle(title: string | undefined): { page: string; site?: string } {
+  const t = collapse(title ?? "");
+  const parts = t.split(TITLE_SEPARATOR).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) return { page: parts[0] as string, site: parts[parts.length - 1] as string };
+  return { page: t };
+}
+
+/**
+ * Default guide title from the first page recorded: "Sign in \u2013 Acme Books" becomes "Acme Books: Sign in";
+ * a title with no separator is used whole; then the hostname; then "Untitled guide". Never a date.
+ */
+export function defaultGuideTitle(pageTitle?: string, url?: string): string {
+  const { page, site } = splitPageTitle(pageTitle);
+  if (site) return `${site}: ${page}`;
+  if (page) return page;
+  return (url ? hostnameOf(url) : undefined) ?? "Untitled guide";
+}
+
+function navigateTitle(a: Extract<StepAction, { type: "navigate" }>, page: Step["page"], previous?: Step["page"]): string {
+  const { page: name, site } = splitPageTitle(page?.title);
+  const shown = clean(name);
+  if (shown) {
+    // name the site only when it changes: the first page, or a different site from the previous step
+    const prevSite = previous ? splitPageTitle(previous.title).site : undefined;
+    const cleanSite = site ? clean(site) : undefined;
+    const showSite = !!cleanSite && (!previous || !prevSite || prevSite.toLowerCase() !== cleanSite.toLowerCase());
+    return `Go to ${bold(shown)}${showSite ? ` on ${escapeInline(cleanSite as string)}` : ""}`;
+  }
   const host = hostnameOf(a.url) ?? hostnameOf(page?.url ?? "") ?? clean(a.url);
   return host ? `Go to ${bold(truncate(host, LIM.name))}` : "Go to the page";
 }
 
-function build(step: Pick<Step, "action" | "target" | "page">): string {
+function build(step: Pick<Step, "action" | "target" | "page">, previous?: Step["page"]): string {
   const a = step.action;
   const t = step.target;
   switch (a.type) {
     case "navigate":
-      return navigateTitle(a, step.page);
+      return navigateTitle(a, step.page, previous);
     case "click":
       return clickTitle(a, t);
     case "type":
@@ -395,16 +423,16 @@ function build(step: Pick<Step, "action" | "target" | "page">): string {
  * Title for a step: natural English, element names in Markdown bold, never a masked or sensitive
  * value, one line, at most `MAX_TITLE_LENGTH` characters. Pure and deterministic.
  */
-export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">): string {
+export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">, ctx: { previousPage?: Step["page"] } = {}): string {
   const saved = LIM;
   try {
     for (const limits of [DEFAULT_LIMITS, TIGHT_LIMITS, TINY_LIMITS]) {
       LIM = limits;
-      const title = build(step);
+      const title = build(step, ctx.previousPage);
       if (title.length <= MAX_TITLE_LENGTH) return title;
     }
     LIM = TINY_LIMITS;
-    return truncate(build(step), MAX_TITLE_LENGTH);
+    return truncate(build(step, ctx.previousPage), MAX_TITLE_LENGTH);
   } finally {
     LIM = saved;
   }
@@ -414,9 +442,10 @@ export function generateStepTitle(step: Pick<Step, "action" | "target" | "page">
 export function regenerateTitles(guide: Guide): Guide {
   return {
     ...guide,
-    steps: guide.steps.map((s) => {
+    steps: guide.steps.map((s, i) => {
       if (s.titleEdited || s.action.type === "note") return s;
-      const title = generateStepTitle(s);
+      const previous = guide.steps[i - 1]?.page;
+      const title = generateStepTitle(s, previous ? { previousPage: previous } : {});
       return title === s.title ? s : { ...s, title };
     }),
   };

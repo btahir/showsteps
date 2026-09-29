@@ -15,7 +15,7 @@ export interface MarkdownOptions extends ImageRenderOptions {
   includeUrls?: boolean;
   /** Emit `![...](images/...)` links. Default true; set false for a text-only copy (clipboard). */
   imageLinks?: boolean;
-  /** Add a small "Made with Showsteps" footer. Default true. */
+  /** Add a small "Made with Showsteps" credit. Default false (opt-in). */
   branding?: boolean;
 }
 
@@ -55,7 +55,7 @@ export function exportMarkdown(guide: Guide, opts: MarkdownOptions = {}): Export
     if (shown) lastUrl = shown;
   });
 
-  if (opts.branding !== false) out.push("---", "", `*Made with [${PRODUCT_NAME}](${SITE_URL})*`, "");
+  if (opts.branding === true) out.push("---", "", `*Made with [${PRODUCT_NAME}](${SITE_URL})*`, "");
 
   const files: ExportFiles = { "guide.md": out.join("\n").replace(/\n{3,}/g, "\n\n") };
   if (rendered) for (const p of Object.keys(rendered).sort()) files[p] = rendered[p] as Uint8Array;

@@ -16,7 +16,7 @@
         "type": "navigate",
         "url": "http://127.0.0.1:4517/index.html"
       },
-      "title": "Go to **Sign in – Acme Books**",
+      "title": "Go to **Sign in** on Acme Books",
       "page": {
         "url": "http://127.0.0.1:4517/index.html",
         "title": "Sign in – Acme Books",
@@ -94,7 +94,7 @@
               "width": 976,
               "height": 104
             },
-            "style": "blur",
+            "style": "mask",
             "auto": true
           }
         ]
@@ -156,7 +156,7 @@
               "width": 976,
               "height": 104
             },
-            "style": "blur",
+            "style": "mask",
             "auto": true
           }
         ]
@@ -215,7 +215,7 @@
               "width": 976,
               "height": 104
             },
-            "style": "blur",
+            "style": "mask",
             "auto": true
           }
         ]

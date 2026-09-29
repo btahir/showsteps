@@ -3,7 +3,7 @@ import { clampRect, expandRect, isEmptyRect, rectContains, roundRectOut } from "
 import { isSensitiveStep } from "./titles";
 
 export interface AutoRedactOptions {
-  /** Default "blur". */
+  /** Default "mask": the field is replaced by its background with a row of dots. */
   style?: Redaction["style"];
   /** Extra margin around the field in image pixels. Default: 2 CSS px at the screenshot's devicePixelRatio. */
   pad?: number;
@@ -21,12 +21,13 @@ export function autoRedactions(step: Step, opts: AutoRedactOptions = {}): Redact
   const rect = clampRect(roundRectOut(expandRect(shot.highlight, pad)), { width: shot.width, height: shot.height });
   if (isEmptyRect(rect)) return [];
   if ((shot.redactions ?? []).some((r) => rectContains(r.rect, rect))) return [];
-  return [{ rect, style: opts.style ?? "blur", auto: true }];
+  const label = (step.target?.label ?? step.target?.name ?? step.target?.placeholder ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return [{ rect, style: opts.style ?? "mask", auto: true, ...(label ? { label } : {}) }];
 }
 
 /** Guide copy with `autoRedactions` added to every step that needs them (style from `guide.settings.redactStyle`). */
 export function applyAutoRedactions(guide: Guide, opts: AutoRedactOptions = {}): Guide {
-  const style = opts.style ?? guide.settings?.redactStyle ?? "blur";
+  const style = opts.style ?? "mask"; // automatic redactions always look like a masked field; settings.redactStyle is for manual ones
   let changed = false;
   const steps = guide.steps.map((s) => {
     const add = autoRedactions(s, { ...opts, style });

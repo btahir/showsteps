@@ -47,7 +47,8 @@ body { background: var(--ss-bg); color: var(--ss-ink); font-family: var(--ss-fon
 | `icon-16.svg` | 16 px toolbar and favicon variant (heavier ring, no numeral) |
 | `icon-store.svg` | 128 px with 16 px padding for the Chrome Web Store |
 | `logo.svg`, `logo-on-dark.svg` | Icon plus the outlined "Showsteps" wordmark for light and dark grounds |
-| `mark.svg` | Persimmon ring and tab without the squircle, for empty states and the site |
+| `mark.svg` | Persimmon ring and tab without the squircle, for display sizes of 64 px and up: the "1" numeral is cut out of the tab and the ring stroke is about 20% thinner (9 instead of 11 units) |
+| `mark-small.svg` | The same mark with the heavy ring and no numeral, for sizes under 64 px |
 | `fonts/` | Rethink Sans (variable) and Fragment Mono woff2, with OFL texts. See `FONTS.md`. |
 
 Rasterise PNG icons at build time (for example `sharp` or a Playwright screenshot of the SVG at 16, 32, 48 and 128). Don't commit rasters here.

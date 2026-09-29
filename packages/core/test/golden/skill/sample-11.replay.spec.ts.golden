@@ -10,7 +10,7 @@ test("Sign in, ask for help, and update billing in Acme Books", async ({ context
   const page = await context.newPage();
   let page2!: Page;
 
-  await test.step("1. Go to Sign in – Acme Books", async () => {
+  await test.step("1. Go to Sign in on Acme Books", async () => {
     await page.goto("http://127.0.0.1:4517/index.html");
     await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:4517\/index\.html\/?(?:[?#].*)?$/);
   });

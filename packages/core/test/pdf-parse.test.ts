@@ -54,7 +54,7 @@ describe("B-PDF: exportPdf(sample-11) parsed back", () => {
 
   it("pdfjs extracts the guide title on page 1 and every step title exactly once, in order", () => {
     expect(pages[0]).toContain("Sign in, ask for help, and update");
-    const body = pages.slice(1).join("\n");
+    const body = pages.join("\n");
     let from = -1;
     for (const s of sample.steps) {
       const title = plain(s.title);

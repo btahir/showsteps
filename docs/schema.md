@@ -42,7 +42,7 @@ Entries other than `guide.json` and `images/...` are ignored. Older schema versi
   "app": { "name": "showsteps", "version": "0.1.0" },   // optional; "stepsnap" is read as the old name
   "settings": {                                          // optional
     "highlightColor": "#EB4E26",        // CSS colour, default is the brand persimmon
-    "redactStyle": "blur",              // "blur" | "pixelate" | "solid"
+    "redactStyle": "blur",              // manual redactions: "blur" | "pixelate" | "solid" (automatic ones are always "mask")
     "includeUrls": true                 // show page URLs in human exports (default true)
   },
   "steps": [ /* at most 5000 */ ]
@@ -112,8 +112,8 @@ Entries other than `guide.json` and `images/...` are ignored. Older schema versi
   "width": 2880, "height": 1800,          // image pixels (at least 1)
   "devicePixelRatio": 2,                  // greater than 0
   "viewport": { "width": 1440, "height": 900, "scrollX": 0, "scrollY": 0 },   // CSS px
-  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88 },   // target box in image px, drawn at export, never baked in
-  "redactions": [ { "rect": { "x": 944, "y": 584, "width": 992, "height": 120 }, "style": "blur", "auto": true } ],
+  "highlight": { "x": 960, "y": 600, "width": 960, "height": 88, "corner": "top-right" },   // target box in image px, drawn at export, never baked in; `corner` (optional): where the recorder found the least text for the numbered tab
+  "redactions": [ { "rect": { "x": 944, "y": 584, "width": 992, "height": 120 }, "style": "mask", "auto": true, "label": "Password" } ],   // style: blur | pixelate | solid | mask; label: what was covered
   "crop": { "x": 0, "y": 0, "width": 2880, "height": 1200 }   // optional export crop, image px
 }
 ```
@@ -126,7 +126,7 @@ It returns `{ ok: true, guide }` or `{ ok: false, errors }` with one readable st
 
 ### Step titles
 
-`generateStepTitle` writes one line of natural English per step, element names in `**bold**`: `Click **Save**`, `Type "jane@example.com" in **Email**`, `Select **Monthly** in **Billing period**`, `Check **Remember me**`, `Press **Enter**`, `Go to **Settings – Acme**`. Masked or sensitive values never appear (`Enter your password`, `Fill in **Card number**`). Titles are at most 160 characters. `regenerateTitles` rewrites every title except those with `titleEdited: true` and note steps.
+`generateStepTitle` writes one line of natural English per step, element names in `**bold**`: `Click **Save**`, `Type "jane@example.com" in **Email**`, `Select **Monthly** in **Billing period**`, `Check **Remember me**`, `Press **Enter**`, `Go to **Settings** on Acme`. A page title is split on ` – `, ` — `, ` | `, ` - ` or ` · `: the first part is the page name and the last part the site; `on <site>` is added only when the site differs from the previous step's (`generateStepTitle(step, { previousPage })`). `defaultGuideTitle(pageTitle, url)` turns "Sign in – Acme Books" into "Acme Books: Sign in" (no date). Masked or sensitive values never appear (`Enter your password`, `Fill in **Card number**`). Titles are at most 160 characters. `regenerateTitles` rewrites every title except those with `titleEdited: true` and note steps.
 
 ## 3. The agent skill: `SKILL.md`, `steps.json`, `replay.spec.ts`
 
@@ -195,8 +195,8 @@ An idiomatic `@playwright/test` file. Replay semantics:
 | Export | Files | Notes |
 |---|---|---|
 | Markdown | `guide.md`, `images/<id>.png` | `## N. Title`, description, image, page link. Skipped steps are left out and the rest renumbered. URLs are shown without query string or fragment. |
-| HTML | one `.html` | Images inlined as data URIs, brand fonts embedded, print CSS for a clean "Save as PDF", no scripts, no network requests. |
-| PDF | one `.pdf` | pdf-lib; cover page, steps with the highlight drawn as vectors, Source Sans 3 (Latin, Latin Extended, Cyrillic, Greek). |
+| HTML | one `.html` | Images inlined as data URIs, brand fonts embedded, print CSS for a clean "Save as PDF", no scripts, no network requests. A sticky table of contents (over 8 steps, wide screens), a "That's it" end marker, and on phones a zoomed detail image per step (`<picture>`). The URL caption is shown only when the page changes. |
+| PDF | one `.pdf` | pdf-lib; no cover page (page 1 has the step count, the title, the description and step 1), the highlight drawn as vectors, Rethink Sans (static instances), Fragment Mono for URLs, Source Sans 3 for Cyrillic and Greek. |
 | DOCX | one `.docx` | `docx`; numbered headings, screenshots with the highlight baked in. |
 
-All of them render screenshots the same way: redactions burnt into the pixels (solid, pixelate or blur), the click target highlighted with a persimmon ring, a white keyline and a numbered tab, everything else dimmed by 16 percent, then the crop. Exports are deterministic: the same guide gives the same bytes. PDF and DOCX take their creation date from the guide's own dates unless the caller passes `now`.
+All of them render screenshots the same way: redactions burnt into the pixels (mask, solid, pixelate or blur), then the crop, then the click target highlighted with a persimmon ring, a white keyline and a numbered tab, everything else dimmed by 12 percent. A `mask` redaction replaces a form field with its own background colour, rounded like a field, with a row of eight dots. The ring grows if needed so the tab always fits on it (a 16 px checkbox), and the tab grows out of `highlight.corner` when present (otherwise top-right, top-left for right-to-left pages), staying inside the image. The Showsteps credit ("Made with Showsteps") is off by default in every export; pass `branding: true` to add it. Exports are deterministic: the same guide gives the same bytes. PDF and DOCX take their creation date from the guide's own dates unless the caller passes `now`.

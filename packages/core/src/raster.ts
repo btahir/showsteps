@@ -3,7 +3,7 @@
 // CLI when no canvas renderer is available. The extension may use its own canvas renderer instead
 // and tell exporters so with `imagesPrerendered`.
 
-import type { Rect, Redaction, Step } from "./schema";
+import type { Rect, Redaction, Step, TabCorner } from "./schema";
 import { flagLayout, flagTabCenter } from "./flag";
 import { clampRect, FLAG, highlightScale, isEmptyRect, roundRectOut, scaleRect } from "./geometry";
 import { decodePng, encodePng, isPng, PngError, type RgbaImage } from "./png";
@@ -92,6 +92,10 @@ export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style
     }
     return;
   }
+  if (style === "mask") {
+    maskField(img, r, scale);
+    return;
+  }
   const block = redactBlock(r.height, scale);
   const sw = Math.max(1, Math.round(r.width / block));
   const sh = Math.max(1, Math.round(r.height / block));
@@ -137,6 +141,58 @@ export function redactRegion(img: RgbaImage, rect: Rect, style: Redaction["style
         data[p + c] = Math.round(veil ? val * (1 - veil) + 128 * veil : val);
       }
       data[p + 3] = 255;
+    }
+  }
+}
+
+/** Brand ink-3, the colour of the "masked value" dots. */
+const MASK_DOT_RGB: [number, number, number] = [0x73, 0x6b, 0x63];
+
+/**
+ * A form field replaced by what a masked field looks like: the field's own background (median colour of
+ * its inner pixels, so page focus rings and text vanish), rounded like a field, a 1 px border a shade
+ * darker, and a row of eight 4 px dots. Applying it twice changes (almost) nothing.
+ */
+function maskField(img: RgbaImage, r: Rect, scale: number): void {
+  const { width: W, data } = img;
+  const k = scale > 0 ? scale : 1;
+  // median of the inner 60% (subsampled), per channel
+  const ix0 = r.x + Math.floor(r.width * 0.2), ix1 = r.x + Math.max(Math.floor(r.width * 0.8), Math.floor(r.width * 0.2) + 1);
+  const iy0 = r.y + Math.floor(r.height * 0.2), iy1 = r.y + Math.max(Math.floor(r.height * 0.8), Math.floor(r.height * 0.2) + 1);
+  const sx = Math.max(1, Math.floor((ix1 - ix0) / 64)), sy = Math.max(1, Math.floor((iy1 - iy0) / 24));
+  const chans: number[][] = [[], [], []];
+  for (let y = iy0; y < iy1; y += sy) for (let x = ix0; x < ix1; x += sx) for (let c = 0; c < 3; c++) (chans[c] as number[]).push(data[(y * W + x) * 4 + c] as number);
+  const med = chans.map((a) => (a.sort((p, q) => p - q), a[Math.floor(a.length / 2)] as number)) as [number, number, number];
+  const luma = (0.2126 * med[0] + 0.7152 * med[1] + 0.0722 * med[2]) / 255;
+  const edge = med.map((v, i) => Math.round(v * 0.7 + (MASK_DOT_RGB[i] as number) * 0.3)) as [number, number, number];
+  const dot: [number, number, number] = luma < 0.35 ? [190, 184, 178] : MASK_DOT_RGB; // dark fields get light dots
+  const rad = Math.min(4 * k, Math.min(r.width, r.height) / 2);
+  const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+  const border = Math.max(1, Math.round(k));
+  for (let y = r.y; y < r.y + r.height; y++) {
+    for (let x = r.x; x < r.x + r.width; x++) {
+      const d = sdBox(x + 0.5, y + 0.5, cx, cy, r.width / 2, r.height / 2, [rad, rad, rad, rad]);
+      const inside = clamp01(0.5 - d);
+      if (inside <= 0) continue;
+      const p = (y * W + x) * 4;
+      const c = d > -border ? edge : med;
+      for (let i = 0; i < 3; i++) data[p + i] = Math.round((data[p + i] as number) * (1 - inside) + (c[i] as number) * inside);
+      data[p + 3] = 255;
+    }
+  }
+  // eight dots, 4 CSS px wide with 4 CSS px gaps, from 10 CSS px in; fewer when the field is narrow
+  const dd = 4 * k, gap = 4 * k, start = r.x + Math.min(10 * k, r.width * 0.1);
+  const fit = Math.max(0, Math.floor((r.x + r.width - start - Math.min(10 * k, r.width * 0.1) + gap) / (dd + gap)));
+  for (let n = 0; n < Math.min(8, fit); n++) {
+    const dcx = start + dd / 2 + n * (dd + gap);
+    for (let y = Math.floor(cy - dd); y <= Math.ceil(cy + dd); y++) {
+      for (let x = Math.floor(dcx - dd); x <= Math.ceil(dcx + dd); x++) {
+        if (x < r.x || x >= r.x + r.width || y < r.y || y >= r.y + r.height) continue;
+        const a = clamp01(0.5 - (Math.hypot(x + 0.5 - dcx, y + 0.5 - cy) - dd / 2));
+        if (a <= 0) continue;
+        const p = (y * W + x) * 4;
+        for (let i = 0; i < 3; i++) data[p + i] = Math.round((data[p + i] as number) * (1 - a) + (dot[i] as number) * a);
+      }
     }
   }
 }
@@ -219,6 +275,7 @@ interface FlagOptions {
   color: [number, number, number];
   dim?: [number, number, number, number] | null;
   rtl?: boolean;
+  corner?: TabCorner;
 }
 
 function blend(img: RgbaImage, p: number, rgb: readonly number[], a: number): void {
@@ -234,7 +291,7 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** Draw the Showsteps "Flag" highlight in place: spotlight dim, haloed ring, numbered tab. */
 export function drawFlagHighlight(img: RgbaImage, o: FlagOptions): void {
-  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}) });
+  const layout = flagLayout({ target: o.target, ...(o.n !== undefined ? { n: o.n } : {}), scale: o.scale, imageWidth: img.width, imageHeight: img.height, ...(o.rtl ? { rtl: true } : {}), ...(o.corner ? { corner: o.corner } : {}) });
   const { x, y, w, h, radii } = layout.ring;
   const { sw, halo } = layout;
   const cx = x + w / 2, cy = y + h / 2, hw = w / 2, hh = h / 2;
@@ -396,6 +453,7 @@ export function renderStepImage(bytes: Uint8Array, shot: Screenshot, opts: Rende
       color,
       dim: opts.spotlight === false ? null : [...FLAG.spotlightDim],
       ...(opts.rtl ? { rtl: true } : {}),
+      ...((shot.highlight as { corner?: TabCorner }).corner ? { corner: (shot.highlight as { corner?: TabCorner }).corner as TabCorner } : {}),
     });
   }
   return encodePng(img, 6);

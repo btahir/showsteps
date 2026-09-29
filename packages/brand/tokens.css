@@ -80,7 +80,7 @@
   --ss-highlight-pad: 4px;
   --ss-highlight-radius: 8px;
   --ss-highlight-tab-height: 24px;
-  --ss-spotlight-dim: rgba(28, 18, 12, .16);       /* exports */
+  --ss-spotlight-dim: rgba(28, 18, 12, .12);       /* exports */
   --ss-spotlight-dim-thumb: rgba(28, 18, 12, .24); /* small panel thumbnails */
 
   /* ---------- colour: light ---------- */

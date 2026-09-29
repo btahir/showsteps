@@ -10,12 +10,13 @@
 
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, PDFFont, PDFImage, PDFPage, rgb } from "pdf-lib";
-import { SOURCE_SANS_3_FACES } from "../../assets/fonts/default-fonts";
+import { FRAGMENT_MONO_WOFF_B64, RETHINK_SANS_FACES, SOURCE_SANS_3_FACES } from "../../assets/fonts/default-fonts";
 import { flagLayout, flagRingPath, flagTabCenter, flagTabPath, type FlagLayout } from "../flag";
 import { FLAG } from "../geometry";
-import type { Guide, Rect, Step } from "../schema";
+import type { Guide, Rect, Step, TabCorner } from "../schema";
 import {
   ACCENT_COLOR,
+  ACCENT_STRONG,
   activeSteps,
   documentDates,
   metaLine,
@@ -36,10 +37,12 @@ export interface PdfFonts {
   bold: Uint8Array;
   /** More faces, tried in order for characters this one lacks (other scripts). */
   fallbacks?: { regular: Uint8Array; bold: Uint8Array }[];
+  /** Monospaced face for URLs. Default: Fragment Mono. */
+  mono?: Uint8Array;
 }
 
 export interface PdfExportOptions extends DocExportOptions {
-  /** TTF/OTF/WOFF bytes for regular and bold. Default: Source Sans 3 (Latin, Latin Extended, Cyrillic, Greek; OFL). */
+  /** TTF/OTF/WOFF bytes for regular and bold. Default: Rethink Sans for Latin, Source Sans 3 for Cyrillic and Greek, Fragment Mono for URLs (all OFL). */
   font?: PdfFonts;
 }
 
@@ -62,13 +65,15 @@ function b64ToBytes(b64: string): Uint8Array {
   return out;
 }
 
+/**
+ * Rethink Sans (static 400 and 700 instances) for Latin, then Source Sans 3 for what it lacks: Cyrillic,
+ * Greek and, as a last resort, Latin. Fragment Mono for URLs.
+ */
 export function defaultPdfFonts(): PdfFonts {
-  const [latin, ...rest] = SOURCE_SANS_3_FACES;
-  return {
-    regular: b64ToBytes((latin as (typeof SOURCE_SANS_3_FACES)[number]).regular),
-    bold: b64ToBytes((latin as (typeof SOURCE_SANS_3_FACES)[number]).bold),
-    fallbacks: rest.map((f) => ({ regular: b64ToBytes(f.regular), bold: b64ToBytes(f.bold) })),
-  };
+  const dec = (f: { regular: string; bold: string }) => ({ regular: b64ToBytes(f.regular), bold: b64ToBytes(f.bold) });
+  const [rLatin, ...rRest] = RETHINK_SANS_FACES;
+  const sans = SOURCE_SANS_3_FACES.filter((f) => f.script !== "latin-ext");
+  return { ...dec(rLatin as (typeof RETHINK_SANS_FACES)[number]), fallbacks: [...rRest, ...sans].map(dec), mono: b64ToBytes(FRAGMENT_MONO_WOFF_B64) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -233,7 +238,7 @@ class Typesetter {
 
 /** Every character the document will print, to decide which font faces to embed. */
 function collectText(guide: Guide, steps: Step[], opts: PdfExportOptions): string {
-  const parts: string[] = [guide.title, guide.description ?? "", "Made with Showsteps", "Screenshot unavailable", "steps"];
+  const parts: string[] = [guide.title, guide.description ?? "", "Made with Showsteps", "STEPS ABOUT MINUTE 0123456789"];
   for (const s of steps) parts.push(s.title, s.description ?? "", stepUrl(guide, s) ?? "");
   void opts;
   return parts.join("\n");
@@ -270,8 +275,8 @@ async function embedFaces(doc: PDFDocument, fonts: PdfFonts, text: string): Prom
  * its top-left at (ix, iyTop) in page points, `s` points per image pixel. Geometry comes from
  * `flagLayout`, the same numbers the pixel renderer uses.
  */
-function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean): void {
-  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}) });
+function drawFlag(page: PDFPage, hl: Rect, n: number, ix: number, iyTop: number, s: number, imgW: number, imgH: number, k: number, color: RGB, bold: PDFFont, rtl: boolean, corner?: TabCorner): void {
+  const layout = flagLayout({ target: hl, n, scale: k, imageWidth: imgW, imageHeight: imgH, ...(rtl ? { rtl: true } : {}), ...(corner ? { corner } : {}) });
   const white = rgb(1, 1, 1);
   const dim = FLAG.spotlightDim;
   const dimColor = rgb(dim[0] / 255, dim[1] / 255, dim[2] / 255);
@@ -328,6 +333,16 @@ export async function exportPdf(
   const faces = await embedFaces(doc, opts.font ?? defaultPdfFonts(), collectText(guide, steps, opts));
   const ts = new Typesetter(faces);
   const bold = ts.bold;
+  const fontSet = opts.font ?? defaultPdfFonts();
+  const monoFont = await doc.embedFont(fontSet.mono ?? (defaultPdfFonts().mono as Uint8Array), { subset: true });
+  const monoChars = new Set(monoFont.getCharacterSet());
+  /** URL text the mono face can draw: anything else becomes "?"; ellipsised to `maxW`. */
+  const monoFit = (text: string, size: number, maxW: number): string => {
+    let t = [...text].map((c) => (monoChars.has(c.codePointAt(0) as number) ? c : "?")).join("");
+    if (monoFont.widthOfTextAtSize(t, size) <= maxW) return t;
+    while (t.length > 1 && monoFont.widthOfTextAtSize(t + "\u2026", size) > maxW) t = t.slice(0, -1);
+    return t + "\u2026";
+  };
   const { created, modified: updated } = documentDates(guide, opts);
   const title = stripInline(guide.title) || "Untitled guide";
   doc.setTitle(title);
@@ -365,23 +380,26 @@ export async function exportPdf(
     }
   };
 
-  // Cover -----------------------------------------------------------------------------------
+  // Title block: on page 1, above step 1 ------------------------------------------------------
   newPage();
-  y = top - contentH * 0.22;
-  page.drawRectangle({ x: MARGIN, y: y, width: 56, height: 5, color: col(ACCENT_COLOR) });
-  y -= 30;
-  flowLines(ts.wrap(parseInline(guide.title || "Untitled guide"), 32, contentW, true), MARGIN, 32, 38, INK);
-  y -= 14;
-  for (const b of parseBlocks(guide.description)) {
-    const runs = parseInline(b.kind === "li" ? `• ${b.text}` : b.text);
-    flowLines(ts.wrap(runs, 13, contentW), MARGIN, 13, 19, MUTED);
-    y -= 6;
+  {
+    // eyebrow: the brand's mini flag with the step count, then "N STEPS \u00b7 ABOUT M MINUTES" in mono, ink-3
+    const count = String(steps.length);
+    const fw = Math.max(16, monoFont.widthOfTextAtSize(count, 8) + 10);
+    page.drawSvgPath(flagMarkerPath(fw, 15), { x: MARGIN, y: y - 2, color: col(ACCENT_STRONG) });
+    page.drawText(count, { x: MARGIN + fw / 2 - bold.widthOfTextAtSize(count, 8) / 2, y: y - 12.2, size: 8, font: bold, color: rgb(1, 1, 1) });
+    const minutes = Math.max(1, Math.ceil(steps.length / 3));
+    page.drawText(`${steps.length === 1 ? "STEP" : "STEPS"} \u00b7 ABOUT ${minutes} ${minutes === 1 ? "MINUTE" : "MINUTES"}`, { x: MARGIN + fw + 8, y: y - 11.5, size: 8, font: monoFont, color: col(FAINT) });
+    y -= 34;
   }
+  flowLines(ts.wrap(parseInline(guide.title || "Untitled guide"), 26, contentW, true), MARGIN, 26, 31, INK);
   y -= 10;
-  flowLines(ts.wrap([{ text: metaLine(guide, steps.length) }], 11, contentW, true), MARGIN, 11, 16, ACCENT_COLOR);
-  if (opts.branding !== false) {
-    drawRun(page, ts, "Made with Showsteps", MARGIN, MARGIN, 9, FAINT);
+  for (const b of parseBlocks(guide.description)) {
+    const runs = parseInline(b.kind === "li" ? `\u2022 ${b.text}` : b.text);
+    flowLines(ts.wrap(runs, 12, contentW), MARGIN, 12, 17.5, MUTED);
+    y -= 5;
   }
+  y -= 22;
 
   // Steps -----------------------------------------------------------------------------------
   const TEXT_X = MARGIN + 40;
@@ -393,20 +411,21 @@ export async function exportPdf(
   const GAP = 12;
   const AFTER = 30;
 
-  if (steps.length) newPage(); // steps start on their own page after the cover
   let n = 0;
+  let lastUrl: string | undefined;
   for (const step of steps) {
     n++;
     const titleLines = ts.wrap(parseInline(step.title || "Untitled step"), TITLE_SIZE, TEXT_W);
     const url = stepUrl(guide, step);
-    const urlLines = url ? ts.wrap([{ text: url }], 8.5, TEXT_W).slice(0, 1) : [];
+    const urlText = url && url !== lastUrl ? monoFit(url, 8, TEXT_W) : undefined; // only when the page changes
+    if (url) lastUrl = url;
     const descLines: { lines: Line[]; x: number }[] = parseBlocks(step.description).map((b) => ({
       lines: ts.wrap(parseInline(b.text), DESC_SIZE, b.kind === "li" ? TEXT_W - 14 : TEXT_W),
       x: b.kind === "li" ? TEXT_X + 14 : TEXT_X,
     }));
     const bullets = parseBlocks(step.description).map((b) => b.kind === "li");
     const descHeight = descLines.reduce((h, d) => h + d.lines.length * DESC_LEAD + 5, 0);
-    const titleHeight = titleLines.length * TITLE_LEAD + urlLines.length * 12;
+    const titleHeight = titleLines.length * TITLE_LEAD + (urlText ? 13 : 0);
 
     const img = loadImage(step, n, images, opts, highlightColor, drawHighlight);
     let embedded: PDFImage | undefined;
@@ -437,12 +456,12 @@ export async function exportPdf(
     const mw = Math.max(26, ts.width(label, ls, true) + 14);
     const mh = 22;
     const cy = y - TITLE_LEAD / 2 - 1;
-    page.drawSvgPath(flagMarkerPath(mw, mh), { x: MARGIN, y: cy + mh / 2, color: col(ACCENT_COLOR) });
+    page.drawSvgPath(flagMarkerPath(mw, mh), { x: MARGIN, y: cy + mh / 2, color: col(ACCENT_STRONG) });
     page.drawText(label, { x: MARGIN + mw / 2 - ts.width(label, ls, true) / 2, y: cy - ls * 0.34, size: ls, font: bold, color: rgb(1, 1, 1) });
     drawLines(titleLines, TEXT_X, TITLE_SIZE, TITLE_LEAD, INK);
-    if (urlLines.length) {
-      y -= 2;
-      drawLines(urlLines, TEXT_X, 8.5, 10, FAINT);
+    if (urlText) {
+      y -= 12;
+      page.drawText(urlText, { x: TEXT_X, y, size: 8, font: monoFont, color: col(FAINT) });
     }
 
     const drawDesc = (breakPages: boolean) => {
@@ -469,12 +488,9 @@ export async function exportPdf(
       const iyBottom = y - imgH;
       page.drawImage(embedded, { x: ix, y: iyBottom, width: imgW, height: imgH });
       const hl = img.prepared.highlight;
-      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl");
+      if (hl) drawFlag(page, hl, n, ix, iyTop, scale, img.prepared.width, img.prepared.height, img.prepared.highlightScale ?? 1, highlightColor, bold, step.page.dir === "rtl", img.prepared.corner);
       page.drawRectangle({ x: ix, y: iyBottom, width: imgW, height: imgH, borderColor: col(HAIRLINE), borderWidth: 0.75 });
       y = iyBottom;
-    } else if (step.screenshot && !img) {
-      y -= GAP - 2;
-      drawLines(ts.wrap([{ text: "Screenshot unavailable" }], 9, TEXT_W), TEXT_X, 9, 12, FAINT);
     }
     if (descAfter && descLines.length) {
       y -= GAP;
@@ -483,15 +499,15 @@ export async function exportPdf(
     y -= AFTER;
   }
 
-  // Footer on every page but the cover -------------------------------------------------------
+  // Footer on every page ----------------------------------------------------------------------
   const total = pages.length;
   pages.forEach((p, i) => {
-    if (i === 0) return;
     drawRun(p, ts, title.length > 60 ? `${title.slice(0, 59)}\u2026` : title, MARGIN, FOOTER_Y, 8.5, FAINT);
     const right = `${i + 1} / ${total}`;
     p.drawText(right, { x: pageW - MARGIN - ts.width(right, 8.5), y: FOOTER_Y, size: 8.5, font: ts.regular, color: col(FAINT) });
   });
 
+  if (opts.branding === true) drawRun(pages[pages.length - 1] as PDFPage, ts, "Made with Showsteps", MARGIN + 0, FOOTER_Y + 14, 8, FAINT);
   if (ts.missing.size) {
     const list = [...ts.missing].slice(0, 8).map((cp) => `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`).join(", ");
     opts.onWarning?.(`The PDF fonts have no glyph for ${ts.missing.size} character${ts.missing.size === 1 ? "" : "s"} (${list}${ts.missing.size > 8 ? ", ..." : ""}); they were replaced with "?".`);
@@ -503,7 +519,7 @@ function loadImage(step: Step, n: number, images: Record<string, Uint8Array>, op
   const key = step.screenshot?.image;
   const bytes = key ? images[key] : undefined;
   if (!step.screenshot || !bytes) {
-    if (step.screenshot) opts.onWarning?.(`Screenshot ${key ?? ""} for step ${n} was not provided; the PDF says "Screenshot unavailable".`);
+    if (step.screenshot) opts.onWarning?.(`Screenshot ${key ?? ""} for step ${n} was not provided; that step has no image.`);
     return undefined;
   }
   const prepared = prepareStepImage(step, bytes, {

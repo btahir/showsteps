@@ -96,10 +96,10 @@
     }
   ],
   "optionalNavigateSteps": [
-    { "afterFlowStep": "s03", "url": "http://127.0.0.1:4517/dashboard.html", "title": "Go to **Dashboard – Acme Books**" },
-    { "afterFlowStep": "s04", "url": "http://127.0.0.1:4517/help.html", "title": "Go to **Help centre – Acme Books**", "tab": "help" },
-    { "afterFlowStep": "s06", "url": "http://127.0.0.1:4517/dashboard/reports", "title": "Go to **Reports – Acme Books**" },
-    { "afterFlowStep": "s07", "url": "http://127.0.0.1:4517/settings.html", "title": "Go to **Settings – Acme Books**" }
+    { "afterFlowStep": "s03", "url": "http://127.0.0.1:4517/dashboard.html", "title": "Go to **Dashboard**" },
+    { "afterFlowStep": "s04", "url": "http://127.0.0.1:4517/help.html", "title": "Go to **Help centre**", "tab": "help" },
+    { "afterFlowStep": "s06", "url": "http://127.0.0.1:4517/dashboard/reports", "title": "Go to **Reports**" },
+    { "afterFlowStep": "s07", "url": "http://127.0.0.1:4517/settings.html", "title": "Go to **Settings**" }
   ],
   "mustNotAppearInAnyExport": ["Correct-Horse-9"],
   "autoRedact": { "onFlowSteps": ["s01", "s02", "s03"], "selectors": ["#password"], "note": "The password field is on screen for s01-s03 and must be covered by an automatic redaction on each screenshot." }

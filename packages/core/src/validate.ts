@@ -20,7 +20,8 @@ const ISO_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:
 
 const LOCATOR_KINDS = ["testid", "role", "label", "placeholder", "text", "css", "xpath"] as const;
 const ACTION_TYPES = ["navigate", "click", "type", "select", "check", "press", "scroll", "hover", "note"] as const;
-const REDACT_STYLES = ["blur", "pixelate", "solid"] as const;
+const REDACT_STYLES = ["blur", "pixelate", "solid", "mask"] as const;
+const TAB_CORNERS = ["top-right", "top-left", "bottom-right", "bottom-left"] as const;
 
 type Obj = Record<string, unknown>;
 
@@ -259,7 +260,10 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
     c.num(vp, "scrollX", `${path}.viewport`);
     c.num(vp, "scrollY", `${path}.viewport`);
   }
-  if (o.highlight !== undefined) c.rect(o.highlight, `${path}.highlight`, bounds);
+  if (o.highlight !== undefined) {
+    c.rect(o.highlight, `${path}.highlight`, bounds);
+    if (isObj(o.highlight)) c.oneOf(o.highlight, "corner", `${path}.highlight`, TAB_CORNERS, true);
+  }
   if (o.crop !== undefined) c.rect(o.crop, `${path}.crop`, bounds);
   if (o.redactions !== undefined) {
     if (!Array.isArray(o.redactions)) c.err(`${path}.redactions`, `expected an array, got ${describe(o.redactions)}`);
@@ -271,6 +275,7 @@ function checkScreenshot(c: Checker, v: unknown, path: string): void {
         c.rect(ro.rect, `${rp}.rect`, bounds);
         c.oneOf(ro, "style", rp, REDACT_STYLES);
         c.bool(ro, "auto", rp);
+        c.str(ro, "label", rp, { optional: true });
       });
   }
 }

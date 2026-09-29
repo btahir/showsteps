@@ -45,7 +45,7 @@ describe("exportAgentSkill (small fixture)", () => {
   });
 
   it("numbers the steps and gives locator hints", () => {
-    expect(skillMd).toContain("1. Go to **Sign in – Acme**");
+    expect(skillMd).toContain("1. Go to **Sign in** on Acme");
     expect(skillMd).toContain("10. Press **Enter** to search");
     expect(skillMd).toContain('Find it by: test id "signin-button"');
     expect(skillMd).toContain("inside iframe `iframe[name=\"card-frame\"]`");

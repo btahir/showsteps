@@ -10,7 +10,7 @@ describe("autoRedactions", () => {
     const step = byId("s_pass");
     const stripped: Step = { ...step, screenshot: { ...(step.screenshot as NonNullable<Step["screenshot"]>), redactions: undefined } };
     const r = autoRedactions(stripped);
-    expect(r).toEqual([{ rect: { x: 16, y: 42, width: 128, height: 18 }, style: "blur", auto: true }]);
+    expect(r).toEqual([{ rect: { x: 16, y: 42, width: 128, height: 18 }, style: "mask", auto: true, label: "Password" }]);
   });
 
   it("matches the redaction the fixture recorded", () => {

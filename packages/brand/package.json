@@ -15,6 +15,7 @@
     "./icon-16.svg": "./icon-16.svg",
     "./icon-store.svg": "./icon-store.svg",
     "./mark.svg": "./mark.svg",
+    "./mark-small.svg": "./mark-small.svg",
     "./fonts/*": "./fonts/*"
   },
   "files": ["tokens.css", "tokens.ts", "*.svg", "fonts", "README.md", "FONTS.md"],

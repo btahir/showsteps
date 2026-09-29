@@ -2,15 +2,18 @@ import type { Guide, Step } from "../schema";
 import { PRODUCT_NAME, SITE_URL } from "../brand";
 import { renderInlineHtml, renderMarkdownHtml } from "../markdown-html";
 import { pngSize } from "../png";
-import { bytesToBase64, escapeHtml, plainTitle } from "../text";
+import { bytesToBase64, escapeHtml, plainTitle, truncate, typographicQuotes } from "../text";
 import type { ImageSource } from "../types";
 import { HTML_CSS, HTML_FONT_FACES } from "./html-css";
+import { focusFrame, highlightScale } from "../geometry";
+import { renderStepImage, DEFAULT_HIGHLIGHT_COLOR } from "../raster";
+import type { Step as StepT } from "../schema";
 import { displayUrl, formatDate, renderGuideImages, resolveIncludeUrls, sniffImageMime, visibleSteps, type ImageRenderOptions } from "./shared";
 
 export interface HtmlOptions extends ImageRenderOptions {
   /** Show the page URL under each screenshot. Default: `guide.settings.includeUrls`, else true. */
   includeUrls?: boolean;
-  /** "Made with Showsteps" footer. Default true. */
+  /** Small "Made with Showsteps" credit. Default false (opt-in). */
   branding?: boolean;
   /** `auto` follows the reader's system theme (print is always light). Default "auto". */
   theme?: "auto" | "light" | "dark";
@@ -18,6 +21,12 @@ export interface HtmlOptions extends ImageRenderOptions {
   css?: string;
   /** `lang` attribute of the page. Default "en". */
   lang?: string;
+  /**
+   * Also emit a zoomed detail image per step, shown on phones (max-width 600px): a 16:10 window centred on
+   * the highlight, with the flag drawn at the size that suits it. Costs file size. Default true; ignored
+   * with `imagesPrerendered` (there are no raw pixels to crop).
+   */
+  detailImages?: boolean;
   /** Embed Rethink Sans and Fragment Mono (about 100 KB). Default true; false falls back to system fonts. */
   embedFonts?: boolean;
 }
@@ -30,7 +39,29 @@ function minutes(stepCount: number): string {
   return m === 1 ? "ABOUT 1 MINUTE" : `ABOUT ${m} MINUTES`;
 }
 
-function stepHtml(step: Step, n: number, images: ImageSource, includeUrls: boolean): string {
+const CHECK_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>';
+
+/** Zoomed PNG for phones: the focus frame around the highlight, flag baked in at a size that suits the crop. */
+function detailImage(step: StepT, n: number, raw: Uint8Array | undefined, color: string): Uint8Array | undefined {
+  const shot = step.screenshot;
+  if (!raw || !shot?.highlight) return undefined;
+  const bounds = shot.crop ?? { x: 0, y: 0, width: shot.width, height: shot.height };
+  const scale = highlightScale(shot.viewport.width, shot.devicePixelRatio) * (shot.width > 0 ? 1 : 1);
+  const local = { x: shot.highlight.x - bounds.x, y: shot.highlight.y - bounds.y, width: shot.highlight.width, height: shot.highlight.height };
+  const f = focusFrame(local, { width: bounds.width, height: bounds.height }, scale);
+  // no point when the window is (nearly) the whole picture
+  if (f.width * f.height >= 0.8 * bounds.width * bounds.height) return undefined;
+  const frame = { x: f.x + bounds.x, y: f.y + bounds.y, width: f.width, height: f.height };
+  const dpr = shot.devicePixelRatio > 0 ? shot.devicePixelRatio : 1;
+  try {
+    const out = renderStepImage(raw, { ...shot, crop: frame, viewport: { ...shot.viewport, width: frame.width / dpr } }, { highlight: true, highlightColor: color, stepNumber: n, rtl: step.page.dir === "rtl" });
+    return out === raw ? undefined : out;
+  } catch {
+    return undefined;
+  }
+}
+
+function stepHtml(step: Step, n: number, images: ImageSource, raw: ImageSource, includeUrls: boolean, showUrl: boolean, detail: boolean, color: string): string {
   const shot = step.screenshot;
   const bytes = shot ? images[shot.image] : undefined;
   const parts: string[] = [];
@@ -39,20 +70,19 @@ function stepHtml(step: Step, n: number, images: ImageSource, includeUrls: boole
   parts.push(`<div><h2>${renderInlineHtml(step.title.trim() || "Step", { smartQuotes: true })}</h2>`);
   if (step.description?.trim()) parts.push(`<div class="desc">${renderMarkdownHtml(step.description, { smartQuotes: true })}</div>`);
   parts.push("</div>");
-  const showUrl = includeUrls && !!step.page.url;
+  void includeUrls;
   if (bytes || showUrl) {
     parts.push("<figure>");
     if (bytes && shot) {
       const size = pngSize(bytes) ?? { width: shot.crop?.width ?? shot.width, height: shot.crop?.height ?? shot.height };
       const alt = `Screenshot of step ${n}: ${plainTitle(step.title)}`;
-      parts.push(
-        `<div class="frame"><img src="data:${sniffImageMime(bytes)};base64,${bytesToBase64(bytes)}" width="${Math.round(size.width)}" height="${Math.round(size.height)}" alt="${escapeHtml(alt)}" decoding="async"></div>`,
-      );
+      const img = `<img src="data:${sniffImageMime(bytes)};base64,${bytesToBase64(bytes)}" width="${Math.round(size.width)}" height="${Math.round(size.height)}" alt="${escapeHtml(alt)}" decoding="async">`;
+      const zoom = detail ? detailImage(step, n, shot ? raw[shot.image] : undefined, color) : undefined;
+      parts.push(`<div class="frame">${zoom ? `<picture><source media="(max-width: 600px)" srcset="data:image/png;base64,${bytesToBase64(zoom)}">${img}</picture>` : img}</div>`);
     }
     if (showUrl) {
-      const u = displayUrl(step.page.url);
       // Plain text on purpose: the file makes no requests and links to nothing but what the author wrote.
-      parts.push(`<figcaption>${LINK_ICON}<span class="mono">${escapeHtml(u)}</span></figcaption>`);
+      parts.push(`<figcaption>${LINK_ICON}<span class="mono">${escapeHtml(displayUrl(step.page.url))}</span></figcaption>`);
     }
     parts.push("</figure>");
   }
@@ -74,7 +104,8 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
 
   const facts: string[] = [];
   const firstUrl = steps.find((s) => s.page.url)?.page.url;
-  if (includeUrls && firstUrl) {
+  // "Starts at" would repeat step 1's caption when step 1 is a navigation
+  if (includeUrls && firstUrl && steps[0]?.action.type !== "navigate") {
     const host = /^https?:\/\/([^/?#]+)/i.exec(firstUrl)?.[1];
     if (host) facts.push(`<div><b>Starts at</b>${escapeHtml(host)}</div>`);
   }
@@ -93,7 +124,15 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
   html.push(`<style>${opts.embedFonts === false ? "" : HTML_FONT_FACES}${HTML_CSS}${opts.css ? "\n" + opts.css : ""}</style>`);
   html.push("</head>");
   html.push("<body>");
+  const withToc = steps.length > 8;
   html.push("<main>");
+  html.push(`<div class="cols${withToc ? " with-toc" : ""}">`);
+  if (withToc) {
+    html.push('<nav class="toc" aria-label="Steps"><ol>');
+    steps.forEach((s, i) => html.push(`<li><a href="#step-${i + 1}"><span class="n">${i + 1}</span>${escapeHtml(typographicQuotes(truncate(plainTitle(s.title), 44)))}</a></li>`));
+    html.push("</ol></nav>");
+  }
+  html.push('<div class="content">');
   html.push("<header>");
   html.push(`<div class="eyebrow"><span class="flag sm" aria-hidden="true">${steps.length}</span><span class="mono">${steps.length === 1 ? "STEP" : "STEPS"} · ${minutes(steps.length)}</span></div>`);
   html.push(`<h1>${escapeHtml(title)}</h1>`);
@@ -101,11 +140,22 @@ export function exportHtml(guide: Guide, images: ImageSource, opts: HtmlOptions 
   if (facts.length) html.push(`<div class="facts">${facts.join("")}</div>`);
   html.push("</header>");
   html.push('<ol class="steps">');
-  steps.forEach((s, i) => html.push(stepHtml(s, i + 1, rendered, includeUrls)));
+  const color = opts.highlightColor ?? guide.settings?.highlightColor ?? DEFAULT_HIGHLIGHT_COLOR;
+  const detail = opts.detailImages !== false && !opts.imagesPrerendered;
+  let lastUrl = "";
+  steps.forEach((s, i) => {
+    const u = s.page.url ? displayUrl(s.page.url) : "";
+    const showUrl = includeUrls && !!u && u !== lastUrl;
+    if (u) lastUrl = u;
+    html.push(stepHtml(s, i + 1, rendered, images, includeUrls, showUrl, detail, color));
+  });
   html.push("</ol>");
-  if (opts.branding !== false) {
+  html.push(`<div class="done"><span class="tick" aria-hidden="true">${CHECK_ICON}</span><div><h2>That\u2019s it</h2></div></div>`);
+  if (opts.branding === true) {
     html.push(`<footer><span>Made with ${PRODUCT_NAME} · ${escapeHtml(SITE_URL.replace(/^https?:\/\//, ""))}</span><span class="mono">${escapeHtml(formatDate(guide.updatedAt || guide.createdAt))}</span></footer>`);
   }
+  html.push("</div>");
+  html.push("</div>");
   html.push("</main>");
   html.push("</body>");
   html.push("</html>");

@@ -23,7 +23,7 @@ The recording never stored the values typed into these fields. Provide them as e
 
 ## Steps
 
-1. Go to **Sign in – Acme Books**
+1. Go to **Sign in** on Acme Books
    - Tab 1
    - URL: http://127.0.0.1:4517/index.html
 2. Type "jane@example.com" in **Email**
@@ -67,5 +67,3 @@ The recording never stored the values typed into these fields. Provide them as e
 
 - `replay.spec.ts`: Playwright test for the whole flow.
 - `steps.json`: machine-readable steps (format `showsteps-steps`, version 1).
-
-Made with [Showsteps](https://showsteps.vercel.app).

@@ -130,7 +130,7 @@ export const FLAG = {
   haloWidth: 2,
   pad: 4,
   radius: 8,
-  spotlightDim: [28, 18, 12, 0.16] as [number, number, number, number],
+  spotlightDim: [28, 18, 12, 0.12] as [number, number, number, number],
   tab: { height: 24, minWidth: 27, paddingX: 8.5, cornerRadius: 7, fillet: 7, fontSizeRatio: 0.6 },
 } as const;
 
@@ -147,4 +147,23 @@ export function highlightScale(viewportCssWidth: number, devicePixelRatio: numbe
 export function defaultHighlightMetrics(devicePixelRatio: number, viewportCssWidth = 0): { pad: number; radius: number; stroke: number } {
   const k = highlightScale(viewportCssWidth, devicePixelRatio);
   return { pad: Math.round(FLAG.pad * k), radius: Math.round(FLAG.radius * k), stroke: Math.max(2, Math.round(FLAG.ringWidth * k)) };
+}
+
+/**
+ * The window a list thumbnail or a phone-sized detail image shows: 16:10, centred on the highlight ring.
+ * Width is the largest of 3 x the ring width, 0.4 x the image width and 480 image px, clamped inside the
+ * image (shrunk, keeping 16:10, if the image is too small). Whole pixels.
+ */
+export function focusFrame(highlight: Rect, image: Size, scale = 1): Rect {
+  const pad = FLAG.pad * scale;
+  const ringW = highlight.width + pad * 2;
+  const cx = highlight.x + highlight.width / 2, cy = highlight.y + highlight.height / 2;
+  let w = Math.max(3 * ringW, 0.4 * image.width, 480);
+  let h = w / 1.6;
+  if (w > image.width) { w = image.width; h = w / 1.6; }
+  if (h > image.height) { h = image.height; w = h * 1.6; }
+  w = Math.round(w); h = Math.round(h);
+  const x = Math.round(Math.min(Math.max(cx - w / 2, 0), image.width - w));
+  const y = Math.round(Math.min(Math.max(cy - h / 2, 0), image.height - h));
+  return { x, y, width: w, height: h };
 }

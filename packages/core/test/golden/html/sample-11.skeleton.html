@@ -16,19 +16,22 @@
   --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
   --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
   --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
-  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-accent: #EB4E26; --ss-accent-strong: #D13F19; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-ok: #217A4F; --ss-ok-soft: #E1F2E8;
   --ss-radius-md: 10px; --ss-radius-lg: 14px;
   --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
   --ss-guide-measure: 820px; color-scheme: light; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
   --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
   --ss-line: #2F2B28; --ss-line-2: #3D3935;
-  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-accent: #FF6337; --ss-accent-strong: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-ok: #5BC98C; --ss-ok-soft: #173024;
   --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; } }
 :root[data-theme="dark"] { --ss-bg: #141312; --ss-surface: #1C1A18; --ss-surface-2: #25221F;
   --ss-ink: #F3EFEA; --ss-ink-2: #B9B0A6; --ss-ink-3: #8F867C;
   --ss-line: #2F2B28; --ss-line-2: #3D3935;
-  --ss-accent: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-accent: #FF6337; --ss-accent-strong: #FF6337; --ss-accent-ink: #FF8D6A; --ss-accent-soft: #3A1F16; --ss-on-accent: #1A0B05;
+  --ss-ok: #5BC98C; --ss-ok-soft: #173024;
   --ss-shadow-2: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -10px rgba(0, 0, 0, .6); color-scheme: dark; }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -43,12 +46,12 @@ pre code { background: none; padding: 0; }
 blockquote { margin: 12px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--ss-line-2); color: var(--ss-ink-2); }
 .mono { font-family: var(--ss-font-mono); font-size: 12px; letter-spacing: -.01em; }
 
-.flag { display: inline-grid; place-items: center; min-width: 36px; height: 32px; padding: 0 9px; background: var(--ss-accent); color: var(--ss-on-accent);
+.flag { display: inline-grid; place-items: center; min-width: 36px; height: 32px; padding: 0 9px; background: var(--ss-accent-strong); color: var(--ss-on-accent);
   font: 700 17px/1 var(--ss-font-ui); font-variant-numeric: tabular-nums; border-radius: 9px 9px 9px 3px; }
 .flag.sm { min-width: 20px; height: 20px; padding: 0 5px; font-size: 11px; border-radius: 6px 6px 6px 2px; }
 
 .eyebrow { display: flex; gap: 10px; align-items: center; color: var(--ss-ink-3); text-transform: uppercase; }
-h1 { margin: 18px 0 0; font: 750 44px/1.08 var(--ss-font-ui); letter-spacing: -.03em; text-wrap: balance; max-width: 18ch; overflow-wrap: anywhere; }
+h1 { margin: 18px 0 0; font: 750 44px/1.08 var(--ss-font-ui); letter-spacing: -.03em; text-wrap: balance; max-width: 20ch; overflow-wrap: anywhere; }
 .lede { margin-top: 16px; font-size: 18px; line-height: 1.55; color: var(--ss-ink-2); max-width: 60ch; }
 .lede p { margin: 0 0 .6em; }
 .facts { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 0; border-top: 1px solid var(--ss-line); border-bottom: 1px solid var(--ss-line); font-size: 13.5px; color: var(--ss-ink-2); }
@@ -73,14 +76,34 @@ figcaption a:hover { text-decoration: underline; }
 .step.note h2 { font-weight: 600; }
 .step.note .flag { background: var(--ss-surface-2); color: var(--ss-ink-2); }
 
+.done { margin-top: 64px; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 8px; align-items: center; }
+.done .tick { display: inline-grid; place-items: center; width: 36px; height: 32px; border-radius: 9px 9px 9px 3px; background: var(--ss-ok-soft); color: var(--ss-ok); }
+.done .tick svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.done h2 { margin: 0; font: 600 22px/1.3 var(--ss-font-ui); }
+
+.toc { display: none; }
+@media (min-width: 1100px) {
+  main:has(.with-toc) { max-width: 1160px; }
+  .cols.with-toc { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; align-items: start; }
+  .cols.with-toc .toc { display: block; position: sticky; top: 32px; max-height: calc(100vh - 64px); overflow: auto; font-size: 13px; line-height: 1.35; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .toc a { display: grid; grid-template-columns: 24px 1fr; gap: 6px; padding: 5px 8px; border-radius: 8px; color: var(--ss-ink-2); text-decoration: none; }
+  .toc a:hover { background: var(--ss-surface-2); color: var(--ss-ink); }
+  .toc .n { font: 500 12px/1.4 var(--ss-font-mono); color: var(--ss-ink-3); font-variant-numeric: tabular-nums; }
+}
+
 footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--ss-line); color: var(--ss-ink-3); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; }
 footer a { color: inherit; }
 
 @media (max-width: 600px) {
   main { padding: 40px 16px 64px; }
   h1 { font-size: 32px; }
-  .step { grid-template-columns: 1fr; row-gap: 8px; }
+  .step { grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; }
+  .step .flag { min-width: 28px; height: 26px; padding: 0 6px; font-size: 14px; border-radius: 8px 8px 8px 2.5px; }
   .step h2 { font-size: 19px; }
+  .done { grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; }
+  .done .tick { width: 28px; height: 26px; }
+  .done h2 { font-size: 19px; }
 }
 
 @media print {
@@ -89,7 +112,8 @@ footer a { color: inherit; }
   --ss-bg: #F4F2EE; --ss-surface: #FFFFFF; --ss-surface-2: #ECE9E4;
   --ss-ink: #1F1C19; --ss-ink-2: #57514B; --ss-ink-3: #736B63;
   --ss-line: #E0DCD6; --ss-line-2: #D2CDC6;
-  --ss-accent: #EB4E26; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-accent: #EB4E26; --ss-accent-strong: #D13F19; --ss-accent-ink: #B63A14; --ss-accent-soft: #FCE6DD; --ss-on-accent: #FFFFFF;
+  --ss-ok: #217A4F; --ss-ok-soft: #E1F2E8;
   --ss-radius-md: 10px; --ss-radius-lg: 14px;
   --ss-shadow-2: 0 1px 2px rgba(31, 28, 25, .06), 0 8px 24px -8px rgba(31, 28, 25, .18);
   --ss-guide-measure: 820px; --ss-bg: #fff; --ss-shadow-2: none; color-scheme: light; }
@@ -106,6 +130,9 @@ footer a { color: inherit; }
   .frame { box-shadow: none; }
   .frame img { max-height: 200mm; width: auto; max-width: 100%; margin: 0 auto; }
   .facts, .eyebrow { break-after: avoid; }
+  .toc { display: none !important; }
+  .cols.with-toc { display: block !important; }
+  .done { break-inside: avoid; }
   a { color: inherit; text-decoration: none; }
   footer { margin-top: 28pt; break-inside: avoid; }
 }
@@ -113,26 +140,43 @@ footer a { color: inherit; }
 </head>
 <body>
 <main>
+<div class="cols with-toc">
+<nav class="toc" aria-label="Steps"><ol>
+<li><a href="#step-1"><span class="n">1</span>Go to Sign in on Acme Books</a></li>
+<li><a href="#step-2"><span class="n">2</span>Type “jane@example.com” in Email</a></li>
+<li><a href="#step-3"><span class="n">3</span>Enter your password</a></li>
+<li><a href="#step-4"><span class="n">4</span>Click Sign in</a></li>
+<li><a href="#step-5"><span class="n">5</span>Click Help centre</a></li>
+<li><a href="#step-6"><span class="n">6</span>Search for “invoices”</a></li>
+<li><a href="#step-7"><span class="n">7</span>Click Reports</a></li>
+<li><a href="#step-8"><span class="n">8</span>Click Settings</a></li>
+<li><a href="#step-9"><span class="n">9</span>Select Yearly in Billing period</a></li>
+<li><a href="#step-10"><span class="n">10</span>Check Email me invoices</a></li>
+<li><a href="#step-11"><span class="n">11</span>Click Save</a></li>
+</ol></nav>
+<div class="content">
 <header>
 <div class="eyebrow"><span class="flag sm" aria-hidden="true">11</span><span class="mono">STEPS · ABOUT 4 MINUTES</span></div>
 <h1>Sign in, ask for help, and update billing in Acme Books</h1>
 <div class="lede"><p>Sign in, look something up in the help centre in a second tab, then switch the <b>billing period</b> to yearly and save.</p></div>
-<div class="facts"><div><b>Starts at</b>127.0.0.1:4517</div><div><b>Created</b>28 September 2026</div></div>
+<div class="facts"><div><b>Created</b>28 September 2026</div></div>
 </header>
 <ol class="steps">
-<li class="step" id="step-1"><span class="flag" aria-hidden="true">1</span><div><h2>Go to <b>Sign in – Acme Books</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 1: Go to Sign in – Acme Books" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
-<li class="step" id="step-2"><span class="flag" aria-hidden="true">2</span><div><h2>Type “jane@example.com” in <b>Email</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 2: Type &quot;jane@example.com&quot; in Email" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
-<li class="step" id="step-3"><span class="flag" aria-hidden="true">3</span><div><h2>Enter your password</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 3: Enter your password" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
-<li class="step" id="step-4"><span class="flag" aria-hidden="true">4</span><div><h2>Click <b>Sign in</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 4: Click Sign in" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
-<li class="step" id="step-5"><span class="flag" aria-hidden="true">5</span><div><h2>Click <b>Help centre</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 5: Click Help centre" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
+<li class="step" id="step-1"><span class="flag" aria-hidden="true">1</span><div><h2>Go to <b>Sign in</b> on Acme Books</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 1: Go to Sign in on Acme Books" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/index.html</span></figcaption></figure></li>
+<li class="step" id="step-2"><span class="flag" aria-hidden="true">2</span><div><h2>Type “jane@example.com” in <b>Email</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 2: Type &quot;jane@example.com&quot; in Email" decoding="async"></div></figure></li>
+<li class="step" id="step-3"><span class="flag" aria-hidden="true">3</span><div><h2>Enter your password</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 3: Enter your password" decoding="async"></div></figure></li>
+<li class="step" id="step-4"><span class="flag" aria-hidden="true">4</span><div><h2>Click <b>Sign in</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 4: Click Sign in" decoding="async"></picture></div></figure></li>
+<li class="step" id="step-5"><span class="flag" aria-hidden="true">5</span><div><h2>Click <b>Help centre</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 5: Click Help centre" decoding="async"></picture></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
 <li class="step" id="step-6"><span class="flag" aria-hidden="true">6</span><div><h2>Search for “invoices”</h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 6: Search for &quot;invoices&quot;" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/help.html</span></figcaption></figure></li>
-<li class="step" id="step-7"><span class="flag" aria-hidden="true">7</span><div><h2>Click <b>Reports</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 7: Click Reports" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
-<li class="step" id="step-8"><span class="flag" aria-hidden="true">8</span><div><h2>Click <b>Settings</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 8: Click Settings" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard/reports</span></figcaption></figure></li>
-<li class="step" id="step-9"><span class="flag" aria-hidden="true">9</span><div><h2>Select <b>Yearly</b> in <b>Billing period</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 9: Select Yearly in Billing period" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
-<li class="step" id="step-10"><span class="flag" aria-hidden="true">10</span><div><h2>Check <b>Email me invoices</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 10: Check Email me invoices" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
-<li class="step" id="step-11"><span class="flag" aria-hidden="true">11</span><div><h2>Click <b>Save</b></h2></div><figure><div class="frame"><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 11: Click Save" decoding="async"></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
+<li class="step" id="step-7"><span class="flag" aria-hidden="true">7</span><div><h2>Click <b>Reports</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 7: Click Reports" decoding="async"></picture></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard.html</span></figcaption></figure></li>
+<li class="step" id="step-8"><span class="flag" aria-hidden="true">8</span><div><h2>Click <b>Settings</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 8: Click Settings" decoding="async"></picture></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/dashboard/reports</span></figcaption></figure></li>
+<li class="step" id="step-9"><span class="flag" aria-hidden="true">9</span><div><h2>Select <b>Yearly</b> in <b>Billing period</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 9: Select Yearly in Billing period" decoding="async"></picture></div><figcaption><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5a3 3 0 004.2 0l3-3a3 3 0 00-4.2-4.2l-1 1M11.5 8.5a3 3 0 00-4.2 0l-3 3a3 3 0 004.2 4.2l1-1"/></svg><span class="mono">http://127.0.0.1:4517/settings.html</span></figcaption></figure></li>
+<li class="step" id="step-10"><span class="flag" aria-hidden="true">10</span><div><h2>Check <b>Email me invoices</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 10: Check Email me invoices" decoding="async"></picture></div></figure></li>
+<li class="step" id="step-11"><span class="flag" aria-hidden="true">11</span><div><h2>Click <b>Save</b></h2></div><figure><div class="frame"><picture><source media="(max-width: 600px)" srcset="data:image/png;base64,..."><img src="data:image/png;base64,..." width="2880" height="1800" alt="Screenshot of step 11: Click Save" decoding="async"></picture></div></figure></li>
 </ol>
-<footer><span>Made with Showsteps · showsteps.vercel.app</span><span class="mono">28 September 2026</span></footer>
+<div class="done"><span class="tick" aria-hidden="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></span><div><h2>That’s it</h2></div></div>
+</div>
+</div>
 </main>
 </body>
 </html>

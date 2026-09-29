@@ -35,7 +35,7 @@ export const highlight = {
   /** Ring corner radius, clamped to half the ring's height/width. */
   radius: 8,
   /** Spotlight: everything outside the ring is dimmed with this colour. 0 alpha disables it. */
-  spotlightDim: "rgba(28,18,12,0.16)",
+  spotlightDim: "rgba(28,18,12,0.12)",
   /** Stronger dim for thumbnails under ~480 CSS px wide (side panel). */
   spotlightDimThumb: "rgba(28,18,12,0.24)",
   tab: {
@@ -75,12 +75,26 @@ export type Corner = "top-right" | "top-left" | "bottom-right" | "bottom-left";
  * top-left of controls, so the top-right corner is usually empty. Flip below when the tab would leave
  * the image at the top; move to the left side when the ring reaches the right edge of the image.
  */
-export function tabCorner(ring: Box, tabW: number, tabH: number, imageW: number, rtl = false): Corner {
-  const vertical = ring.y - tabH < 0 ? "bottom" : "top";
-  let side: "left" | "right" = rtl ? "left" : "right";
+export function tabCorner(ring: Box, tabW: number, tabH: number, imageW: number, rtl = false, stored?: Corner): Corner {
+  // `stored` is the corner the recorder picked at capture (least text under the tab). Edge rules still win:
+  // the tab must stay inside the image.
+  let vertical: "top" | "bottom" = stored ? (stored.startsWith("top") ? "top" : "bottom") : "top";
+  if (vertical === "top" && ring.y - tabH < 0) vertical = "bottom";
+  let side: "left" | "right" = stored ? (stored.endsWith("left") ? "left" : "right") : rtl ? "left" : "right";
   if (side === "right" && ring.x + ring.width + tabW * 0.25 > imageW) side = "left";
   if (side === "left" && ring.x - tabW * 0.25 < 0) side = "right";
   return `${vertical}-${side}` as Corner;
+}
+
+/**
+ * Smallest ring box that can carry the tab without the tab or its fillet leaving the ring: width at least
+ * tab width + 2 x radius + 4 CSS px, height at least 0.75 x tab height. Grown symmetrically around `box`.
+ */
+export function minRingBox(box: Box, tabW: number, tabH: number, radius: number, scale: number): Box {
+  const minW = tabW + 2 * radius + 4 * scale;
+  const minH = 0.75 * tabH;
+  const w = Math.max(box.width, minW), h = Math.max(box.height, minH);
+  return { x: box.x - (w - box.width) / 2, y: box.y - (h - box.height) / 2, width: w, height: h };
 }
 
 /** Minimal 2D context shape (CanvasRenderingContext2D, OffscreenCanvasRenderingContext2D, @napi-rs/canvas). */
@@ -109,6 +123,8 @@ export interface FlagOptions {
   /** Override the dim (e.g. highlight.spotlightDimThumb) or pass "transparent" to disable. */
   dim?: string;
   rtl?: boolean;
+  /** Corner stored at capture (`screenshot.highlight.corner`); the tab uses it when present. */
+  corner?: Corner;
 }
 
 /** Rounded rectangle with per-corner radii, clockwise from top-left. */
@@ -129,15 +145,18 @@ function roundRect(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: [n
 export function drawFlagHighlight(ctx: Ctx2D, o: FlagOptions): void {
   const H = highlight, k = o.scale, color = o.color ?? H.color;
   const pad = H.pad * k, sw = H.ringWidth * k, halo = H.haloWidth * k;
-  const x = o.target.x - pad, y = o.target.y - pad, w = o.target.width + pad * 2, h = o.target.height + pad * 2;
-  const rad = Math.min(H.radius * k, h / 2, w / 2);
   const th = H.tab.height * k, fs = th * H.tab.fontSizeRatio, rt = H.tab.cornerRadius * k, f = H.tab.fillet * k;
   const label = String(o.n);
 
   ctx.save();
   ctx.font = `${H.tab.fontWeight} ${fs}px ${H.tab.fontFamily}`;
   const tw = Math.max(H.tab.minWidth * k, ctx.measureText(label).width + H.tab.paddingX * 2 * k);
-  const corner = tabCorner({ x, y, width: w, height: h }, tw, th, o.imageWidth, o.rtl);
+  // The ring is the target plus padding, grown if needed so the tab always fits on it (small targets such as checkboxes).
+  const padded = { x: o.target.x - pad, y: o.target.y - pad, width: o.target.width + pad * 2, height: o.target.height + pad * 2 };
+  const ringBox = minRingBox(padded, tw, th, H.radius * k, k);
+  const x = ringBox.x, y = ringBox.y, w = ringBox.width, h = ringBox.height;
+  const rad = Math.min(H.radius * k, h / 2, w / 2);
+  const corner = tabCorner({ x, y, width: w, height: h }, tw, th, o.imageWidth, o.rtl, o.corner);
   const top = corner.startsWith("top"), right = corner.endsWith("right");
 
   // 1. spotlight dim with the ring's box cut out

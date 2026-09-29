@@ -52,7 +52,7 @@ const SPECS: Spec[] = [
     tab: 1,
     step: {
       action: { type: "navigate", url: "https://app.acme.test/login" },
-      title: "Go to **Sign in – Acme**",
+      title: "Go to **Sign in** on Acme",
       page: { url: "https://app.acme.test/login", title: "Sign in – Acme" },
     },
   },
@@ -79,7 +79,7 @@ const SPECS: Spec[] = [
     tab: 1,
     highlight: { x: 20, y: 46, width: 120, height: 10 },
     targetColor: [34, 34, 34],
-    redactions: [{ rect: { x: 16, y: 42, width: 128, height: 18 }, style: "blur", auto: true }],
+    redactions: [{ rect: { x: 16, y: 42, width: 128, height: 18 }, style: "mask", auto: true }],
     step: {
       action: { type: "type", value: "", masked: true },
       target: {
@@ -187,7 +187,7 @@ const SPECS: Spec[] = [
     tab: 2,
     step: {
       action: { type: "navigate", url: "https://help.acme.test/invoices" },
-      title: "Go to **Invoices – Acme Help**",
+      title: "Go to **Invoices** on Acme Help",
       page: { url: "https://help.acme.test/invoices", title: "Invoices – Acme Help" },
     },
   },

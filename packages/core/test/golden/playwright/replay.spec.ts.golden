@@ -10,7 +10,7 @@ test("Update billing settings in Acme", async ({ context }) => {
   const page = await context.newPage();
   let page2!: Page;
 
-  await test.step("1. Go to Sign in – Acme", async () => {
+  await test.step("1. Go to Sign in on Acme", async () => {
     await page.goto("https://app.acme.test/login");
     await expect(page).toHaveURL(/^https:\/\/app\.acme\.test\/login\/?(?:[?#].*)?$/);
   });
@@ -43,7 +43,7 @@ test("Update billing settings in Acme", async ({ context }) => {
     [page2] = await Promise.all([context.waitForEvent("page"), page.frameLocator('iframe[name="card-frame"]').getByRole("button", { name: "Pay now" }).click()]);
   });
 
-  await test.step("9. Go to Invoices – Acme Help", async () => {
+  await test.step("9. Go to Invoices on Acme Help", async () => {
     await page2.waitForLoadState("domcontentloaded");
     await expect(page2).toHaveURL(/^https:\/\/help\.acme\.test\/invoices\/?(?:[?#].*)?$/);
   });

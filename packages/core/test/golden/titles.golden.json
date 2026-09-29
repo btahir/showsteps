@@ -1834,7 +1834,7 @@
     "expected": "Press a key in **Password**"
   },
   {
-    "name": "navigate uses page title",
+    "name": "navigate uses page name and names the site",
     "tags": [
       "navigate"
     ],
@@ -1848,7 +1848,75 @@
         "title": "Settings – Acme"
       }
     },
-    "expected": "Go to **Settings – Acme**"
+    "expected": "Go to **Settings** on Acme"
+  },
+  {
+    "name": "navigate with a title that has no site part",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://app.acme.test/settings"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Settings"
+      }
+    },
+    "expected": "Go to **Settings**"
+  },
+  {
+    "name": "navigate splits on a pipe and takes the last part as the site",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://x.test"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Pricing | Plans | Acme Books"
+      }
+    },
+    "expected": "Go to **Pricing** on Acme Books"
+  },
+  {
+    "name": "navigate splits on a hyphen with spaces",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://x.test"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Inbox - Mail"
+      }
+    },
+    "expected": "Go to **Inbox** on Mail"
+  },
+  {
+    "name": "navigate keeps a hyphen inside a word",
+    "tags": [
+      "navigate"
+    ],
+    "step": {
+      "action": {
+        "type": "navigate",
+        "url": "https://x.test"
+      },
+      "page": {
+        "url": "https://app.acme.test/x",
+        "title": "Sign-in"
+      }
+    },
+    "expected": "Go to **Sign-in**"
   },
   {
     "name": "navigate falls back to hostname",

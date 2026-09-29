@@ -15,6 +15,8 @@ export interface AgentSkillOptions extends ImageRenderOptions {
   name?: string;
   /** Override the frontmatter `description` (max 1024 characters). */
   description?: string;
+  /** Add a small "Made with Showsteps" credit at the end of SKILL.md. Default false. */
+  branding?: boolean;
 }
 
 /** JSON Schema (draft 2020-12) of `steps.json`; same file as packages/core/schema/steps.schema.json. */
@@ -231,7 +233,8 @@ function buildSkillMd(guide: Guide, json: StepsJson, opts: AgentSkillOptions, ha
   });
   L.push("", "## Files", "", "- `replay.spec.ts`: Playwright test for the whole flow.", `- \`steps.json\`: machine-readable steps (format \`${STEPS_JSON_FORMAT}\`, version ${STEPS_JSON_VERSION}).`);
   if (hasImages) L.push("- `images/`: one screenshot per step, with the target highlighted and sensitive fields covered.");
-  L.push("", `Made with [${PRODUCT_NAME}](${SITE_URL}).`, "");
+  L.push("");
+  if (opts.branding === true) L.push(`Made with [${PRODUCT_NAME}](${SITE_URL}).`, "");
   return L.join("\n");
 }
 

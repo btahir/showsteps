@@ -3,7 +3,7 @@
 // baked for DOCX or handed back for vector drawing in the PDF). Pixel work is core's raster.ts.
 // Pure TS: no DOM, no Node-only APIs.
 
-import type { Guide, Rect, Step } from "../schema";
+import type { Guide, Rect, Step, TabCorner } from "../schema";
 import { highlightScale } from "../geometry";
 import { DEFAULT_HIGHLIGHT_COLOR, imageSpace, renderStepImage } from "../raster";
 import { pngSize } from "../png";
@@ -32,7 +32,7 @@ export interface DocExportOptions {
    * number, e.g. by the extension's canvas renderer). They are embedded untouched.
    */
   imagesPrerendered?: boolean;
-  /** Print "Made with Showsteps" on the cover / title block. Default true. */
+  /** Add a small "Made with Showsteps" credit. Default false (opt-in). */
   branding?: boolean;
   /**
    * Clock for the document's creation and modification dates. Default: the guide's own
@@ -49,6 +49,8 @@ export type RGB = { r: number; g: number; b: number };
 export { DEFAULT_HIGHLIGHT_COLOR };
 /** Brand accent (persimmon) and neutrals, from packages/brand tokens (light theme). */
 export const ACCENT_COLOR: RGB = { r: 0xeb, g: 0x4e, b: 0x26 };
+/** Fill for markers with white text on them (brand accent-strong: 4.7:1 with white). */
+export const ACCENT_STRONG: RGB = { r: 0xd1, g: 0x3f, b: 0x19 };
 /** Redaction fill (brand `redactSolidColor`). */
 export const REDACTION_COLOR: RGB = { r: 0x1f, g: 0x1c, b: 0x19 };
 
@@ -157,12 +159,15 @@ export function parseBlocks(md: string | undefined): Block[] {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "28 Sep 2026" in UTC; locale-independent so output is reproducible. "" if unparseable. */
+/**
+ * "28 Sep 2026", read from the date part of the ISO string as written (the extension writes local-offset
+ * timestamps, so this is the user's own day). No time zone conversion, so it is deterministic. "" if unparseable.
+ */
 export function formatDate(iso: string | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  const m = iso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) : null;
+  if (!m) return "";
+  const month = MONTHS[Number(m[2]) - 1];
+  return month ? `${Number(m[3])} ${month} ${m[1]}` : "";
 }
 
 export function stepCountLabel(n: number): string {
@@ -274,6 +279,8 @@ export interface PreparedImage {
   height: number;
   /** Highlight target in prepared-image pixels, when the caller still has to draw it (vector mode). */
   highlight?: Rect;
+  /** Corner the recorder stored for the tab, if any. */
+  corner?: TabCorner;
   /** Scale (image px per CSS px) for the highlight geometry, when `highlight` is set. */
   highlightScale?: number;
 }
@@ -321,6 +328,8 @@ export function prepareStepImage(step: Step, bytes: Uint8Array, opts: PrepareOpt
       hl = { x: hl.x - space.crop.x, y: hl.y - space.crop.y, width: hl.width, height: hl.height };
     }
     prepared.highlight = hl;
+    const stored = (shot.highlight as { corner?: TabCorner }).corner;
+    if (stored) prepared.corner = stored;
     prepared.highlightScale = highlightScale(shot.viewport.width, shot.devicePixelRatio) * Math.max(shot.width > 0 ? info.width / shot.width : 1, shot.height > 0 ? info.height / shot.height : 1);
   }
   return prepared;

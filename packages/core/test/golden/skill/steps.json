@@ -40,8 +40,8 @@
         "replayable": true
       },
       "shadow": [],
-      "title": "Go to Sign in – Acme",
-      "titleMarkdown": "Go to **Sign in – Acme**"
+      "title": "Go to Sign in on Acme",
+      "titleMarkdown": "Go to **Sign in** on Acme"
     },
     {
       "action": {
@@ -334,8 +334,8 @@
         "replayable": true
       },
       "shadow": [],
-      "title": "Go to Invoices – Acme Help",
-      "titleMarkdown": "Go to **Invoices – Acme Help**"
+      "title": "Go to Invoices on Acme Help",
+      "titleMarkdown": "Go to **Invoices** on Acme Help"
     },
     {
       "action": {

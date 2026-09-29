@@ -91,7 +91,7 @@ const hasPixel = (img: { data: Uint8Array }, rgb: [number, number, number]) => {
 // ---- tests ------------------------------------------------------------------------------------
 
 describe("exportPdf", () => {
-  it("produces a valid PDF with metadata, cover and one block per active step", async () => {
+  it("produces a valid PDF with metadata, a title block on page 1 and one block per active step", async () => {
     const { guide, images } = makeGuide();
     const bytes = await exportPdf(guide, images);
     expect(Buffer.from(bytes.subarray(0, 5)).toString()).toBe("%PDF-");
@@ -99,13 +99,14 @@ describe("exportPdf", () => {
     expect(doc.getTitle()).toBe("Change your billing settings");
     expect(doc.getAuthor()).toBe("Showsteps");
     expect(doc.getCreationDate()?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
-    expect(pages.length).toBeGreaterThanOrEqual(2);
-    const cover = pages[0]!.text;
-    expect(cover).toContain("Change your billing settings");
-    expect(cover).toContain("A four step walkthrough for admins.");
-    expect(cover).toContain("4 steps");
-    expect(cover).toContain("28 Sep 2026");
-    const body = pages.slice(1).map((p) => p.text).join("\n");
+    // no cover page: page 1 has the eyebrow, the title, the description and step 1
+    const first = pages[0]!.text;
+    expect(first).toContain("Change your billing settings");
+    expect(first).toContain("A four step walkthrough for admins.");
+    expect(first).toContain("STEPS \u00b7 ABOUT 2 MINUTES");
+    expect(first).toContain("Go to Settings \u2013 Acme");
+    expect(pages[0]!.images).toBeGreaterThanOrEqual(1);
+    const body = pages.map((p) => p.text).join("\n");
     for (const t of ["Go to Settings – Acme", "Click Save", "Type in Password", "Press Enter"]) expect(body).toContain(t);
     expect(body).toContain("Saving applies the change immediately.");
     expect(body).toContain("Everyone on the team sees it");
@@ -191,7 +192,7 @@ describe("exportPdf", () => {
     const { pages } = await inspect(await exportPdf(guide, images));
     expect(pages.length).toBeGreaterThan(4);
     let titles = 0;
-    for (const p of pages.slice(1)) {
+    for (const p of pages) {
       const onPage = (p.text.match(/^Click Item \d+$/gm) ?? []).length;
       titles += onPage;
       expect(p.images).toBe(onPage); // every title on a page has its image on that same page
@@ -209,14 +210,14 @@ describe("exportPdf", () => {
       makeStep(3, { title: "Click **日本語 ok**" }), // renders as ??? (default font is Latin)
     ];
     const { pages } = await inspect(await exportPdf(guide, images));
-    const body = pages.slice(1).map((p) => p.text).join("\n");
+    const body = pages.map((p) => p.text).join("\n");
     expect(body).toContain("Read this note first");
-    expect(body).toContain("Screenshot unavailable");
+    expect(body).not.toContain("Screenshot unavailable"); // a step without an image simply has none
     expect(body).toContain("Click ??? ok");
     guide.steps = [];
     const empty = await inspect(await exportPdf(guide, images));
     expect(empty.pages).toHaveLength(1);
-    expect(empty.pages[0]!.text).toContain("0 steps");
+    expect(empty.pages[0]!.text).toContain("STEPS \u00b7 ABOUT 1 MINUTE");
   });
 
   it("accepts a custom font parameter", async () => {

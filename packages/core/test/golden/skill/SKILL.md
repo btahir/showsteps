@@ -23,7 +23,7 @@ The recording never stored the values typed into these fields. Provide them as e
 
 ## Steps
 
-1. Go to **Sign in – Acme**
+1. Go to **Sign in** on Acme
    - Tab 1
    - URL: https://app.acme.test/login
 2. Type "jane@example.com" in **Email**
@@ -52,7 +52,7 @@ The recording never stored the values typed into these fields. Provide them as e
 8. Click **Pay now**
    - Find it by: role "button" named "Pay now" inside iframe `iframe[name="card-frame"]`
    - Tab 1
-9. Go to **Invoices – Acme Help**
+9. Go to **Invoices** on Acme Help
    - Tab 2
    - URL: https://help.acme.test/invoices
 10. Press **Enter** to search
@@ -63,5 +63,3 @@ The recording never stored the values typed into these fields. Provide them as e
 
 - `replay.spec.ts`: Playwright test for the whole flow.
 - `steps.json`: machine-readable steps (format `showsteps-steps`, version 1).
-
-Made with [Showsteps](https://showsteps.vercel.app).

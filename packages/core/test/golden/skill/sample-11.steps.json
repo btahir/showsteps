@@ -40,8 +40,8 @@
         "replayable": true
       },
       "shadow": [],
-      "title": "Go to Sign in – Acme Books",
-      "titleMarkdown": "Go to **Sign in – Acme Books**"
+      "title": "Go to Sign in on Acme Books",
+      "titleMarkdown": "Go to **Sign in** on Acme Books"
     },
     {
       "action": {

@@ -2,9 +2,9 @@
 
 Sign in, look something up in the help centre in a second tab, then switch the **billing period** to yearly and save.
 
-## 1. Go to **Sign in – Acme Books**
+## 1. Go to **Sign in** on Acme Books
 
-![Step 1: Go to Sign in – Acme Books](images/s00.png)
+![Step 1: Go to Sign in on Acme Books](images/s00.png)
 
 *Page: [Sign in – Acme Books](http://127.0.0.1:4517/index.html)*
 
@@ -51,7 +51,3 @@ Sign in, look something up in the help centre in a second tab, then switch the *
 ## 10. Click **Save**
 
 ![Step 10: Click Save](images/s10.png)
-
----
-
-*Made with [Showsteps](https://showsteps.vercel.app)*

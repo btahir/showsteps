@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { ElementDescriptor, Guide, Step, StepAction } from "../src";
-import { formatKey, generateStepTitle, regenerateTitles } from "../src";
+import { defaultGuideTitle, formatKey, generateStepTitle, regenerateTitles } from "../src";
 import { sample11Guide } from "./fixtures/sample11";
 import { expectGolden } from "./golden";
 
@@ -95,7 +95,11 @@ const CASES: Case[] = [
   ["press space key", { type: "press", key: " " }, undefined, "Press **Space**"],
   ["press never echoes a character typed into a password", { type: "press", key: "a" }, el({ tag: "input", inputType: "password", label: "Password" }), "Press a key in **Password**"],
   // navigate
-  ["navigate uses page title", { type: "navigate", url: "https://app.acme.test/settings" }, undefined, "Go to **Settings – Acme**", page("Settings – Acme")],
+  ["navigate uses page name and names the site", { type: "navigate", url: "https://app.acme.test/settings" }, undefined, "Go to **Settings** on Acme", page("Settings – Acme")],
+  ["navigate with a title that has no site part", { type: "navigate", url: "https://app.acme.test/settings" }, undefined, "Go to **Settings**", page("Settings")],
+  ["navigate splits on a pipe and takes the last part as the site", { type: "navigate", url: "https://x.test" }, undefined, "Go to **Pricing** on Acme Books", page("Pricing | Plans | Acme Books")],
+  ["navigate splits on a hyphen with spaces", { type: "navigate", url: "https://x.test" }, undefined, "Go to **Inbox** on Mail", page("Inbox - Mail")],
+  ["navigate keeps a hyphen inside a word", { type: "navigate", url: "https://x.test" }, undefined, "Go to **Sign-in**", page("Sign-in")],
   ["navigate falls back to hostname", { type: "navigate", url: "https://www.docs.acme.test/a/b?c=1" }, undefined, "Go to **docs.acme.test**", page()],
   ["navigate with unparsable url", { type: "navigate", url: "not a url" }, undefined, "Go to **not a url**", { url: "also bad" }],
   ["navigate title is escaped", { type: "navigate", url: "https://x.test" }, undefined, "Go to **Q1 \\[draft\\] report**", page("Q1 [draft] report")],
@@ -157,7 +161,7 @@ describe("generateStepTitle golden cases", () => {
 
   it("the five BRIEF examples appear verbatim", () => {
     const outs = new Set(CASES.map(([, a, tg, , p]) => t(a, tg, p ?? page())));
-    for (const ex of ["Click **Save**", 'Type "jane@example.com" in **Email**', "Select **Monthly** in **Billing period**", "Press **Enter**", "Go to **Settings \u2013 Acme**"]) expect(outs.has(ex), ex).toBe(true);
+    for (const ex of ["Click **Save**", 'Type "jane@example.com" in **Email**', "Select **Monthly** in **Billing period**", "Press **Enter**", "Go to **Settings** on Acme"]) expect(outs.has(ex), ex).toBe(true);
   });
 
   it("matches titles.golden.json (inputs and expected titles)", () => {
@@ -280,7 +284,8 @@ describe("titles: expected-steps.json from the fixture site", () => {
     }
   });
   it("the sample-11 guide's stored titles are what generateStepTitle produces", () => {
-    for (const s of sample11Guide().steps) expect(generateStepTitle(s), s.id).toBe(s.title);
+    const steps = sample11Guide().steps;
+    steps.forEach((s, i) => expect(generateStepTitle(s, steps[i - 1] ? { previousPage: steps[i - 1]!.page } : {}), s.id).toBe(s.title));
   });
 });
 
@@ -307,6 +312,43 @@ describe("secrets never leak", () => {
   it("select on a sensitive control hides the chosen option", () => {
     expect(t({ type: "select", value: "secret-a", optionText: "Secret A" }, el({ tag: "select", label: "Vault", sensitive: true }))).not.toContain("Secret A");
   });
+});
+
+describe("navigate titles name the site only when it changes", () => {
+  const nav = (title: string, url = "https://a.test/"): Pick<Step, "action" | "target" | "page"> => ({ action: { type: "navigate", url }, target: undefined, page: { url, title } });
+  it("same site as the previous step: page name only", () => {
+    expect(generateStepTitle(nav("Reports \u2013 Acme Books"), { previousPage: { url: "https://a.test/", title: "Dashboard \u2013 Acme Books" } })).toBe("Go to **Reports**");
+  });
+  it("different site: name it", () => {
+    expect(generateStepTitle(nav("Help \u2013 Acme Help"), { previousPage: { url: "https://a.test/", title: "Dashboard \u2013 Acme Books" } })).toBe("Go to **Help** on Acme Help");
+  });
+  it("previous step had no site part: name it", () => {
+    expect(generateStepTitle(nav("Help \u2013 Acme Help"), { previousPage: { url: "https://a.test/", title: "Home" } })).toBe("Go to **Help** on Acme Help");
+  });
+  it("the site comparison ignores case", () => {
+    expect(generateStepTitle(nav("Help \u2013 ACME books"), { previousPage: { url: "https://a.test/", title: "Home \u2013 Acme Books" } })).toBe("Go to **Help**");
+  });
+  it("regenerateTitles feeds the previous step in", () => {
+    const g = sample11Guide();
+    const out = regenerateTitles({ ...g, steps: g.steps.map((s) => ({ ...s, title: "stale" })) });
+    expect(out.steps[0]!.title).toBe("Go to **Sign in** on Acme Books");
+  });
+});
+
+describe("defaultGuideTitle", () => {
+  it.each([
+    ["Sign in \u2013 Acme Books", "https://a.test/", "Acme Books: Sign in"],
+    ["Sign in \u2014 Acme Books", undefined, "Acme Books: Sign in"],
+    ["Sign in | Acme Books", undefined, "Acme Books: Sign in"],
+    ["Sign in - Acme Books", undefined, "Acme Books: Sign in"],
+    ["Sign in \u00b7 Acme Books", undefined, "Acme Books: Sign in"],
+    ["Settings | Billing | Acme", undefined, "Acme: Settings"],
+    ["Dashboard", "https://app.acme.test/", "Dashboard"],
+    [undefined, "https://www.acme.test/x", "acme.test"],
+    ["", undefined, "Untitled guide"],
+    ["   ", "not a url", "Untitled guide"],
+  ])("%s", (title, url, expected) => expect(defaultGuideTitle(title, url)).toBe(expected));
+  it("never contains a date", () => expect(defaultGuideTitle("Sign in \u2013 Acme Books")).not.toMatch(/\d{4}|Sep|Oct/));
 });
 
 describe("formatKey", () => {

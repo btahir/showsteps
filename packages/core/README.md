@@ -33,6 +33,9 @@ generateStepTitle({ action: { type: "type", value: "", masked: true }, target: p
 // "Enter your password"      (masked and sensitive values never appear)
 generateStepTitle({ action: { type: "select", value: "m", optionText: "Monthly" }, target: period, page })
 // "Select **Monthly** in **Billing period**"
+generateStepTitle({ action: { type: "navigate", url }, page: { url, title: "Reports – Acme Books" } }, { previousPage })
+// "Go to **Reports**" (adds " on Acme Books" when the site differs from the previous step's)
+defaultGuideTitle("Sign in – Acme Books", url)   // "Acme Books: Sign in"
 
 const fresh = regenerateTitles(guide);        // pure; keeps titleEdited titles and note steps
 ```
@@ -42,9 +45,10 @@ Titles are one line and at most 160 characters. Names are picked from accessible
 ## Redaction and geometry
 
 ```ts
-const guide2 = applyAutoRedactions(guide);    // sensitive targets get an auto blur over their highlight box
+const guide2 = applyAutoRedactions(guide);    // sensitive targets get an automatic "mask" (field background + dots) over their highlight box
 autoRedactions(step);                         // Redaction[] for one step ([] when already covered)
 
+focusFrame(highlight, { width, height }, scale)   // 16:10 window around the ring for thumbnails and phone detail images
 cssToImageRect(rect, { devicePixelRatio: 2 })                       // outward-rounded image pixels
 cssToImageRect(rect, { devicePixelRatio: 2, scrollX, scrollY, origin: "document" })
 imageToCssRect(imageRect, space); clampRect(r, {width, height}); scaleRect(r, sx, sy);
@@ -54,7 +58,7 @@ flagLayout / flagRingPath / flagTabPath       // geometry of the brand highlight
 
 ## Rendering screenshots without a canvas
 
-`renderStepImage(png, step.screenshot, opts)` returns PNG bytes with the redactions burnt in (solid, pixelate or blur), the crop applied and the brand highlight drawn (spotlight dim, persimmon ring, white keyline, numbered tab; the tab flips below near the top edge and to the left for right-to-left pages). If a redaction is needed and the bytes cannot be rewritten (a JPEG), it throws `RenderError` instead of leaking pixels. A 2880x1800 image takes about 0.4 s.
+`renderStepImage(png, step.screenshot, opts)` returns PNG bytes with the redactions burnt in (mask, solid, pixelate or blur), the crop applied and then the brand highlight drawn (12% spotlight dim, persimmon ring, white keyline, numbered tab; the ring grows to carry the tab on small targets, and the tab uses `highlight.corner` or flips below near the top edge and to the left for right-to-left pages). If a redaction is needed and the bytes cannot be rewritten (a JPEG), it throws `RenderError` instead of leaking pixels. A 2880x1800 image takes about 0.4 s.
 
 `renderGuideImages(guide, images, opts)` does it for every visible step and returns an `ImageSource` (`Record<path, Uint8Array>`). The exporters call it for you. If your own renderer already did the work (the extension draws on a canvas), pass `imagesPrerendered: true` and the bytes pass through untouched.
 
@@ -64,10 +68,10 @@ Every exporter skips steps marked `skipped`, numbers the rest 1..n, and is deter
 
 ```ts
 // Markdown: guide.md + images/<id>.png (rendered). Without `images` it returns only guide.md but still links images/…
-const { files } = exportMarkdown(guide, { images });          // options: includeUrls, imageLinks, branding, imagesPrerendered
+const { files } = exportMarkdown(guide, { images });          // options: includeUrls, imageLinks, branding (credit, off by default), imagesPrerendered
 
 // HTML: one self-contained file. Images inlined, brand fonts embedded, print CSS, no scripts, no network.
-const html = exportHtml(guide, images);                        // options: includeUrls, branding, theme, css, embedFonts, lang
+const html = exportHtml(guide, images);                        // options: includeUrls, branding, theme, css, embedFonts, detailImages, lang
 
 // Playwright: an idiomatic @playwright/test file
 const spec = exportPlaywright(guide);                          // replay.spec.ts; see docs/schema.md for the replay rules

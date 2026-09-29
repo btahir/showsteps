@@ -49,10 +49,14 @@ export type StepAction =
   | { type: "hover" }
   | { type: "note" }; // human-only step with no page action
 
+/** Corner of the highlight ring the numbered tab grows out of. */
+export type TabCorner = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+
 export interface Redaction {
   rect: Rect;
-  style: "blur" | "pixelate" | "solid";
+  style: "blur" | "pixelate" | "solid" | "mask"; // "mask": a form field replaced by its background colour and a row of dots
   auto?: boolean; // added by auto-redaction rather than the user
+  label?: string; // what was covered, e.g. the field's accessible name ("Password"); shown as "Password blurred"
 }
 
 export interface Step {
@@ -69,7 +73,7 @@ export interface Step {
     height: number;
     devicePixelRatio: number;
     viewport: { width: number; height: number; scrollX: number; scrollY: number }; // CSS px
-    highlight?: Rect; // target box in image pixels; drawn at export time, never baked in
+    highlight?: Rect & { corner?: TabCorner }; // target box in image pixels; drawn at export time, never baked in. `corner`: where the recorder found the least text for the numbered tab
     redactions?: Redaction[];
     crop?: Rect; // optional export crop in image pixels
   };
