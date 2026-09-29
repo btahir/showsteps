@@ -16,8 +16,11 @@ import type { OriginalsPortMsg } from "../lib/originals";
 import { draftForFrame, viewOf } from "../lib/frame-pick";
 import type { FrameScan, FrameView } from "../lib/frame-pick";
 import type { AnyMessage, BarState, Broadcast, ControlReply, HelloReply, ScanReply, WorkerToTab } from "../lib/messages";
+import { installDevBridge } from "../lib/dev-bridge";
 
 const RECORDER_ID = "showsteps-recorder";
+/** storage.session key: a one-line reason the panel shows when recording ended without Stop. */
+const STOP_NOTICE_KEY = "stopNotice";
 const RECORDER_FILE = "recorder.js";
 const ALL_URLS = { origins: ["<all_urls>"] };
 /** How long unredacted originals outlive the last editor that held them (memory only). */
@@ -725,9 +728,19 @@ export default defineBackground(() => {
   // Access withdrawn mid-recording (Settings, or the user's site-access menu): stop cleanly.
   chrome.permissions.onRemoved.addListener((p) => {
     void ready.then(() => {
-      if (isActive(state) && state.scope === "window" && p.origins?.includes("<all_urls>")) void stop();
+      if (isActive(state) && state.scope === "window" && p.origins?.includes("<all_urls>")) {
+        // Say why in the panel (P6): the recording ended because access was withdrawn, not by Stop.
+        void stop({ openEditor: false }).then(() =>
+          chrome.storage.session.set({ [STOP_NOTICE_KEY]: "Site access was turned off, so recording stopped. The steps so far are saved." }).catch(() => {}),
+        );
+      }
     });
   });
+
+  // Owner-approved test hook, development builds only (see src/lib/dev-bridge.ts).
+  if (import.meta.env.MODE === "development") {
+    installDevBridge({ start: (w, t) => start(w, t), stop: (o) => stop(o), state: () => state });
+  }
 
   void updateBadge();
 });

@@ -18,8 +18,12 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function launch(opts: { colorScheme?: "light" | "dark"; deviceScaleFactor?: number } = {}): Promise<Harness> {
-  if (!existsSync(join(EXT_DIR, "manifest.json"))) throw new Error(`Build the e2e extension first: pnpm build:e2e (missing ${EXT_DIR})`);
+/** The store build (optional <all_urls>), for permission behaviour checks (P6). */
+export const STORE_DIR = resolve(here, "../.output/chrome-mv3-production");
+
+export async function launch(opts: { colorScheme?: "light" | "dark"; deviceScaleFactor?: number; extDir?: string } = {}): Promise<Harness> {
+  const EXT_DIR_ = opts.extDir ?? EXT_DIR;
+  if (!existsSync(join(EXT_DIR_, "manifest.json"))) throw new Error(`Build the extension first: pnpm build:e2e / build (missing ${EXT_DIR_})`);
   const userDataDir = mkdtempSync(join(tmpdir(), "showsteps-e2e-"));
   const channel = process.env.SHOWSTEPS_E2E_CHANNEL ?? "chromium";
   const context = await chromium.launchPersistentContext(userDataDir, {
@@ -32,8 +36,8 @@ export async function launch(opts: { colorScheme?: "light" | "dark"; deviceScale
     // Emulated deviceScaleFactor alone changes devicePixelRatio but not the pixels captureVisibleTab
     // returns; a real 2x screen needs the browser itself at scale 2.
     args: [
-      `--disable-extensions-except=${EXT_DIR}`,
-      `--load-extension=${EXT_DIR}`,
+      `--disable-extensions-except=${EXT_DIR_}`,
+      `--load-extension=${EXT_DIR_}`,
       ...(opts.deviceScaleFactor && opts.deviceScaleFactor !== 1 ? [`--force-device-scale-factor=${opts.deviceScaleFactor}`] : []),
     ],
   });

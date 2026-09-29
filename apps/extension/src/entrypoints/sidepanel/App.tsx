@@ -78,6 +78,19 @@ export function App() {
       .catch(() => setView({ kind: "library" }));
   }, [recording, session.guideId, view]);
 
+  // Recording ended without Stop (site access withdrawn): the worker leaves one line saying why.
+  useEffect(() => {
+    const show = (v: unknown) => {
+      if (typeof v !== "string" || !v) return;
+      setNotice(v);
+      void chrome.storage.session.remove("stopNotice").catch(() => {});
+    };
+    void chrome.storage.session.get("stopNotice").then((r) => show(r.stopNotice), () => {});
+    const onChange = (c: Record<string, chrome.storage.StorageChange>, area: string) => area === "session" && c.stopNotice && show(c.stopNotice.newValue);
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  }, []);
+
   // The "can't record this page" notice goes away once a step lands or recording ends.
   useEffect(() => {
     if (!recording || session.stepCount > 0) setNotice((n) => (n === BLOCKED_NOTICE ? undefined : n));
