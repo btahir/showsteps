@@ -227,6 +227,22 @@ button.crumb:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.lib-size {
+  flex: none;
+}
+.lib-interrupted {
+  color: var(--ss-warn);
+  font-weight: var(--ss-weight-semibold);
+}
+.lib-item:has(.lib-recover) {
+  flex-wrap: wrap;
+}
+.lib-recover {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 8px 84px;
+  width: 100%;
+}
 .lib-del {
   opacity: 0;
 }

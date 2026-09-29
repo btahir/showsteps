@@ -38,6 +38,30 @@ export interface GuideSummary {
   firstNumber?: number;
   /** Host of the first recorded page, to tell apart guides with the same title. */
   domain?: string;
+  /** Bytes on disk: guide JSON plus its screenshots. */
+  sizeBytes: number;
+  /** The recording stopped without Stop (browser closed or crashed): offer Recover or Discard. */
+  interrupted?: boolean;
+}
+
+/** storage.local key: id of the guide being recorded right now (survives a browser crash, unlike storage.session). */
+export const ACTIVE_KEY = "rec:active";
+/** storage.local key: guides whose recording never reached Stop. */
+export const INTERRUPTED_KEY = "rec:interrupted";
+
+export async function interruptedIds(): Promise<string[]> {
+  try {
+    const v = (await chrome.storage.local.get(INTERRUPTED_KEY))[INTERRUPTED_KEY];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function setInterrupted(id: string, on: boolean): Promise<void> {
+  const cur = await interruptedIds();
+  const next = on ? [...new Set([...cur, id])] : cur.filter((x) => x !== id);
+  await chrome.storage.local.set({ [INTERRUPTED_KEY]: next });
 }
 
 function hostOf(g: Guide): string | undefined {
@@ -69,7 +93,16 @@ export function db(): Promise<IDBPDatabase<ShowstepsDB>> {
 export const imageKey = (guideId: string, path: string) => `${guideId}/${path}`;
 
 export async function listGuides(): Promise<GuideSummary[]> {
-  const all = await (await db()).getAll("guides");
+  const d = await db();
+  const all = await d.getAll("guides");
+  // Sizes from the image records (a Blob knows its size without being read).
+  const sizes = new Map<string, number>();
+  let cursor = await d.transaction("images").store.openCursor();
+  while (cursor) {
+    sizes.set(cursor.value.guideId, (sizes.get(cursor.value.guideId) ?? 0) + (cursor.value.blob?.size ?? 0));
+    cursor = await cursor.continue();
+  }
+  const interrupted = new Set(await interruptedIds());
   return all
     .map((g) => {
       const visible = g.steps.filter((s) => !s.skipped);
@@ -84,6 +117,8 @@ export async function listGuides(): Promise<GuideSummary[]> {
         firstStep: visible[i],
         firstNumber: i >= 0 ? i + 1 : undefined,
         domain: hostOf(g),
+        sizeBytes: (sizes.get(g.id) ?? 0) + JSON.stringify(g).length,
+        ...(interrupted.has(g.id) ? { interrupted: true } : {}),
       };
     })
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
@@ -112,6 +147,7 @@ export async function mutateGuide(id: string, fn: (g: Guide) => Guide): Promise<
 }
 
 export async function deleteGuide(id: string): Promise<void> {
+  if (typeof chrome !== "undefined" && chrome.storage?.local) await setInterrupted(id, false).catch(() => {});
   const d = await db();
   const tx = d.transaction(["guides", "images"], "readwrite");
   await tx.objectStore("guides").delete(id);

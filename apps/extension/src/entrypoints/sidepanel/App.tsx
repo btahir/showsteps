@@ -1,6 +1,6 @@
 // Side panel (SPEC §2, §3, §7): library, the guide being recorded or reviewed, settings.
 import { useEffect, useRef, useState } from "react";
-import { deleteGuide, getImage } from "../../lib/db";
+import { deleteGuide, getImage, setInterrupted } from "../../lib/db";
 import type { GuideSummary } from "../../lib/db";
 import { APP_NAME, PROJECT_EXT, SITE_URL, SUPPORT_URL } from "../../config";
 import { openEditor, send, useLibrary, useSession, useToast } from "../../ui/hooks";
@@ -13,6 +13,13 @@ import { useTheme } from "../../ui/theme";
 import { loadExportPrefs, loadRedactPrefs, saveExportPrefs, saveRedactPrefs } from "../../lib/prefs";
 import type { ExportPrefs, RedactPrefs } from "../../lib/prefs";
 import type { ThemePref } from "../../ui/theme";
+
+/** "840 KB", "1.2 MB": the library's size column. */
+export function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /** Redaction presets in Settings (PLAN §3.7). IP and MAC addresses are on by default, phones and emails off. */
 const REDACT_SWITCHES: { key: keyof RedactPrefs; label: string; hint: string }[] = [
@@ -446,6 +453,8 @@ function Library({
                     </span>
                     <span className="dot" aria-hidden />
                     <span>recorded {relTime(g.createdAt)}</span>
+                    <span className="dot" aria-hidden />
+                    <span className="lib-size">{formatSize(g.sizeBytes)}</span>
                     {g.domain && (
                       <>
                         <span className="dot" aria-hidden />
@@ -453,8 +462,36 @@ function Library({
                       </>
                     )}
                   </span>
+                  {g.interrupted && <span className="lib-interrupted small">Recording was interrupted</span>}
                 </span>
               </button>
+              {g.interrupted && (
+                <span className="lib-recover">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    aria-label={`Recover ${g.title}`}
+                    onClick={async () => {
+                      await setInterrupted(g.id, false);
+                      await onDeleted();
+                      onOpen(g.id);
+                    }}
+                  >
+                    Recover
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    aria-label={`Discard ${g.title}`}
+                    onClick={async () => {
+                      await deleteGuide(g.id);
+                      await onDeleted();
+                    }}
+                  >
+                    Discard
+                  </button>
+                </span>
+              )}
               <button
                 type="button"
                 className="icon-btn lib-del"

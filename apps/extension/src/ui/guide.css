@@ -40,6 +40,15 @@
   font-size: 12.5px;
   color: var(--ss-ink-3);
 }
+.guide-meta .meta-action {
+  font-size: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.guide-meta .meta-action:hover {
+  color: var(--ss-ink);
+}
 .guide-meta .dot,
 .lib-meta .dot {
   width: 3px;

@@ -3,6 +3,7 @@
 import { localIso } from "../lib/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent as RKeyboardEvent, ReactNode } from "react";
+import { regenerateTitles } from "@showsteps/core";
 import type { Guide, Rect, Step } from "@showsteps/core";
 import { getImage } from "../lib/db";
 import {
@@ -638,6 +639,15 @@ export function GuideHeader({ ed, extra }: { ed: GuideEditor; extra?: ReactNode 
             <span className="mono">{domain}</span>
           </>
         )}
+        <span className="dot" aria-hidden />
+        <button
+          type="button"
+          className="link-btn meta-action"
+          title="Write the titles again from the recorded actions. Titles you edited stay as they are."
+          onClick={() => ed.apply((x) => ({ ...regenerateTitles(x), updatedAt: localIso() }), { announce: "Titles regenerated" })}
+        >
+          Regenerate titles
+        </button>
       </p>
       {extra}
     </header>
