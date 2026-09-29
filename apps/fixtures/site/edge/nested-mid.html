@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nested middle – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+  <style>
+    body { background:#fff; margin:0 }
+  </style>
+</head>
+<body>
+  <!-- Middle level of nested-frame.html (same origin as the top), embeds the cross-origin widget. -->
+  <div style="padding:10px 14px">
+    <p class="muted" style="margin:0 0 6px">Middle frame</p>
+    <iframe id="inner-frame" title="Inner widget" src="http://localhost:4517/edge/frame-inner.html" style="height:320px"></iframe>
+  </div>
+</body>
+</html>

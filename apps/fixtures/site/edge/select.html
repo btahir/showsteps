@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Selects – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E2k: a native select and an ARIA listbox. -->
+  <main>
+    <h1>Selects</h1>
+    <label for="country">Country</label>
+    <select id="country"><option value="">Choose…</option><option value="nl">Netherlands</option><option value="pt">Portugal</option></select>
+    <label id="size-label">Size</label>
+    <ul id="size" role="listbox" aria-labelledby="size-label" tabindex="0" style="list-style:none;padding:0;border:1px solid #b8c1cc;border-radius:8px;width:12em">
+      <li role="option" id="size-s" aria-selected="false" style="padding:6px 10px">Small</li>
+      <li role="option" id="size-m" aria-selected="false" style="padding:6px 10px">Medium</li>
+    </ul>
+    <label class="inline"><input id="agree" type="checkbox"> I agree to the terms</label>
+    <label class="inline" for="news"><input id="news" type="checkbox"> <span>Send me news</span></label>
+    <p id="drag-text">Select this sentence by dragging across it with the mouse.</p>
+    <button id="dbl" class="btn" type="button">Double-click me</button>
+    <button id="ctx" class="btn" type="button">Right-click me</button>
+  </main>
+  <script>
+    for (const li of document.querySelectorAll("#size [role=option]")) li.addEventListener("click", () => { for (const o of document.querySelectorAll("#size [role=option]")) o.setAttribute("aria-selected", String(o === li)); });
+    document.getElementById("ctx").addEventListener("contextmenu", (e) => e.preventDefault());
+  </script>
+</body>
+</html>

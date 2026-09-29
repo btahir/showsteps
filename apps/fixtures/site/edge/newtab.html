@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New tabs – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E4c/E4d and the tab-opening race: a target=_blank link, a window.open popup, and a same-tab
+       link to another origin (localhost). -->
+  <main>
+    <h1>New tabs</h1>
+    <p><a id="blank-link" class="btn" href="/edge/banner-b.html" target="_blank" rel="noopener">Open B in a new tab</a></p>
+    <p><button id="popup" class="btn" type="button">Open popup</button></p>
+    <p><a id="xorigin" class="btn" href="http://localhost:4517/edge/banner-b.html">Go to B on localhost</a></p>
+  </main>
+  <script>document.getElementById("popup").addEventListener("click", () => { window.open("/edge/banner-b.html", "popup", "width=700,height=500"); });</script>
+</body>
+</html>

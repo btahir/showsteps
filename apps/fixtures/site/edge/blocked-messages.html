@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blocked messages – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E7f/R10: this parent swallows every message event before anyone else sees it, so the frame
+       offset handshake cannot complete. Open it before recording starts (listeners added by an
+       already-loaded page run before a recorder injected later). -->
+  <main>
+    <h1>Blocked messages</h1>
+    <iframe id="blocked-frame" title="Blocked widget" src="http://localhost:4517/edge/frame-inner.html" style="height:330px"></iframe>
+  </main>
+  <script>addEventListener("message", (e) => e.stopImmediatePropagation(), true);</script>
+</body>
+</html>

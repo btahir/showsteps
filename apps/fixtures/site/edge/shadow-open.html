@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open shadow root – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E8/R3: input, button and password field inside an open shadow root, plus a nested open root. -->
+  <main>
+    <h1>Open shadow root</h1>
+    <div id="host" class="card"></div>
+    <div id="outer-host" class="card"></div>
+  </main>
+  <script>
+    const root = document.getElementById("host").attachShadow({ mode: "open" });
+    root.innerHTML = `
+      <style>label{display:block;font-weight:600;margin:10px 0 4px} input{padding:8px;border:1px solid #b8c1cc;border-radius:8px;width:16em} button{padding:8px 14px;border-radius:8px;border:1px solid #1f6f5c;background:#1f6f5c;color:#fff;font:600 15px system-ui}</style>
+      <label for="s-name">Display name</label><input id="s-name" type="text">
+      <label for="s-pass">Shadow password</label><input id="s-pass" type="password" value="Correct-Horse-9">
+      <p><button id="s-save" type="button">Save profile</button></p>
+      <p id="s-status" role="status"></p>`;
+    root.getElementById("s-save").addEventListener("click", () => { root.getElementById("s-status").textContent = "Saved"; });
+    const outer = document.getElementById("outer-host").attachShadow({ mode: "open" });
+    outer.innerHTML = `<div id="inner-host"></div>`;
+    const inner = outer.getElementById("inner-host").attachShadow({ mode: "open" });
+    inner.innerHTML = `<button id="deep-button" type="button" style="padding:8px 14px">Deep button</button>`;
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banner B – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E3d/E4b: blue page (the destination). -->
+  <header style="height:140px;background:#1a3fd1"></header>
+  <main>
+    <h1>Banner B</h1>
+    <p><a id="back-to-a" class="btn" href="/edge/banner-a.html">Back to A</a></p>
+    <button id="b-button" class="btn" type="button">Button on B</button>
+    <p id="b-status" role="status"></p>
+  </main>
+  <script>document.getElementById("b-button").addEventListener("click", () => { document.getElementById("b-status").textContent = "Clicked on " + location.host; });</script>
+</body>
+</html>

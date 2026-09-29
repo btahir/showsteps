@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Burst – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+  <style>
+    body { transition: none; }
+  </style>
+</head>
+<body>
+  <!-- E3a/E3b: each click increments the counter and sets the page hue to count*30 mod 360,
+       so a stored screenshot tells which click it was taken before (pixel (4,4) is page background). -->
+  <main>
+    <h1>Burst</h1>
+    <p>Clicks: <output id="count">0</output></p>
+    <button id="burst" class="btn primary" type="button">Add one</button>
+  </main>
+  <script>
+    let count = 0;
+    const paint = () => { document.body.style.background = `hsl(${(count * 30) % 360} 80% 60%)`; };
+    paint();
+    document.getElementById("burst").addEventListener("click", () => { count++; document.getElementById("count").textContent = String(count); paint(); });
+  </script>
+</body>
+</html>

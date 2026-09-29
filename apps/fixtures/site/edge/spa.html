@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Single-page app – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E9: pushState routes (Back works), and a hash link. -->
+  <header class="topbar"><nav>
+    <a id="nav-home" href="/edge/spa.html">Home</a>
+    <a id="nav-orders" href="/edge/spa.html?view=orders">Orders</a>
+    <a id="nav-hash" href="#details">Details</a>
+  </nav></header>
+  <main><h1 id="view-title">Home</h1><p id="details">Details anchor.</p></main>
+  <script>
+    const render = () => { const v = new URLSearchParams(location.search).get("view"); document.getElementById("view-title").textContent = v === "orders" ? "Orders" : "Home"; };
+    for (const id of ["nav-home", "nav-orders"]) document.getElementById(id).addEventListener("click", (e) => { e.preventDefault(); history.pushState({}, "", e.currentTarget.href); render(); });
+    addEventListener("popstate", render);
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editors – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E2d: textarea, plain contenteditable, and two rich editors built the way ProseMirror and
+       Lexical work: they cancel beforeinput and write the DOM themselves. (The libraries are not
+       vendored; these reproduce the event pattern the recorder has to handle.) -->
+  <main>
+    <h1>Editors</h1>
+    <label for="ta">Textarea</label><textarea id="ta"></textarea>
+    <label id="ce-label">Contenteditable</label><div id="ce" class="editable" contenteditable="true" aria-labelledby="ce-label"></div>
+    <label id="pm-label">ProseMirror-style</label><div id="pm" class="editable ProseMirror" contenteditable="true" role="textbox" aria-labelledby="pm-label" translate="no"><p><br></p></div>
+    <label id="lx-label">Lexical-style</label><div id="lx" class="editable" contenteditable="true" role="textbox" data-lexical-editor="true" aria-labelledby="lx-label"><p><br></p></div>
+    <label for="other">Other field</label><input id="other" type="text">
+  </main>
+  <script>
+    // Model-owned editors: the model holds the text; each beforeinput is cancelled and the DOM re-rendered.
+    function modelEditor(el, render) {
+      let text = "";
+      el.addEventListener("beforeinput", (e) => {
+        e.preventDefault();
+        if (e.inputType === "insertText" || e.inputType === "insertReplacementText") text += e.data ?? "";
+        else if (e.inputType === "deleteContentBackward") text = text.slice(0, -1);
+        else return;
+        render(el, text);
+        const sel = getSelection(); sel.selectAllChildren(el); sel.collapseToEnd();
+        el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: e.inputType, data: e.data }));
+      });
+    }
+    modelEditor(document.getElementById("pm"), (el, t) => { el.replaceChildren(); const p = document.createElement("p"); p.textContent = t; if (!t) p.append(document.createElement("br")); el.append(p); });
+    modelEditor(document.getElementById("lx"), (el, t) => { el.replaceChildren(); const p = document.createElement("p"); p.setAttribute("dir", "ltr"); const s = document.createElement("span"); s.setAttribute("data-lexical-text", "true"); s.textContent = t; p.append(s); el.append(p); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- R8: nothing on this page is secret. Order number (Luhn-failing, starts with 1), UUID, date,
+       a time and a version number, and a "Passenger name" field: 0 auto redactions expected. -->
+  <main>
+    <h1>Your booking</h1>
+    <div class="card">
+      <p>Order number <span id="order">1234 5678 9012 3456</span></p>
+      <p>Reference <span id="uuid">550e8400-e29b-41d4-a716-446655440000</span></p>
+      <p>Travel date <span id="date">2026-10-14</span> at <span id="time">10:30:15</span>, app version 2.14.3</p>
+      <label for="passenger">Passenger name</label>
+      <input id="passenger" type="text" value="Jane Doe">
+      <div class="actions"><button id="confirm" class="btn primary" type="button">Confirm booking</button></div>
+      <p id="status" role="status"></p>
+    </div>
+  </main>
+  <script>document.getElementById("confirm").addEventListener("click", () => { document.getElementById("status").textContent = "Booked"; });</script>
+</body>
+</html>

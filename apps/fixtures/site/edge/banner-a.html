@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banner A – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E3d: red page; one link navigates on click (plain href), one navigates in setTimeout(0). -->
+  <header style="height:140px;background:#d11a1a"></header>
+  <main>
+    <h1>Banner A</h1>
+    <p><a id="sync-link" class="btn" href="/edge/banner-b.html">Go to B now</a></p>
+    <p><a id="timeout-link" class="btn" href="#" >Go to B soon</a></p>
+    <p><a id="xorigin-link" class="btn" href="http://localhost:4517/edge/banner-b.html">Open B on localhost</a></p>
+  </main>
+  <script>
+    document.getElementById("timeout-link").addEventListener("click", (e) => { e.preventDefault(); setTimeout(() => { location.href = "/edge/banner-b.html"; }, 0); });
+  </script>
+</body>
+</html>

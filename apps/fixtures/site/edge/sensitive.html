@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensitive – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- R5/R6/R7: secrets on screen (mock data). The SSN, a Stripe-style key and a Luhn-valid card
+       arrive 600 ms after load; "Change password" pushes a route that adds a second password field. -->
+  <main>
+    <h1>Billing and security</h1>
+    <div class="card">
+      <label for="cur-password">Current password</label>
+      <input id="cur-password" type="password" autocomplete="current-password" value="Correct-Horse-9">
+      <label for="cc">Card number</label>
+      <input id="cc" type="text" autocomplete="cc-number" value="4242 4242 4242 4242">
+      <div id="late"></div>
+      <div class="actions">
+        <button id="refresh" class="btn" type="button">Refresh</button>
+        <a id="change-password" class="btn" href="/edge/sensitive.html?view=password">Change password</a>
+      </div>
+      <div id="route"></div>
+      <p id="status" role="status"></p>
+    </div>
+  </main>
+  <script>
+    setTimeout(() => {
+      document.getElementById("late").innerHTML =
+        '<p>SSN on file: <span id="ssn">123-45-6789</span></p>' +
+        '<p>Live key: <code id="token">sk_live_51HxxxxxxxxxxxxxxxxxxxxxxxxxxTEST</code></p>' +
+        '<p>Backup card: <span id="card2">5555 5555 5555 4444</span></p>';
+    }, 600);
+    const route = () => {
+      const on = new URLSearchParams(location.search).get("view") === "password";
+      document.getElementById("route").innerHTML = on ? '<label for="new-password">New password</label><input id="new-password" type="password" autocomplete="new-password">' : "";
+    };
+    document.getElementById("change-password").addEventListener("click", (e) => { e.preventDefault(); history.pushState({}, "", e.currentTarget.href); route(); });
+    addEventListener("popstate", route);
+    route();
+    document.getElementById("refresh").addEventListener("click", () => { document.getElementById("status").textContent = "Up to date"; });
+  </script>
+</body>
+</html>

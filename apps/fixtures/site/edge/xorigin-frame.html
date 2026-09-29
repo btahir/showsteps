@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cross-origin frame – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <!-- E7b/E7e/R3: served from 127.0.0.1, embeds the widget from localhost (another origin). -->
+  <main>
+    <h1>Cross-origin frame</h1>
+    <iframe id="pay-frame" title="Payment widget" src="http://localhost:4517/edge/frame-inner.html" style="height:330px"></iframe>
+  </main>
+</body>
+</html>

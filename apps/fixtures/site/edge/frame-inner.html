@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment widget – Acme Books edge</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/app.css">
+  <style>
+    body { background:#fff; margin:0 }
+  </style>
+</head>
+<body>
+  <!-- Inner page for the frame fixtures: a button, a password field and a card field. Mock data only. -->
+  <div style="padding:12px 16px">
+    <button id="inner-button" class="btn" type="button">Pay in frame</button>
+    <label for="inner-password">Frame password</label>
+    <input id="inner-password" type="password" autocomplete="current-password" value="Correct-Horse-9" style="width:16em">
+    <label for="inner-card">Card number</label>
+    <input id="inner-card" type="text" autocomplete="cc-number" value="4242 4242 4242 4242" style="width:16em">
+    <label for="inner-note">Note</label>
+    <input id="inner-note" type="text" style="width:16em">
+    <p id="inner-status" role="status"></p>
+  </div>
+  <script>document.getElementById("inner-button").addEventListener("click", () => { document.getElementById("inner-status").textContent = "Paid"; });</script>
+</body>
+</html>
